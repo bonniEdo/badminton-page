@@ -5,11 +5,13 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --color-paper: #Fdfcf8;
+  --color-ink: #3E3E3E;
+  --color-sage: #8A9A5B;
+  --color-stone: #E6E2DD;
+  --color-alert: #C0564D;
+  --font-serif: "Noto Serif TC", serif;
 }
 
 @media (prefers-color-scheme: dark) {
