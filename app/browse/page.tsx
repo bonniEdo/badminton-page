@@ -16,7 +16,6 @@ type Session = {
 };
 
 // API 基礎路徑
-const API_BASE_URL = "http://localhost:8080";
 
 export default function Browse() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -44,12 +43,12 @@ export default function Browse() {
         };
 
         // 1. 取得所有可報名的球局 (Active Games)
-        const fetchActive = fetch(`${API_BASE_URL}/api/games/activegames`, { method: "GET", headers });
+        const fetchActive = fetch(`/api/games/activegames`, { method: "GET", headers });
         
         // 2. 取得「我」已報名的球局 (Joined Games) - 需登入才查
         // 注意：這裡假設後端有 /api/games/joined 這支 API (即上一段對話新增的)
         const fetchJoined = token 
-          ? fetch(`${API_BASE_URL}/api/games/joined`, { method: "GET", headers })
+          ? fetch(`/api/games/joined`, { method: "GET", headers })
           : Promise.resolve(null);
 
         // 平行執行請求
@@ -123,7 +122,7 @@ export default function Browse() {
         nickname: joinForm.nickname 
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/games/${selectedGameId}/join`, {
+      const res = await fetch(`/api/games/${selectedGameId}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
