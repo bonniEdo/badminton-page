@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trash2, Plus, Search, LogOut, UserMinus, CheckCircle, Clock, Users } from "lucide-react"; 
 import { useRouter } from "next/navigation";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
 
 // 資料介面
 interface Session {
@@ -51,11 +53,11 @@ export default function Dashboard() {
         };
 
         // 1. 取得「我開的團」 (原本的邏輯)
-        const resHosted = await fetch("/api/games/mygame", { headers }); // 假設這是您原本查自己開團的 API
+        const resHosted = await fetch(`${API_URL}/api/games/mygame`, { headers }); // 假設這是您原本查自己開團的 API
         const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
 
         // 2. 取得「我報名的團」 (剛剛新增的 API)
-        const resJoined = await fetch("/api/games/joined", { headers });
+        const resJoined = await fetch(`${API_URL}/api/games/joined`, { headers });
         const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
 
         // 資料轉換 Helper (處理 DB 大寫欄位轉前端小寫)
@@ -92,7 +94,7 @@ export default function Dashboard() {
     if (!window.confirm("確定要取消報名嗎？")) return;
 
     try {
-      const resCancelJoined = await fetch(`/api/games/${id}/join`, {
+      const resCancelJoined = await fetch(`${API_URL}/api/games/${id}/join`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +124,7 @@ export default function Dashboard() {
       
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch(`/api/games/delete/${id}`, {
+        const res = await fetch(`${API_URL}/api/games/delete/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -169,7 +171,7 @@ export default function Dashboard() {
       };
 
       // 2. 呼叫後端 API
-      const res = await fetch("/api/games/create", {
+      const res = await fetch(`${API_URL}/api/games/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

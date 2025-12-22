@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const API_URL = "";
+const API_URL = "http://localhost:8080";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,7 +19,6 @@ export default function LoginPage() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 設定路徑：假設你的登入路由是 /api/user/login，註冊是 /api/user/create
     const endpoint = isLogin ? "/api/user/login" : "/api/user/create"; 
 
     try {
