@@ -2,168 +2,141 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, X } from "lucide-react";
+import { ArrowLeft, CheckCircle, X, Clock, MapPin, Calendar, Users, User } from "lucide-react";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
-
-// 定義球局型別
+// 定義型別
 type Session = {
   id: number;
   hostName: string;
   title: string;
   date: string;
+  time: string;      // 開始時間
+  endTime: string;   // 結束時間
   location: string;
   currentPlayers: number;
   maxPlayers: number;
 };
 
-// API 基礎路徑
+type Participant = {
+  Username: string;
+  Status: string;
+};
 
 export default function Browse() {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [joinedIds, setJoinedIds] = useState<number[]>([]); // 這裡存放已報名的 ID
+  const [joinedIds, setJoinedIds] = useState<number[]>([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // --- Modal 相關狀態 ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [joinForm, setJoinForm] = useState({ nickname: "", phone: "" });
 
-  // 進頁面抓資料
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const token = localStorage.getItem("token");
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
 
-        // 定義 Header
-        const headers = {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        };
+      const fetchActive = fetch(`${API_URL}/api/games/activegames`, { method: "GET", headers });
+      const fetchJoined = token 
+        ? fetch(`${API_URL}/api/games/joined`, { method: "GET", headers })
+        : Promise.resolve(null);
 
-        // 1. 取得所有可報名的球局 (Active Games)
-        const fetchActive = fetch(`${API_URL}/api/games/activegames`, { method: "GET", headers });
-        
-        // 2. 取得「我」已報名的球局 (Joined Games) - 需登入才查
-        // 注意：這裡假設後端有 /api/games/joined 這支 API (即上一段對話新增的)
-        const fetchJoined = token 
-          ? fetch(`${API_URL}/api/games/joined`, { method: "GET", headers })
-          : Promise.resolve(null);
+      const [resActive, resJoined] = await Promise.all([fetchActive, fetchJoined]);
+      const jsonActive = await resActive.json();
 
-        // 平行執行請求
-        const [resActive, resJoined] = await Promise.all([fetchActive, fetchJoined]);
+      if (!resActive.ok || !jsonActive.success) throw new Error(jsonActive.message || "取得球局失敗");
 
-        // 處理 Active Games
-        const jsonActive = await resActive.json();
-        if (!resActive.ok || !jsonActive.success) {
-          throw new Error(jsonActive.message || "取得球局失敗");
-        }
-
-        const mapped: Session[] = (jsonActive.data || []).map((g: any) => ({
+      const mapped: Session[] = (jsonActive.data || []).map((g: any) => {
+        const fullDt = g.GameDateTime ?? "";
+        return {
           id: g.GameId,
           hostName: g.hostName,
           title: g.Title,
-          date: String(g.GameDateTime).slice(0, 10),
+          date: fullDt.slice(0, 10),
+          time: fullDt.includes('T') ? fullDt.split('T')[1].slice(0, 5) : fullDt.slice(11, 16),
+          endTime: (g.EndTime ?? "").slice(0, 5),
           location: g.Location ?? "",
           currentPlayers: Number(g.CurrentPlayers),
           maxPlayers: Number(g.MaxPlayers),
-        }));
-        setSessions(mapped);
+        };
+      });
+      setSessions(mapped);
 
-        // 處理 Joined Games (若有登入且成功取得)
-        if (resJoined && resJoined.ok) {
-          const jsonJoined = await resJoined.json();
-          if (jsonJoined.success && Array.isArray(jsonJoined.data)) {
-            // 提取所有已報名的 GameId 放進 state
-            // 注意：後端回傳的可能是 joinedGames 陣列，需確認欄位結構 (這裡是假設 .GameId)
-            const myIds = jsonJoined.data.map((g: any) => g.GameId);
-            setJoinedIds(myIds);
-          }
+      if (resJoined && resJoined.ok) {
+        const jsonJoined = await resJoined.json();
+        if (jsonJoined.success && Array.isArray(jsonJoined.data)) {
+          setJoinedIds(jsonJoined.data.map((g: any) => g.GameId));
         }
-
-      } catch (e: any) {
-        setError(e.message || "未知錯誤");
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (e: any) {
+      setError(e.message || "未知錯誤");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
 
-  // --- Modal 開啟邏輯 ---
-  const handleOpenModal = (id: number) => {
+  const handleOpenModal = async (session: Session) => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      alert("請先登入才能報名！");
-      return;
-    }
-    setSelectedGameId(id);
+    if (!token) return alert("請先登入才能報名！");
+
+    setSelectedSession(session);
     setJoinForm({ nickname: "", phone: "" });
     setIsModalOpen(true);
+    setLoadingParticipants(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/games/${session.id}/players`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success) setParticipants(json.data);
+    } catch (err) {
+      console.error("抓取名單失敗", err);
+    } finally {
+      setLoadingParticipants(false);
+    }
   };
 
-  // --- 送出報名 ---
   const submitJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedGameId) return;
-    if (!joinForm.phone) {
-      alert("請填寫聯絡電話");
-      return;
-    }
-
+    if (!selectedSession) return;
     const token = localStorage.getItem("token");
 
     try {
-      const payload = {
-        phone: joinForm.phone,
-        nickname: joinForm.nickname 
-      };
-
-      const res = await fetch(`${API_URL}/api/games/${selectedGameId}/join`, {
+      const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ phone: joinForm.phone, nickname: joinForm.nickname }),
       });
-
       const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "報名失敗");
-      }
+      if (!res.ok || !json.success) throw new Error(json.message || "報名失敗");
 
       alert(json.message);
-      
-      // 成功後，把這個 ID 加入 joinedIds，這樣橘色標籤會立刻出現
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === selectedGameId
-            ? { ...session, currentPlayers: session.currentPlayers + 1 }
-            : session
-        )
-      );
+      fetchData(); 
       setIsModalOpen(false);
-
     } catch (error: any) {
-      console.error(error);
-      alert(error.message || "發生錯誤，請稍後再試");
+      alert(error.message);
     }
   };
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif relative">
       <nav className="p-6 border-b border-stone bg-white sticky top-0 z-10">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center text-sm text-gray-500 hover:text-sage transition"
-        >
+        <Link href="/dashboard" className="inline-flex items-center text-sm text-gray-500 hover:text-sage transition">
           <ArrowLeft size={16} className="mr-2" /> 返回我的頁面
         </Link>
       </nav>
@@ -178,74 +151,36 @@ export default function Browse() {
           <p className="text-gray-400 text-sm italic">載入中...</p>
         ) : error ? (
           <p className="text-alert text-sm">取得資料失敗：{error}</p>
-        ) : sessions.length === 0 ? (
-          <p className="text-gray-400 text-sm italic">目前沒有可報名的球局</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sessions.map((session) => {
-              // 判斷是否已報名
               const isJoined = joinedIds.includes(session.id);
-              const isFull = session.currentPlayers >= session.maxPlayers;
-
               return (
                 <div
                   key={session.id}
-                  className={`relative p-6 border transition-all duration-300 overflow-hidden ${
-                    isJoined
-                      ? "border-orange-300 bg-orange-50/50" // 若已報名，背景稍微帶一點點橘色
-                      : "border-stone bg-white hover:border-gray-400"
+                  onClick={() => handleOpenModal(session)}
+                  className={`relative p-6 border transition-all duration-300 overflow-hidden cursor-pointer ${
+                    isJoined ? "border-orange-300 bg-orange-50/50" : "border-stone bg-white hover:border-gray-400"
                   }`}
                 >
-                  {/* 🔥 右上角橘色標籤 (已報名) */}
                   {isJoined && (
                     <div className="absolute top-0 right-0">
-                      <div className="bg-orange-400 text-white text-xs px-3 py-1 font-bold tracking-wider shadow-sm rounded-bl-lg">
-                        已報名
-                      </div>
+                      <div className="bg-orange-400 text-white text-xs px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div>
                     </div>
                   )}
-
                   <div className="flex justify-between items-start mb-4 mt-2">
-                    <span className="text-xs bg-stone/30 px-2 py-1 rounded text-gray-600">
-                      主揪 ID：{session.hostName}
-                    </span>
-                    <span className="text-xs font-sans text-gray-500 flex items-center gap-1">
-                      {session.currentPlayers} / {session.maxPlayers}
-                    </span>
+                    <span className="text-xs bg-stone/30 px-2 py-1 rounded text-gray-600">主揪：{session.hostName}</span>
+                    <span className="text-xs font-sans text-gray-500 flex items-center gap-1">{session.currentPlayers} / {session.maxPlayers}</span>
                   </div>
-
                   <h3 className="text-xl mb-2">{session.title}</h3>
-
                   <div className="text-sm text-gray-500 font-sans space-y-1 mb-6">
                     <p>📅 {session.date}</p>
+                    <p>🕒 {session.time} - {session.endTime}</p>
                     <p>📍 {session.location}</p>
                   </div>
-
-                  {isJoined ? (
-                    <button
-                      disabled
-                      className="w-full py-2 border border-orange-300 text-orange-400 bg-white 
-       cursor-default flex items-center justify-center gap-2 opacity-80"
-                    >
-                      <CheckCircle size={16} /> 報名成功
-                    </button>
-                  ) : isFull ? (
-                    <button
-                      onClick={() => handleOpenModal(session.id)}
-                      className="w-full py-2 bg-yellow-500 text-white hover:bg-yellow-600 
-       transition-colors text-sm tracking-widest"
-                    >
-                      排入候補
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleOpenModal(session.id)}
-                      className="w-full py-2 bg-ink text-white hover:bg-sage transition-colors 
-       text-sm tracking-widest"
-                    >
-                      報名 (+1)
-                    </button>
-                  )}
+                  <button className={`w-full py-2 text-sm tracking-widest transition ${isJoined ? 'border border-orange-300 text-orange-400' : 'bg-ink text-white hover:bg-sage'}`}>
+                    {isJoined ? "查看詳情" : "報名 (+1)"}
+                  </button>
                 </div>
               );
             })}
@@ -253,63 +188,91 @@ export default function Browse() {
         )}
       </div>
 
-      {/* --- Modal 保持不變 --- */}
-      {isModalOpen && (
+      {/* --- Modal 視窗 --- */}
+      {isModalOpen && selectedSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-8 max-w-md w-full shadow-xl relative animate-in fade-in zoom-in duration-200">
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <X size={20} />
-            </button>
-            <h2 className="text-xl tracking-widest text-sage mb-6 border-l-4 border-sage pl-3">
-              確認報名
-            </h2>
-            <form onSubmit={submitJoin} className="space-y-4">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">暱稱 (選填)</label>
-                <input
-                  type="text"
-                  value={joinForm.nickname}
-                  onChange={(e) => setJoinForm({...joinForm, nickname: e.target.value})}
-                  className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40"
-                  placeholder="請輸入如何稱呼您"
-                />
+          <div className="bg-white p-8 max-w-md w-full shadow-xl relative animate-in fade-in zoom-in duration-200 border border-stone">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            
+            <h2 className="text-xl tracking-widest text-sage mb-4 border-l-4 border-sage pl-3">球局詳情</h2>
+            
+            <div className="mb-6 space-y-1 text-sm text-gray-600 font-sans">
+               <p className="text-lg font-serif text-ink mb-2">{selectedSession.title}</p>
+               <p className="flex items-center gap-2"><Calendar size={14} className="text-sage"/> {selectedSession.date}</p>
+               <p className="flex items-center gap-2"><Clock size={14} className="text-sage"/> {selectedSession.time} - {selectedSession.endTime}</p>
+               <p className="flex items-center gap-2"><MapPin size={14} className="text-sage"/> {selectedSession.location}</p>
+            </div>
+
+            {/* --- 優化後的已報名名單區塊 --- */}
+            <div className="mb-8 border-t border-stone pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
+                  <Users size={14}/> 已報名名單 
+                </h3>
+                <span className="text-[10px] text-sage font-sans italic">
+                  Currently {selectedSession.currentPlayers} / {selectedSession.maxPlayers}
+                </span>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">聯絡電話 (必填)</label>
-                <input
-                  type="tel"
-                  required
-                  value={joinForm.phone}
-                  onChange={(e) => setJoinForm({...joinForm, phone: e.target.value})}
-                  className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
-                  placeholder="0912-345-678"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">
-                  * 此電話僅供主揪聯絡使用，不會公開顯示。
-                </p>
+              
+              <div className="min-h-[60px] max-h-40 overflow-y-auto custom-scrollbar">
+                {loadingParticipants ? (
+                  <p className="text-xs italic text-gray-300 animate-pulse">尋找夥伴中...</p>
+                ) : participants.length === 0 ? (
+                  <p className="text-xs italic text-gray-300">目前還沒有人，期待你的加入</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {participants.map((p, i) => (
+                      <div 
+                        key={i} 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans transition-all
+                          ${p.Status === 'WAITLIST' 
+                            ? 'bg-stone-50 text-stone-400 border border-dashed border-stone-200' 
+                            : 'bg-sage/5 text-sage border border-sage/10 hover:bg-sage/10 shadow-sm'
+                          }`}
+                      >
+                        <User size={10} className={p.Status === 'WAITLIST' ? 'text-stone-300' : 'text-sage/60'} />
+                        <span>{p.Username}</span>
+                        {p.Status === 'WAITLIST' && (
+                          <span className="bg-orange-100 text-orange-500 text-[8px] px-1 rounded ml-0.5">候</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2 border border-gray-300 text-gray-500 hover:bg-gray-50 transition"
-                >
-                  取消
+            </div>
+
+            {/* --- 報名表單 (若已報名則隱藏) --- */}
+            {!joinedIds.includes(selectedSession.id) ? (
+              <form onSubmit={submitJoin} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-gray-400 mb-1">暱稱</label>
+                    <input type="text" value={joinForm.nickname} onChange={(e) => setJoinForm({...joinForm, nickname: e.target.value})} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm" placeholder="你的名" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-gray-400 mb-1">聯絡電話</label>
+                    <input type="tel" required value={joinForm.phone} onChange={(e) => setJoinForm({...joinForm, phone: e.target.value})} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm font-sans" placeholder="09xx..." />
+                  </div>
+                </div>
+                <button type="submit" className={`w-full py-2 text-white text-sm tracking-widest transition ${selectedSession.currentPlayers >= selectedSession.maxPlayers ? 'bg-yellow-500' : 'bg-sage shadow-md'}`}>
+                  {selectedSession.currentPlayers >= selectedSession.maxPlayers ? "排入候補" : "確認報名"}
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 bg-sage text-white hover:bg-sage/90 transition shadow-md"
-                >
-                  確認送出
-                </button>
+              </form>
+            ) : (
+              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm">
+                已經成功預約這次相遇
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f9f9f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
+      `}</style>
     </div>
   );
 }
