@@ -13,6 +13,7 @@ interface Session {
   date: string;
   time: string;
   location: string;
+  endTime: string;
   maxPlayers?: number | string;
   price?: number;
   myStatus?: string; // 用來存 'CONFIRMED' 或 'WAITLIST'
@@ -68,6 +69,7 @@ export default function Dashboard() {
             date: (g.GameDateTime ?? "").slice(0, 10),
             time: (g.GameDateTime ?? "").slice(11, 16),
             location: g.Location ?? g.Venue,
+            endTime:(g.EndTime ?? ""),
             maxPlayers: g.MaxPlayers,
             price: g.Price,
             myStatus: g.MyStatus, // 取得狀態
@@ -143,6 +145,7 @@ export default function Dashboard() {
     gameDate: "",
     gameTime: "",
     location: "",
+    endTime:"",
     maxPlayers: "",
     price: "",
     phone: "",
@@ -164,6 +167,7 @@ export default function Dashboard() {
         title: newSession.title,
         gameDate: newSession.gameDate,
         gameTime: newSession.gameTime,
+        endTime: newSession.endTime,
         location: newSession.location,
         maxPlayers: Number(newSession.maxPlayers),
         price: Number(newSession.price),
@@ -199,6 +203,7 @@ export default function Dashboard() {
         // 直接使用表單輸入的日期時間顯示，體驗較好
         date: newSession.gameDate,
         time: newSession.gameTime,
+        endTime: newSession.endTime,
         location: createdGame.Location,
         maxPlayers: createdGame.MaxPlayers,
         price: createdGame.Price,
@@ -216,6 +221,7 @@ export default function Dashboard() {
         gameDate: "",
         gameTime: "",
         location: "",
+        endTime:"",
         maxPlayers: "",
         price: "",
         phone: "",
@@ -362,24 +368,34 @@ export default function Dashboard() {
                 placeholder="例：週五流汗局"
               />
             </div>
+            <div>
+                  <label className="block text-xs text-gray-400 mb-1">日期</label>
+                  <input
+                    required
+                    type="date"
+                    value={newSession.gameDate}
+                    onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })}
+                    className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
+                  />
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">日期</label>
-                <input
-                  required
-                  type="date"
-                  value={newSession.gameDate}
-                  onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })}
-                  className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">時間</label>
+            <div>
+                <label className="block text-xs text-gray-400 mb-1">開始時間</label>
                 <input
                   required
                   type="time"
                   value={newSession.gameTime}
                   onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })}
+                  className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">結束時間</label>
+                <input
+                  required
+                  type="time"
+                  value={newSession.endTime} // 假設 state 名稱為 endTime
+                  onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })}
                   className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
                 />
               </div>
