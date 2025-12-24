@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Trash2, Plus, Search, LogOut, UserMinus, CheckCircle, Clock, Users, X, Phone, MapPin } from "lucide-react"; 
+import { 
+  Trash2, Plus, Search, LogOut, UserMinus, 
+  CheckCircle, Clock, Users, X, Phone, MapPin, User, Banknote
+} from "lucide-react"; 
 import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
@@ -108,13 +111,12 @@ export default function Dashboard() {
     setLoadingParticipants(true);
     try {
       const token = localStorage.getItem("token");
-      // 假設後端有提供取得報名人的 API 路徑如下
       const res = await fetch(`${API_URL}/api/games/${session.id}/players`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
       if (json.success) {
-        setParticipants(json.data); // data 格式預期為 [{Username: '...', Status: '...'}, ...]
+        setParticipants(json.data); 
       }
     } catch (err) {
       console.error("無法取得名單", err);
@@ -125,7 +127,7 @@ export default function Dashboard() {
 
   // --- 取消報名 / 退出 ---
   const handleLeave = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // 防止觸發打開視窗
+    e.stopPropagation(); 
     const token = localStorage.getItem('token'); 
     if (!window.confirm("確定要取消報名嗎？")) return;
 
@@ -147,7 +149,7 @@ export default function Dashboard() {
 
   // --- 刪除自己開的團 ---
   const handleDelete = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // 防止觸發打開視窗
+    e.stopPropagation(); 
     if (!confirm("確定要取消這個羽球聚會嗎？此操作無法復原。")) return;
     const token = localStorage.getItem("token");
     try {
@@ -185,7 +187,7 @@ export default function Dashboard() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "開團失敗");
       alert("開團成功！");
-      fetchData(); // 重新整理列表
+      fetchData(); 
       setNewSession({ title: "", gameDate: "", gameTime: "", location: "", endTime:"", maxPlayers: "", price: "", phone: "", });
     } catch (err: any) {
       alert(err.message);
@@ -334,36 +336,71 @@ export default function Dashboard() {
               <p className="flex items-center gap-3"><CalendarIcon /> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <p className="flex items-center gap-3"><MapPin size={18} className="text-sage" /> {selectedSession.location}</p>
               <p className="flex items-center gap-3"><Phone size={18} className="text-sage" /> 團主電話: {selectedSession.phone || "未提供"}</p>
-              <p className="flex items-center gap-3"><Users size={18} className="text-sage" /> 人數: {selectedSession.currentPlayers} / {selectedSession.maxPlayers} 人</p>
-              <p className="text-sage font-medium text-lg mt-2">費用: ${selectedSession.price}</p>
+              <p className="flex items-center gap-3"><Banknote size={18} className="text-sage" /> 費用: ${selectedSession.price}</p>
             </div>
 
+            {/* --- 已報名人清單：文青風標籤樣式 --- */}
             <div className="border-t border-stone pt-6">
-              <h3 className="text-sm tracking-widest mb-4 text-ink">已報名人清單</h3>
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm tracking-widest text-ink flex items-center gap-2">
+                  已報名人清單 
+                </h3>
+                <span className="text-[10px] text-sage font-sans italic">
+                  目前人數： {selectedSession.currentPlayers} / {selectedSession.maxPlayers}
+                </span>
+              </div>
+
+              <div className="min-h-[60px] max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                 {loadingParticipants ? (
-                  <p className="text-xs text-gray-400 italic">名單載入中...</p>
+                  <p className="text-xs italic text-gray-400 animate-pulse font-sans">尋找夥伴中...</p>
                 ) : participants.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">目前尚無人報名</p>
+                  <p className="text-xs italic text-gray-400 font-sans">目前尚無人報名</p>
                 ) : (
-                  participants.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between bg-stone/10 p-2 text-xs">
-                      <span>{p.Username}</span>
-                      {p.Status === 'WAITLIST' && <span className="text-[10px] text-yellow-600">(候補)</span>}
-                    </div>
-                  ))
+                  <div className="flex flex-wrap gap-2">
+                    {participants.map((p, i) => (
+                      <div 
+                        key={i} 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans transition-all
+                          ${p.Status === 'WAITLIST' 
+                            ? 'bg-stone-50 text-stone-400 border border-dashed border-stone-200' 
+                            : 'bg-sage/5 text-sage border border-sage/10 hover:bg-sage/10 shadow-sm'
+                          }`}
+                      >
+                        <User size={10} className={p.Status === 'WAITLIST' ? 'text-stone-300' : 'text-sage/60'} />
+                        <span>{p.Username}</span>
+                        {p.Status === 'WAITLIST' && (
+                          <span className="bg-orange-100 text-orange-500 text-[8px] px-1 rounded ml-0.5 font-bold">候</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
 
-            <button onClick={() => setSelectedSession(null)} className="w-full mt-8 py-2 border border-stone text-gray-400 hover:bg-stone/10 transition-all text-xs">關閉視窗</button>
+            <div className="flex justify-end mt-20">
+              <button 
+                onClick={() => setSelectedSession(null)} 
+                className=" border border-stone text-gray-500 hover:text-sage hover:border-sage hover:bg-sage/5 transition-all flex items-center justify-center text-lg font-serif shadow-sm"
+              >
+                閉
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* 登出按鈕 */}
       <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white border border-stone text-gray-500 hover:text-red-400 hover:border-red-400 shadow-md transition-all text-sm z-50">
         <LogOut size={16} /> 登出
       </button>
+
+      {/* 自定義捲軸樣式 */}
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
+      `}</style>
     </div>
   );
 }
