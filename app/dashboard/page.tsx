@@ -7,8 +7,14 @@ import {
 } from "lucide-react"; 
 import { useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const isDev = process.env.NODE_ENV === 'development';
 
+// 判斷是否在瀏覽器中執行且網域不是 localhost
+const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+
+// 如果在正式環境，API_URL 必須是空字串 "" (代表使用相對路徑)
+// 如果在開發環境，才連向 http://localhost:3000
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 // 資料介面
 interface Session {
   id: number;

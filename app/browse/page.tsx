@@ -3,8 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, X, Clock, MapPin, Calendar, Users, User } from "lucide-react";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const isDev = process.env.NODE_ENV === 'development';
 
+// 判斷是否在瀏覽器中執行且網域不是 localhost
+const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+
+// 如果在正式環境，API_URL 必須是空字串 "" (代表使用相對路徑)
+// 如果在開發環境，才連向 http://localhost:3000
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 // 定義型別
 type Session = {
   id: number;
@@ -248,7 +254,6 @@ export default function Browse() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] text-gray-400 mb-1">暱稱</label>
-                    <input type="text" value={joinForm.nickname} onChange={(e) => setJoinForm({...joinForm, nickname: e.target.value})} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm" placeholder="你的名" />
                   </div>
                   <div>
                     <label className="block text-[10px] text-gray-400 mb-1">聯絡電話</label>

@@ -1,8 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // 建議加上 useEffect
 import { useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+// 保持在組件外面定義是 OK 的，但要確保 process 存在
+const isDev = process.env.NODE_ENV === 'development';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isDev ? "http://localhost:3000" : "");
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +22,8 @@ export default function LoginPage() {
     e.preventDefault();
 
     const endpoint = isLogin ? "/api/user/login" : "/api/user/create"; 
+    console.log("正在請求的完整網址:", `${API_URL}${endpoint}`); // 加這行 debug
+
 
     try {
       const res = await fetch(`${API_URL}${endpoint}`, {
