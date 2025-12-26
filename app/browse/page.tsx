@@ -291,38 +291,38 @@ export default function Browse() {
               <form onSubmit={submitJoin} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">報名人數</label>
+                    <label className="block text-[10px] text-gray-400 mb-1 font-sans uppercase tracking-widest font-bold">報名人數</label>
                     <select 
                       value={joinForm.numPlayers} 
                       onChange={(e) => setJoinForm({...joinForm, numPlayers: Number(e.target.value)})}
-                      className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm font-sans cursor-pointer"
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/40 transition-all rounded-sm text-sm font-sans cursor-pointer h-[40px]"
                     >
-                      <option value={1}>1 </option>
-                      <option value={2}>2 </option>
+                      <option value={1}>1 位</option>
+                      <option value={2}>2 位</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">聯絡電話</label>
+                    <label className="block text-[10px] text-gray-400 mb-1 font-sans uppercase tracking-widest font-bold">聯絡電話</label>
                     <input 
                       type="tel" 
                       required 
                       value={joinForm.phone} 
                       onChange={(e) => setJoinForm({...joinForm, phone: e.target.value})} 
-                      className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm font-sans" 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/40 transition-all rounded-sm text-sm font-sans h-[40px]" 
                       placeholder="09xx..." 
                     />
                   </div>
                 </div>
                 <button 
                   type="submit" 
-                  className={`w-full py-2 text-white text-sm tracking-widest transition shadow-md
-                    ${selectedSession.currentPlayers >= selectedSession.maxPlayers ? 'bg-yellow-500' : 'bg-sage'}`}
+                  className={`w-full py-3 text-white text-sm tracking-widest transition shadow-md rounded-sm
+                    ${selectedSession.currentPlayers >= selectedSession.maxPlayers ? 'bg-yellow-500' : 'bg-sage hover:bg-ink'}`}
                 >
                   {selectedSession.currentPlayers >= selectedSession.maxPlayers ? "排入候補" : "確認報名"}
                 </button>
               </form>
             ) : (
-              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest uppercase">
+              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest">
                 已經成功預約這次相遇
               </div>
             )}

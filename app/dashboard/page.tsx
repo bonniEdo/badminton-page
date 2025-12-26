@@ -174,13 +174,12 @@ export default function Dashboard() {
         </Link>
       </nav>
 
-      {/* --- 頁籤導覽列 --- */}
       <div className="max-w-4xl mx-auto px-6 mt-10">
         <div className="flex justify-center border-b border-stone/30 gap-12 text-sm tracking-[0.2em]">
           {[
             { id: "joined", label: "我報名的" },
             { id: "hosted", label: "我發布的" },
-            { id: "create", label: "發起開團" },
+            { id: "create", label: "創建新局" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -230,7 +229,7 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* === 分頁：已發布的球局 (格式與報名一致) === */}
+        {/* === 分頁：已發布的球局 === */}
         {activeTab === "hosted" && (
           <section className="animate-in fade-in slide-in-from-bottom-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -244,7 +243,6 @@ export default function Dashboard() {
                     </button>
                   </div>
 
-                  {/* 格式統一為 圖示 + 文字 */}
                   <div className="text-xs text-gray-500 font-sans space-y-1.5">
                     <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
                     <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
@@ -263,60 +261,121 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* === 分頁：發起開團 === */}
+        {/* === 分頁：發起開團 (優化表格背景色) === */}
         {activeTab === "create" && (
           <section className="animate-in fade-in slide-in-from-bottom-2">
             <div className="max-w-xl mx-auto">
               <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink font-sans">
-                <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">Start a new story</p></div>
+                <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">發 起 新 的 相 遇</p></div>
+                
+                {/* 
+                   使用 bg-sage/5 (超淡綠) 與 border-sage/10 (淡綠邊框) 
+                   讓填寫區域在白色背景中更加鮮明 
+                */}
                 <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">主題</label>
-                  <input required value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none focus:bg-stone/10 border-b border-stone/30" />
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主題</label>
+                  <input 
+                    required 
+                    value={newSession.title} 
+                    onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} 
+                    className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    placeholder="ex:我流汗你流不流"
+                  />
                 </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">日期</label>
-                    <input required type="date" value={newSession.gameDate} onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">流汗日期</label>
+                    <input 
+                      required 
+                      type="date" 
+                      value={newSession.gameDate} 
+                      onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">人數上限</label>
-                    <input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">人數上限</label>
+                    <input 
+                      required 
+                      type="number" 
+                      value={newSession.maxPlayers} 
+                      onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">開始</label>
-                    <select value={newSession.gameTime} onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none">
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">開始時間</label>
+                    <select 
+                      value={newSession.gameTime} 
+                      onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all cursor-pointer"
+                    >
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">結束</label>
-                    <select value={newSession.endTime} onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none">
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">結束時間</label>
+                    <select 
+                      value={newSession.endTime} 
+                      onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all cursor-pointer"
+                    >
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 </div>
+
                 <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">地點</label>
-                  <input required value={newSession.location} onChange={(e) => setNewSession({ ...newSession, location: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">地點</label>
+                  <input 
+                    required 
+                    value={newSession.location} 
+                    onChange={(e) => setNewSession({ ...newSession, location: e.target.value })} 
+                    className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                  />
                 </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">費用 ($)</label>
-                    <input required type="number" value={newSession.price} onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase"> $$ </label>
+                    <input 
+                      required 
+                      type="number" 
+                      value={newSession.price} 
+                      onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">聯絡電話</label>
-                    <input required type="tel" maxLength={10} value={newSession.phone} onChange={(e) => setNewSession({ ...newSession, phone: e.target.value.replace(/\D/g, "") })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">聯絡電話</label>
+                    <input 
+                      required 
+                      type="tel" 
+                      maxLength={10} 
+                      value={newSession.phone} 
+                      onChange={(e) => setNewSession({ ...newSession, phone: e.target.value.replace(/\D/g, "") })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                 </div>
+
                 <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">球局備註</label>
-                  <textarea rows={3} value={newSession.notes} onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} className="w-full bg-stone/5 p-3 focus:outline-none focus:bg-stone/10 resize-none text-xs" />
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">球局備註</label>
+                  <textarea 
+                    rows={3} 
+                    value={newSession.notes} 
+                    onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} 
+                    className="w-full bg-sage/5 border border-sage/10 p-3 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all resize-none text-xs" 
+                    placeholder="補充資訊...用球//  程度// "
+                  />
                 </div>
+
                 <button type="submit" className="w-full py-3 mt-4 border border-sage text-sage hover:bg-sage hover:text-white transition-all flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif">
-                  <PlusCircle size={14} /> 確認開團
+                  <PlusCircle size={14} /> 確認開局
                 </button>
               </form>
             </div>
