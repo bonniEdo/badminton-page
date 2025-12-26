@@ -1,12 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Trash2, Plus, Search, LogOut, UserMinus, CheckCircle, Clock, Users } from "lucide-react"; 
+import { 
+  Trash2, Plus, Search, LogOut, UserMinus, 
+  CheckCircle, Clock, Users, X, Phone, MapPin, User, Banknote,
+  Info
+} from "lucide-react"; 
 import { useRouter } from "next/navigation";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
+const isDev = process.env.NODE_ENV === 'development';
+const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 
-// 資料介面
+// 產生 00:00, 00:30 ... 23:30 的時間選項
+const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
+  const hour = Math.floor(i / 2).toString().padStart(2, "0");
+  const min = (i % 2 === 0 ? "00" : "30");
+  return `${hour}:${min}`;
+});
+
 interface Session {
   id: number;
   title: string;
@@ -15,15 +27,28 @@ interface Session {
   location: string;
   endTime: string;
   maxPlayers?: number | string;
-  price?: number;
-  myStatus?: string; // 用來存 'CONFIRMED' 或 'WAITLIST'
+  price?: number; 
+  myStatus?: string; 
   currentPlayers?: number;
+  phone?: string;
+  notes?: string; // 備註
+}
+
+interface Participant {
+  Username: string;
+  Status: string;
 }
 
 export default function Dashboard() {
   const router = useRouter();
 
-  // --- 驗證登入 ---
+  const [hostedSessions, setHostedSessions] = useState<Session[]>([]); 
+  const [joinedSessions, setJoinedSessions] = useState<Session[]>([]); 
+  const [loading, setLoading] = useState(true);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) router.replace("/");
@@ -35,209 +60,147 @@ export default function Dashboard() {
     router.replace("/");
   };
 
-  // --- 狀態 State ---
-  const [hostedSessions, setHostedSessions] = useState<Session[]>([]); // 我開的團 (中)
-  const [joinedSessions, setJoinedSessions] = useState<Session[]>([]); // 我報名的團 (左)
-  const [loading, setLoading] = useState(true);
-
-  // --- 取得資料 API ---
-  useEffect(() => {
-    
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        const headers = {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        };
-
-        // 1. 取得「我開的團」 (原本的邏輯)
-        const resHosted = await fetch(`${API_URL}/api/games/mygame`, { headers }); // 假設這是您原本查自己開團的 API
-        const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
-
-        // 2. 取得「我報名的團」 (剛剛新增的 API)
-        const resJoined = await fetch(`${API_URL}/api/games/joined`, { headers });
-        const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
-
-        // 資料轉換 Helper (修正欄位對應)
-        const mapData = (data: any[]) => 
-          (data || []).map((g: any) => {
-            const fullDateTime = g.GameDateTime ?? "";
-            
-            
-            return {
-              id: g.GameId,
-              title: g.Title ?? "未命名球局",
-              date: fullDateTime.slice(0, 10), 
-              time: fullDateTime.includes('T') 
-                    ? fullDateTime.split('T')[1].slice(0, 5) 
-                    : fullDateTime.slice(11, 16),
-              endTime: (g.EndTime ?? "").slice(0, 5), // 確保 EndTime 也只取前 5 碼
-              location: g.Location ?? "未定地點",
-              maxPlayers: g.MaxPlayers,
-              price: g.Price,
-              myStatus: g.MyStatus,
-              currentPlayers: Number(g.CurrentPlayers || 0)
-            };
-          });
-
-        if (jsonHosted.success) setHostedSessions(mapData(jsonHosted.data));
-        if (jsonJoined.success) setJoinedSessions(mapData(jsonJoined.data));
-
-      } catch (e: any) {
-        console.error("Fetch error:", e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-  
-
-  // --- 取消報名 / 退出 ---
-  const handleLeave = async (id: number) => {
-    const token = localStorage.getItem('token'); 
-    if (!window.confirm("確定要取消報名嗎？")) return;
-
+  const fetchData = async () => {
     try {
-      const resCancelJoined = await fetch(`${API_URL}/api/games/${id}/join`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        }
-      });
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
-      // 3. 檢查後端回應狀態
-      if (!resCancelJoined.ok) {
-        throw new Error('取消報名失敗');
-      }
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
 
-      // 4. 後端成功後，更新前端狀態 (移除該筆資料)
-      setJoinedSessions(prev => prev.filter(s => s.id !== id));
-      
-      alert("已成功取消報名！");
+      const resHosted = await fetch(`${API_URL}/api/games/mygame`, { headers });
+      const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
 
-    } catch (error) {
-      console.error("Error cancelling join:", error);
-      alert("取消失敗，請檢查網路或稍後再試。");
+      const resJoined = await fetch(`${API_URL}/api/games/joined`, { headers });
+      const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
+
+      const mapData = (data: any[]) => 
+        (data || []).map((g: any) => {
+          const fullDateTime = g.GameDateTime ?? "";
+          return {
+            id: g.GameId,
+            title: g.Title ?? "未命名球局",
+            date: fullDateTime.slice(0, 10), 
+            time: fullDateTime.includes('T') ? fullDateTime.split('T')[1].slice(0, 5) : fullDateTime.slice(11, 16),
+            endTime: (g.EndTime ?? "").slice(0, 5),
+            location: g.Location ?? "未定地點",
+            maxPlayers: g.MaxPlayers,
+            price: g.Price, 
+            myStatus: g.MyStatus,
+            currentPlayers: Number(g.CurrentPlayers || 0),
+            phone: g.Phone,
+            notes: g.Notes
+          };
+        });
+
+      if (jsonHosted.success) setHostedSessions(mapData(jsonHosted.data));
+      if (jsonJoined.success) setJoinedSessions(mapData(jsonJoined.data));
+
+    } catch (e: any) {
+      console.error("Fetch error:", e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // --- 刪除自己開的團 ---
-  const handleDelete = async (id: number) => {
-      if (!confirm("確定要取消這個羽球聚會嗎？此操作無法復原。")) return;
-      
-      const token = localStorage.getItem("token");
-      try {
-        const res = await fetch(`${API_URL}/api/games/delete/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.message);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-        setHostedSessions((prev) => prev.filter((s) => s.id !== id));
-        alert("已成功取消球局");
-      } catch (err: any) {
-        alert(err.message);
-      }
-    };  
- // --- 開團 Form State ---
+  const handleOpenDetail = async (session: Session) => {
+    setSelectedSession(session);
+    setLoadingParticipants(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/games/${session.id}/players`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success) setParticipants(json.data);
+    } catch (err) {
+      console.error("無法取得名單", err);
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
+
+  const handleLeave = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); 
+    const token = localStorage.getItem('token'); 
+    if (!window.confirm("確定要取消報名嗎？")) return;
+    try {
+      const resCancelJoined = await fetch(`${API_URL}/api/games/${id}/join`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+      });
+      if (!resCancelJoined.ok) throw new Error('取消報名失敗');
+      setJoinedSessions(prev => prev.filter(s => s.id !== id));
+      alert("已成功取消報名！");
+    } catch (error) {
+      alert("取消失敗，請檢查網路。");
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); 
+    if (!confirm("確定要取消這個羽球聚會嗎？此操作無法復原。")) return;
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API_URL}/api/games/delete/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+      setHostedSessions((prev) => prev.filter((s) => s.id !== id));
+      alert("已成功取消球局");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };  
+
   const [newSession, setNewSession] = useState({
-    title: "",
-    gameDate: "",
-    gameTime: "",
-    location: "",
-    endTime:"",
-    maxPlayers: "",
-    price: "",
-    phone: "",
+    title: "", gameDate: "", gameTime: "18:00", location: "", endTime:"20:00", maxPlayers: "", price: "", phone: "",
+    notes: ""
   });
 
-  // --- 動作：開新團 (Create) ---
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const token = localStorage.getItem("token");
-    if (!token) {
-      alert("請先登入");
-      return;
-    }
-    if (newSession.endTime <= newSession.gameTime) {
-      alert("結束時間必須晚於開始時間");
-      return;
+    if (!token) return;
+    if (newSession.endTime <= newSession.gameTime) return alert("結束時間必須晚於開始時間");
+
+    const phoneRegex = /^09\d{8}$/;
+    if (!phoneRegex.test(newSession.phone)) {
+      return alert("電話格式錯誤！請輸入 09 開頭的 10 位數字號碼。");
     }
 
     try {
-      // 1. 準備發送給後端的資料 (注意轉型 Number)
-      const payload = {
-        title: newSession.title,
-        gameDate: newSession.gameDate,
-        gameTime: newSession.gameTime,
-        endTime: newSession.endTime,
-        location: newSession.location,
-        maxPlayers: Number(newSession.maxPlayers),
+      const payload = { 
+        ...newSession, 
+        maxPlayers: Number(newSession.maxPlayers), 
         price: Number(newSession.price),
-        phone: newSession.phone,
+        Notes: newSession.notes
       };
 
-      // 2. 呼叫後端 API
       const res = await fetch(`${API_URL}/api/games/create`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
-
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "開團失敗");
-
       alert("開團成功！");
-      const createdGame = json.game;
-
-      // 4. 整理要放入前端列表的資料格式
-      // 這裡必須符合上面定義的 interface Session
-      const fullDt = createdGame.GameDateTime || "";
-      const newSessionData: Session = {
-        id: createdGame.GameId,
-        title: createdGame.Title,
-        // 拆解日期與時間
-        date: fullDt.includes('T') ? fullDt.split('T')[0] : fullDt.slice(0, 10),
-        time: fullDt.includes('T') ? fullDt.split('T')[1].slice(0, 5) : fullDt.slice(11, 16),
-        endTime: (createdGame.EndTime || newSession.endTime).slice(0, 5),
-        location: createdGame.Location,
-        maxPlayers: createdGame.MaxPlayers,
-        price: createdGame.Price,
-        currentPlayers: 1,
-        myStatus: 'CONFIRMED',
-      };
-
-      // 5. 更新「已發布的球局」列表 / 同時更新「我報名的球局」列表
-      setHostedSessions((prev) => [...prev, newSessionData]);
-      setJoinedSessions((prev) => [newSessionData, ...prev]);
-
-      // 6. 清空表單
-      setNewSession({
-        title: "",
-        gameDate: "",
-        gameTime: "",
-        location: "",
-        endTime:"",
-        maxPlayers: "",
-        price: "",
-        phone: "",
+      fetchData(); 
+      setNewSession({ 
+        title: "", gameDate: "", gameTime: "18:00", location: "", endTime:"20:00", 
+        maxPlayers: "", price: "", phone: "", notes: "" 
       });
-
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || "發生錯誤，請稍後再試");
+      alert(err.message);
     }
   };
 
@@ -252,291 +215,206 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
         
-        {/* === 左邊：我報名的球局 (Joined) === */}
+        {/* === 左邊：我報名的球局 === */}
         <section>
           <h2 className="text-lg tracking-widest mb-6 border-l-4 border-blue-300 pl-4">我報名的球局</h2>
           <div className="space-y-4">
-            {loading ? (
-              <p className="text-gray-400 text-sm">載入中...</p>
-            ) : joinedSessions.length === 0 ? (
-              <p className="text-gray-400 text-sm italic">還沒報名任何球局，去「尋找球局」看看吧！</p>
-            ) : (
+            {loading ? <p className="text-gray-400 text-sm">載入中...</p> : joinedSessions.length === 0 ? <p className="text-gray-400 text-sm italic">還沒報名任何球局。</p> : (
               joinedSessions.map((session) => (
-                <div key={session.id} className="relative bg-white border border-stone p-5 border-l-4 border-l-blue-100 hover:shadow-md transition-all">
-                  
-                  {/* 標題與狀態 */}
+                <div key={session.id} onClick={() => handleOpenDetail(session)} className="cursor-pointer relative bg-white border border-stone p-5 border-l-4 border-l-blue-100 hover:shadow-md transition-all text-ink">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="text-xl font-medium">{session.title}</h3>
-                    {/* 根據 myStatus 顯示不同標籤 */}
-                    {session.myStatus === 'WAITLIST' ? (
-                       <span className="flex items-center gap-1 text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                         <Clock size={10}/> 候補中
-                       </span>
-                    ) : (
-                       <span className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                         <CheckCircle size={10}/> 已報名
-                       </span>
-                    )}
+                    {session.myStatus === 'WAITLIST' ? <span className="flex items-center gap-1 text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full"><Clock size={10}/> 候補中</span> : <span className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full"><CheckCircle size={10}/> 已報名</span>}
                   </div>
-
                   <div className="text-sm text-gray-500 font-sans space-y-1">
-                      <div className="flex items-center gap-2">
-                          <span>{session.date}</span>
-                          {session.date && !isNaN(new Date(session.date).getTime()) && (
-                              <span className="text-gray-400">
-                                  ({['日', '一', '二', '三', '四', '五', '六'][new Date(session.date).getDay()]})
-                              </span>
-                          )}
-                          <span className="text-stone">|</span>
-                          <span className="text-gray-600 font-medium">
-                              {session.time} - {session.endTime || "--:--"}
-                          </span>
-                      </div>
+                      <div className="flex items-center gap-2"><span>{session.date}</span><span className="text-gray-600 font-medium">{session.time} - {session.endTime}</span></div>
                       <p>@ {session.location}</p>
-                      {session.price && <p className="text-blue-400 text-xs mt-1">費用: ${session.price}</p>}
+                      {/* 卡片備註 */}
+                      {session.notes && (
+                        <p className="text-[10px] text-stone-400 truncate mt-2 border-t border-stone/10 pt-1 italic">
+                          <Info size={10} className="inline mr-1" /> {session.notes}
+                        </p>
+                      )}
                   </div>
                   <div className="flex items-end justify-end mt-4 gap-3">
-                  {/* 👇 修改：人數顯示 (移除 bg-gray-100，加入數值防呆) */}
-                  <div className="flex items-center gap-1 text-gray-500 text-xs font-sans px-2 py-1">
-                    <Users size={14} />
-                    <span>
-                      {/* 若 currentPlayers 為空則顯示 0 */}
-                      <span className="font-bold text-ink">
-                        {session.currentPlayers || 0}
-                      </span>
-                      {/* 若 maxPlayers 為空則顯示 - */}
-                      <span className="text-gray-400">
-                        / {session.maxPlayers || "-"} 人
-                      </span>
-                    </span>
+                    <div className="flex items-center gap-1 text-gray-500 text-xs font-sans px-2 py-1">
+                        <Banknote size={14} className="text-sage" />
+                        <span>${session.price}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-500 text-xs font-sans px-2 py-1 border-l border-stone/30 ml-1">
+                      <Users size={14} />
+                      <span><span className="font-bold text-ink">{session.currentPlayers || 0}</span><span className="text-gray-400"> / {session.maxPlayers || "-"} 人</span></span>
+                    </div>
+                    <button onClick={(e) => handleLeave(e, session.id)} className="text-gray-300 hover:text-red-400 transition-colors ml-2"><UserMinus size={18} /></button>
                   </div>
-
-                    {/* 退出按鈕 */}
-                    <button
-                      onClick={() => handleLeave(session.id)}
-                      className="text-gray-300 hover:text-red-400 transition-colors"
-                      title="取消報名"
-                    >
-                      <UserMinus size={18} />
-                    </button>
-                  </div>
-                  </div>
+                </div>
               ))
             )}
           </div>
         </section>
 
-        {/* === 中間：我開的團 (Hosted) === */}
+        {/* === 中間：我開的團 === */}
         <section>
           <h2 className="text-lg tracking-widest mb-6 border-l-4 border-sage pl-4">已發布的球局</h2>
           <div className="space-y-4">
-             {hostedSessions.length === 0 && <p className="text-gray-400 text-sm italic">目前沒有開團，享受一個人的寧靜...</p>}
+             {hostedSessions.length === 0 && <p className="text-gray-400 text-sm italic">目前沒有開團...</p>}
               {hostedSessions.map(s => (
-                  <div key={s.id} className="relative bg-white border border-stone p-5 border-l-4 border-l-sage hover:shadow-md transition-all">
+                  <div key={s.id} onClick={() => handleOpenDetail(s)} className="cursor-pointer relative bg-white border border-stone p-5 border-l-4 border-l-sage hover:shadow-md transition-all text-ink">
                       <h3 className="text-xl font-medium">{s.title}</h3>
-                      
-                      {/* --- 這裡就是優化後的時間與地點區塊 --- */}
-                      <div className="flex flex-col gap-1 mt-2">
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                              {/* 日期與星期 */}
-                              <span className="font-sans">
-                                  {s.date?.split('T')[0]} 
-                                  <span className="ml-1 text-gray-400">
-                                      ({['日', '一', '二', '三', '四', '五', '六'][new Date(s.date).getDay()]})
-                                  </span>
-                              </span>
-                              
-                              <span className="text-stone">|</span>
-                              
-                              {/* 24H 時間範圍 */}
-                              <span className="font-sans text-gray-600 font-medium">
-                                  {s.time?.slice(0, 5)} - {s.endTime?.slice(0, 5)}
-                              </span>
-                          </div>
-
-                          {/* 地點 */}
-                          <div className="flex items-center gap-1 text-sm text-gray-400">
-                              <span>@ {s.location}</span>
-                          </div>
+                      <div className="flex flex-col gap-1 mt-2 text-sm text-gray-500">
+                          <span className="font-sans">{s.date} <span className="text-stone">|</span> <span className="text-gray-600 font-medium">{s.time} - {s.endTime}</span></span>
+                          <span className="text-gray-400">@ {s.location}</span>
+                          {/* 卡片備註 */}
+                          {s.notes && (
+                            <p className="text-[10px] text-stone-400 truncate mt-2 border-t border-stone/10 pt-1 italic">
+                              <Info size={10} className="inline mr-1" /> {s.notes}
+                            </p>
+                          )}
                       </div>
-                      {/* --- 優化結束 --- */}
-                      {/* --- 優化結束 --- */}
-
                       <div className="flex justify-end items-center mt-4 gap-3">
-                          {/* 1. 人數顯示 */}
+                          <div className="flex items-center gap-1 text-gray-500 text-xs font-sans bg-stone/5 px-2 py-1 rounded">
+                              <Banknote size={14} className="text-sage" />
+                              <span>${s.price}</span>
+                          </div>
                           <div className="flex items-center gap-1 text-gray-500 text-xs font-sans bg-stone/10 px-2 py-1 rounded">
                               <Users size={14} />
-                              <span>
-                                  <span className="font-bold text-sage">{s.currentPlayers}</span>
-                                  <span className="text-gray-400"> / {s.maxPlayers} 人</span>
-                              </span>
+                              <span><span className="font-bold text-sage">{s.currentPlayers}</span><span className="text-gray-400"> / {s.maxPlayers} 人</span></span>
                           </div>
-
-                          {/* 2. 刪除按鈕 */}
-                          <button 
-                              onClick={() => handleDelete(s.id)}
-                              className="text-gray-300 hover:text-red-400 transition-colors"
-                              title="刪除球局"
-                          >
-                              <Trash2 size={16} />
-                          </button>
+                          <button onClick={(e) => handleDelete(e, s.id)} className="text-gray-300 hover:text-red-400 transition-colors ml-1"><Trash2 size={16} /></button>
                       </div>
                   </div>
               ))}
           </div>
         </section>
 
-        {/* === 右邊：開新團 (Create) === */}
+        {/* === 右邊：開新團 === */}
         <section>
           <h2 className="text-lg tracking-widest mb-6 border-l-4 border-gray-300 pl-4">發起新的相遇</h2>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">團主電話</label>
-            <input
-              required
-              type="tel"
-              value={newSession.phone}
-              onChange={(e) => setNewSession({ ...newSession, phone: e.target.value })}
-              className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
-              placeholder="0912-345-678"
-            />
-          </div>
-          <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-5 shadow-sm">
+          <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-4 shadow-sm text-ink font-sans">
             <div>
-              <label className="block text-xs text-gray-400 mb-1">主題</label>
-              <input
-                required
-                value={newSession.title}
-                onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
-                className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40"
-                placeholder="例：週五流汗局"
-              />
-            </div>
-            <div>
-                  <label className="block text-xs text-gray-400 mb-1">日期</label>
-                  <input
-                    required
-                    type="date"
-                    value={newSession.gameDate}
-                    onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })}
-                    className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
-                  />
+              <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">主題</label>
+              <input required value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 border-b border-stone/30" placeholder="例：我流汗你流不流" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {/* 開始時間 */}
               <div>
-                <label className="block text-xs text-gray-400 mb-1">開始時間</label>
-                <div className="flex items-center bg-stone/20 p-2 focus-within:bg-stone/40 font-sans">
-                  <select 
-                    value={newSession.gameTime.split(':')[0] || "00"} // 取得小時部分
-                    onChange={(e) => {
-                      const m = newSession.gameTime.split(':')[1] || "00";
-                      setNewSession({ ...newSession, gameTime: `${e.target.value}:${m}` });
-                    }}
-                    className="bg-transparent w-full focus:outline-none appearance-none cursor-pointer text-center"
-                  >
-                    {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </select>
-                  <span className="px-1 text-gray-400">:</span>
-                  <select 
-                    value={newSession.gameTime.split(':')[1] || "00"} // 取得分鐘部分
-                    onChange={(e) => {
-                      const h = newSession.gameTime.split(':')[0] || "00";
-                      setNewSession({ ...newSession, gameTime: `${h}:${e.target.value}` });
-                    }}
-                    className="bg-transparent w-full focus:outline-none appearance-none cursor-pointer text-center"
-                  >
-                    <option value="00">00</option>
-                    <option value="30">30</option>
-                  </select>
-                </div>
+                <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">日期</label>
+                <input required type="date" value={newSession.gameDate} onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40" />
               </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">人數上限</label>
+                <input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40" />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">開始時間</label>
+                <select required value={newSession.gameTime} onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 appearance-none">
+                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">結束時間</label>
+                <select required value={newSession.endTime} onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 appearance-none">
+                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
 
-              {/* 結束時間 */}
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">結束時間</label>
-                <div className="flex items-center bg-stone/20 p-2 focus-within:bg-stone/40 font-sans">
-                  <select 
-                    value={newSession.endTime.split(':')[0] || "00"}
-                    onChange={(e) => {
-                      const m = newSession.endTime.split(':')[1] || "00";
-                      setNewSession({ ...newSession, endTime: `${e.target.value}:${m}` });
-                    }}
-                    className="bg-transparent w-full focus:outline-none appearance-none cursor-pointer text-center"
-                  >
-                    {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </select>
-                  <span className="px-1 text-gray-400">:</span>
-                  <select 
-                    value={newSession.endTime.split(':')[1] || "00"}
-                    onChange={(e) => {
-                      const h = newSession.endTime.split(':')[0] || "00";
-                      setNewSession({ ...newSession, endTime: `${h}:${e.target.value}` });
-                    }}
-                    className="bg-transparent w-full focus:outline-none appearance-none cursor-pointer text-center"
-                  >
-                    <option value="00">00</option>
-                    <option value="30">30</option>
-                  </select>
-                </div>
-              </div>
-            </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">地點</label>
-              <input
-                required
-                value={newSession.location}
-                onChange={(e) => setNewSession({ ...newSession, location: e.target.value })}
-                className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40"
-                placeholder="輸入球館名稱"
-              />
+              <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">地點</label>
+              <input required value={newSession.location} onChange={(e) => setNewSession({ ...newSession, location: e.target.value })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40" placeholder="輸入球館名稱" />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">人數上限</label>
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  value={newSession.maxPlayers}
-                  onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })}
-                  className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
-                  placeholder="例：8"
-                />
+                <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">$$</label>
+                <input required type="number" value={newSession.price} onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40" placeholder="200" />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">費用 (每人)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={newSession.price}
-                  onChange={(e) => setNewSession({ ...newSession, price: e.target.value })}
-                  className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 font-sans"
-                  placeholder="例：200"
-                />
+                <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">團主電話</label>
+                <input required type="tel" maxLength={10} value={newSession.phone} onChange={(e) => setNewSession({ ...newSession, phone: e.target.value.replace(/\D/g, "") })} className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40" placeholder="09xxxxxxxx" />
               </div>
             </div>
-            <button
-              type="submit"
-              className="w-full py-3 mt-4 border border-sage text-sage hover:bg-sage hover:text-white transition-all flex items-center justify-center gap-2"
-            >
+
+            <div>
+              <label className="block text-[10px] text-gray-400 mb-1 tracking-widest">球局備註 (球號、建議程度、其他)</label>
+              <textarea 
+                rows={4} 
+                value={newSession.notes} 
+                onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} 
+                className="w-full bg-stone/20 p-3 focus:outline-none focus:bg-stone/40 resize-none text-sm" 
+                placeholder="例：&#10;用球：RSL No.4&#10;建議程度：初級~中下&#10;其他：請準時到場" 
+              />
+            </div>
+
+            <button type="submit" className="w-full py-3 mt-4 border border-sage text-sage hover:bg-sage hover:text-white transition-all flex items-center justify-center gap-2 tracking-widest font-serif">
               <Plus size={16} /> 確認開團
             </button>
           </form>
        </section>
-
       </div>
 
-      <button
-        onClick={handleLogout}
-        className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white border border-stone text-gray-500 hover:text-alert hover:border-alert shadow-md transition-all text-sm z-50"
-      >
-        <LogOut size={16} />
-        登出
+      {/* 詳細資訊彈窗 */}
+      {selectedSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+          <div className="bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in fade-in zoom-in duration-200 text-ink">
+            <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-400 hover:text-sage"><X size={24}/></button>
+            <h2 className="text-2xl text-sage mb-6 tracking-widest border-b border-stone pb-2 font-serif">{selectedSession.title}</h2>
+            
+            <div className="space-y-3 font-sans text-xs text-gray-600 mb-6">
+              <p className="flex items-center gap-3"><CheckCircle size={16} className="text-sage" /> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
+              <p className="flex items-center gap-3"><MapPin size={16} className="text-sage" /> {selectedSession.location}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <p className="flex items-center gap-3"><Phone size={16} className="text-sage" /> {selectedSession.phone || "未提供"}</p>
+                <p className="flex items-center gap-3"><Banknote size={16} className="text-sage" /> 費用: ${selectedSession.price}</p>
+              </div>
+
+              {selectedSession.notes && (
+                <div className="mt-4 p-4 bg-stone/5 border-l-2 border-stone/20 whitespace-pre-wrap leading-relaxed text-gray-500 italic">
+                  <div className="flex items-center gap-2 mb-1 text-[10px] uppercase tracking-tighter text-stone-400 not-italic">
+                    <Info size={12} /> 備註資訊
+                  </div>
+                  {selectedSession.notes}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-stone pt-6 font-sans">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xs tracking-widest text-ink flex items-center gap-2">已報名人清單</h3>
+                <span className="text-[10px] text-sage italic">目前人數： {selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
+              </div>
+              <div className="min-h-[60px] max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                {loadingParticipants ? <p className="text-[10px] italic text-gray-400 animate-pulse">尋找夥伴中...</p> : participants.length === 0 ? <p className="text-[10px] italic text-gray-400">目前尚無人報名</p> : (
+                  <div className="flex flex-wrap gap-2">
+                    {participants.map((p, i) => (
+                      <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] transition-all ${p.Status === 'WAITLIST' ? 'bg-stone-50 text-stone-400 border border-dashed border-stone-200' : 'bg-sage/5 text-sage border border-sage/10 hover:bg-sage/10 shadow-sm'}`}>
+                        <User size={10} className={p.Status === 'WAITLIST' ? 'text-stone-300' : 'text-sage/60'} />
+                        <span>{p.Username}</span>
+                        {p.Status === 'WAITLIST' && <span className="bg-orange-100 text-orange-500 text-[8px] px-1 rounded ml-0.5 font-bold">候</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end mt-12">
+              <button onClick={() => setSelectedSession(null)} className="px-6 py-2 border border-stone text-gray-500 hover:text-sage hover:border-sage hover:bg-sage/5 transition-all text-sm font-serif">閉</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white border border-stone text-gray-500 hover:text-red-400 hover:border-red-400 shadow-md transition-all text-xs z-50 font-sans">
+        <LogOut size={14} /> 登出
       </button>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
+      `}</style>
     </div>
   );
 }

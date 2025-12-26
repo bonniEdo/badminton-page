@@ -21,7 +21,7 @@ type Session = {
   currentPlayers: number;
   maxPlayers: number;
   price: number;
-  notes: string; // 確保型別定義包含 notes
+  notes: string; 
 };
 
 type Participant = {
@@ -76,7 +76,7 @@ export default function Browse() {
           currentPlayers: Number(g.CurrentPlayers),
           maxPlayers: Number(g.MaxPlayers),
           price: Number(g.Price),
-          notes: g.Notes || "", // 確保從後端抓取 Notes，若無則給空字串
+          notes: g.Notes || "",
         };
       });
       setSessions(mapped);
@@ -192,7 +192,6 @@ export default function Browse() {
                     <p>🕒 {session.time} - {session.endTime}</p>
                     <p>📍 {session.location}</p>
                     <p>💰 {session.price}</p>
-                    {/* 小卡片顯示短備註 */}
                     {session.notes && (
                       <p className="text-xs text-stone mt-2 italic line-clamp-1 border-t border-stone/20 pt-1">
                         &ldquo;{session.notes}&rdquo;
@@ -200,7 +199,6 @@ export default function Browse() {
                     )}
                   </div>
                   
-                  {/* 按鈕區域：調整了 isJoined 下的 hover 樣式 */}
                   <button className={`px-4 py-2 text-[10px] tracking-widest transition rounded-sm font-bold uppercase ${
                     isJoined 
                       ? 'border border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white' 
@@ -215,7 +213,7 @@ export default function Browse() {
         )}
       </div>
 
-      {/* --- Modal 視窗 (略，內容不變) --- */}
+      {/* --- Modal 視窗 --- */}
       {isModalOpen && selectedSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white p-8 max-w-md w-full shadow-xl relative animate-in fade-in zoom-in duration-200 border border-stone">
@@ -230,7 +228,6 @@ export default function Browse() {
                <p className="flex items-center gap-2"><MapPin size={14} className="text-sage" /> {selectedSession.location}</p>
                <p className="flex items-center gap-3"><Banknote size={14} className="text-sage" /> 費用: ${selectedSession.price}</p>
                
-               {/* Modal 顯示完整備註 */}
                {selectedSession.notes && (
                  <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed">
                    <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter">
@@ -280,7 +277,7 @@ export default function Browse() {
                         <User size={10} className={p.Status === 'WAITLIST' ? 'text-stone-300' : 'text-sage/60'} />
                         <span>{(p as any).DisplayName}</span>
                         {p.Status === 'WAITLIST' && (
-                          <span className="bg-orange-100 text-orange-500 text-[8px] px-1 rounded ml-0.5">候</span>
+                          <span className="bg-orange-100 text-orange-500 text-[8px] px-1 rounded ml-0.5 font-bold">候</span>
                         )}
                       </div>
                     ))}
@@ -325,7 +322,7 @@ export default function Browse() {
                 </button>
               </form>
             ) : (
-              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm">
+              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest uppercase">
                 已經成功預約這次相遇
               </div>
             )}
