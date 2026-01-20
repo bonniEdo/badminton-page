@@ -419,7 +419,7 @@ export default function Browse() {
                 </button>
               </form>
             ) : (
-              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest uppercase">
+              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest">
                 已經成功預約這次相遇
               </div>
             )}

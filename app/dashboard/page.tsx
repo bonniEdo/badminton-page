@@ -239,7 +239,7 @@ export default function Dashboard() {
           {[
             { id: "joined", label: "我報名的" },
             { id: "hosted", label: "我發布的" },
-            { id: "create", label: "發起開團" },
+            { id: "create", label: "創建新局" },
           ].map((tab) => (
             <button
               key={tab.id}
