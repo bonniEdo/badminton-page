@@ -17,6 +17,7 @@ const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
   return `${hour}:${min}`;
 });
 
+
 interface Session {
   id: number;
   title: string;
@@ -30,13 +31,14 @@ interface Session {
   currentPlayers?: number;
   phone?: string;
   notes?: string;
+  friendCount?: number; // 新增這行，讓報名列表能顯示我有沒有帶朋友
 }
 
 interface Participant {
   Username: string;
   Status: string;
+  FriendCount?: number; // ✅ 新增：後端 API 現在會回傳這個
 }
-
 export default function Dashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"joined" | "hosted" | "create">("joined");
@@ -57,6 +59,10 @@ export default function Dashboard() {
     sessionStorage.removeItem("token");
     router.replace("/");
   };
+  const [cancelMenu, setCancelMenu] = useState<{
+    isOpen: boolean;
+    session: Session | null;
+  }>({ isOpen: false, session: null });
 
   const fetchData = async () => {
     try {
@@ -83,8 +89,10 @@ export default function Dashboard() {
         maxPlayers: g.MaxPlayers,
         price: g.Price, 
         myStatus: g.MyStatus,
-        currentPlayers: Number(g.CurrentPlayers || 0),
-        phone: g.Phone,
+        // ✅ 修正：優先讀取子查詢回傳的 CurrentPlayersCount
+        currentPlayers: Number(g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
+        friendCount: Number(g.FriendCount || 0), // 紀錄使用者自己帶的人數
+        phone: g.Phone || g.PhoneNumber,
         notes: g.Notes
       }));
 
@@ -111,18 +119,38 @@ export default function Dashboard() {
     .finally(() => setLoadingParticipants(false));
   };
 
-  const handleLeave = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); 
-    if (!window.confirm("確定要取消報名嗎？")) return;
-    const token = localStorage.getItem('token'); 
+  const handleLeave = async (e: React.MouseEvent, session: Session) => {
+    e.stopPropagation();
+
+    // 如果有帶朋友，就開啟自定義選單讓使用者選
+    if (session.friendCount && session.friendCount > 0) {
+      setCancelMenu({ isOpen: true, session });
+    } else {
+      // 只有一個人時，用簡單的 confirm 即可，或也進選單
+      if (window.confirm("確定要取消報名嗎？")) {
+        executeCancel(session.id, 'all');
+      }
+    }
+  };
+
+  // 真正執行 API 的 function
+  const executeCancel = async (id: number, cancelType: string) => {
+    const token = localStorage.getItem('token');
     try {
-      await fetch(`${API_URL}/api/games/${id}/join`, {
+      const res = await fetch(`${API_URL}/api/games/${id}/join`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cancelType })
       });
-      setJoinedSessions(prev => prev.filter(s => s.id !== id));
-      alert("已成功取消報名！");
-    } catch (error) { alert("取消失敗"); }
+      const json = await res.json();
+      if (json.success) {
+        alert(json.message);
+        fetchData(); // 重新整理
+        setCancelMenu({ isOpen: false, session: null }); // 關閉選單
+      }
+    } catch (error) {
+      alert("取消失敗");
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
@@ -146,24 +174,56 @@ export default function Dashboard() {
   });
 
   const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (newSession.endTime <= newSession.gameTime) return alert("結束時間必須晚於開始時間");
-    try {
-      const payload = { ...newSession, maxPlayers: Number(newSession.maxPlayers), price: Number(newSession.price), Notes: newSession.notes };
-      const res = await fetch(`${API_URL}/api/games/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify(payload),
+  e.preventDefault();
+  const token = localStorage.getItem("token");
+
+  if (!newSession.gameDate) return alert("請選擇日期");
+  if (!newSession.gameTime) return alert("請選擇開始時間");
+  if (!newSession.endTime) return alert("請選擇結束時間");
+
+  const start = new Date(`${newSession.gameDate}T${newSession.gameTime}:00`);
+  const end = new Date(`${newSession.gameDate}T${newSession.endTime}:00`);
+  if (end <= start) return alert("結束時間必須晚於開始時間");
+  const now = new Date();
+  if (start <= now) return alert("開始時間必須晚於現在時間");
+
+  try {
+    const payload = {
+      ...newSession,
+      maxPlayers: Number(newSession.maxPlayers),
+      price: Number(newSession.price),
+      Notes: newSession.notes,
+    };
+
+    const res = await fetch(`${API_URL}/api/games/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      alert("開團成功！");
+      fetchData();
+      setActiveTab("hosted");
+      setNewSession({
+        title: "",
+        gameDate: "",
+        gameTime: "18:00",
+        location: "",
+        endTime: "20:00",
+        maxPlayers: "",
+        price: "",
+        phone: "",
+        notes: "",
       });
-      if (res.ok) {
-        alert("開團成功！");
-        fetchData();
-        setActiveTab("hosted");
-        setNewSession({ title: "", gameDate: "", gameTime: "18:00", location: "", endTime:"20:00", maxPlayers: "", price: "", phone: "", notes: "" });
-      }
-    } catch (err: any) { alert("開團失敗"); }
-  };
+    }
+  } catch (err: any) {
+    alert("開團失敗");
+  }
+};
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-20">
@@ -174,7 +234,6 @@ export default function Dashboard() {
         </Link>
       </nav>
 
-      {/* --- 頁籤導覽列 --- */}
       <div className="max-w-4xl mx-auto px-6 mt-10">
         <div className="flex justify-center border-b border-stone/30 gap-12 text-sm tracking-[0.2em]">
           {[
@@ -207,7 +266,7 @@ export default function Dashboard() {
                 <div key={session.id} onClick={() => handleOpenDetail(session)} className="relative cursor-pointer bg-white border border-stone p-6 border-l-4 border-l-blue-100 hover:shadow-md transition-all">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="text-lg tracking-wide pr-4">{session.title}</h3>
-                    <button onClick={(e) => handleLeave(e, session.id)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1">
+                    <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1">
                       <UserMinus size={18} />
                     </button>
                   </div>
@@ -230,7 +289,7 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* === 分頁：已發布的球局 (格式與報名一致) === */}
+        {/* === 分頁：已發布的球局 === */}
         {activeTab === "hosted" && (
           <section className="animate-in fade-in slide-in-from-bottom-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -244,7 +303,6 @@ export default function Dashboard() {
                     </button>
                   </div>
 
-                  {/* 格式統一為 圖示 + 文字 */}
                   <div className="text-xs text-gray-500 font-sans space-y-1.5">
                     <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
                     <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
@@ -263,60 +321,121 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* === 分頁：發起開團 === */}
+        {/* === 分頁：發起開團 (優化表格背景色) === */}
         {activeTab === "create" && (
           <section className="animate-in fade-in slide-in-from-bottom-2">
             <div className="max-w-xl mx-auto">
               <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink font-sans">
-                <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">Start a new story</p></div>
+                <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">發起新的相遇</p></div>
+                
+                {/* 
+                   使用 bg-sage/5 (超淡綠) 與 border-sage/10 (淡綠邊框) 
+                   讓填寫區域在白色背景中更加鮮明 
+                */}
                 <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">主題</label>
-                  <input required value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none focus:bg-stone/10 border-b border-stone/30" />
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主題</label>
+                  <input 
+                    required 
+                    value={newSession.title} 
+                    onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} 
+                    className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    placeholder="輸入球局主題"
+                  />
                 </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">日期</label>
-                    <input required type="date" value={newSession.gameDate} onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">日期</label>
+                    <input 
+                      required 
+                      type="date" 
+                      value={newSession.gameDate} 
+                      onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">人數上限</label>
-                    <input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">人數上限</label>
+                    <input 
+                      required 
+                      type="number" 
+                      value={newSession.maxPlayers} 
+                      onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">開始</label>
-                    <select value={newSession.gameTime} onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none">
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">開始時間</label>
+                    <select 
+                      value={newSession.gameTime} 
+                      onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all cursor-pointer"
+                    >
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">結束</label>
-                    <select value={newSession.endTime} onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none">
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">結束時間</label>
+                    <select 
+                      value={newSession.endTime} 
+                      onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all cursor-pointer"
+                    >
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 </div>
+
                 <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">地點</label>
-                  <input required value={newSession.location} onChange={(e) => setNewSession({ ...newSession, location: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">地點</label>
+                  <input 
+                    required 
+                    value={newSession.location} 
+                    onChange={(e) => setNewSession({ ...newSession, location: e.target.value })} 
+                    className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                  />
                 </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">費用 ($)</label>
-                    <input required type="number" value={newSession.price} onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">費用 ($)</label>
+                    <input 
+                      required 
+                      type="number" 
+                      value={newSession.price} 
+                      onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">聯絡電話</label>
-                    <input required type="tel" maxLength={10} value={newSession.phone} onChange={(e) => setNewSession({ ...newSession, phone: e.target.value.replace(/\D/g, "") })} className="w-full bg-stone/5 p-2 focus:outline-none" />
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">聯絡電話</label>
+                    <input 
+                      required 
+                      type="tel" 
+                      maxLength={10} 
+                      value={newSession.phone} 
+                      onChange={(e) => setNewSession({ ...newSession, phone: e.target.value.replace(/\D/g, "") })} 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all" 
+                    />
                   </div>
                 </div>
+
                 <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">球局備註</label>
-                  <textarea rows={3} value={newSession.notes} onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} className="w-full bg-stone/5 p-3 focus:outline-none focus:bg-stone/10 resize-none text-xs" />
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">球局備註</label>
+                  <textarea 
+                    rows={3} 
+                    value={newSession.notes} 
+                    onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} 
+                    className="w-full bg-sage/5 border border-sage/10 p-3 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all resize-none text-xs" 
+                    placeholder="補充資訊..."
+                  />
                 </div>
+
                 <button type="submit" className="w-full py-3 mt-4 border border-sage text-sage hover:bg-sage hover:text-white transition-all flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif">
-                  <PlusCircle size={14} /> 確認開團
+                  <PlusCircle size={14} /> 確認發布球局
                 </button>
               </form>
             </div>
@@ -340,15 +459,29 @@ export default function Dashboard() {
             <div className="border-t border-stone/10 pt-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-[10px] tracking-widest text-gray-400 uppercase">Participants</h3>
+                {/* ✅ 這裡會顯示正確的總人頭數 */}
                 <span className="text-[10px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
               </div>
+              
               <div className="max-h-32 overflow-y-auto custom-scrollbar">
                 <div className="flex flex-wrap gap-2">
-                  {participants.map((p, i) => (
-                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border ${p.Status === 'WAITLIST' ? 'text-stone-300 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
-                      <User size={10} /> <span>{p.Username}</span>
-                    </div>
-                  ))}
+                  {/* ✅ 修正：使用 flatMap 展開帶朋友的人頭 */}
+                  {participants
+                    .flatMap((p) => {
+                      const friendCount = Number(p.FriendCount || 0);
+                      if (friendCount > 0) {
+                        return [
+                          { ...p, DisplayName: p.Username },
+                          { ...p, DisplayName: `${p.Username}+1` }
+                        ];
+                      }
+                      return [{ ...p, DisplayName: p.Username }];
+                    })
+                    .map((p, i) => (
+                      <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border ${p.Status === 'WAITLIST' ? 'text-stone-300 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
+                        <User size={10} /> <span>{(p as any).DisplayName}</span>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
@@ -356,7 +489,48 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      {/* --- 手機友好的取消選擇選單 (Bottom Sheet 風格) --- */}
+      {cancelMenu.isOpen && cancelMenu.session && (
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg tracking-widest text-sage font-bold">取消報名選項</h2>
+              <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button>
+            </div>
 
+            <p className="text-sm text-gray-500 mb-8 font-sans leading-relaxed">
+              您目前報名了 <span className="text-sage font-bold">2 位</span> (含 1 位朋友)。<br/>
+              請選擇您要執行的操作：
+            </p>
+
+            <div className="space-y-4">
+              {/* 選項 1: 僅取消朋友 */}
+              <button
+                onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')}
+                className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-sm tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"
+              >
+                <UserMinus size={18} /> 僅取消朋友 (保留本人)
+              </button>
+
+              {/* 選項 2: 全部取消 */}
+              <button
+                onClick={() => executeCancel(cancelMenu.session!.id, 'all')}
+                className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Trash2 size={18} /> 全部取消 (含本人)
+              </button>
+
+              {/* 選項 3: 放棄操作 */}
+              <button
+                onClick={() => setCancelMenu({ isOpen: false, session: null })}
+                className="w-full py-4 text-gray-400 text-xs tracking-widest hover:text-gray-600 transition-all uppercase"
+              >
+                回到我的日誌
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* 登出按鈕 */}
       <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone text-gray-400 hover:text-red-400 hover:border-red-400 transition-all text-[10px] tracking-widest z-50 uppercase">
         <LogOut size={12} /> Sign Out
