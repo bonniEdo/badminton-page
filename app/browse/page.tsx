@@ -12,6 +12,8 @@ import {
   User,
   Banknote,
   FileText,
+  CheckCircle,
+  Info,
 } from "lucide-react";
 
 const isBrowserProduction =
@@ -37,7 +39,7 @@ type Session = {
 type Participant = {
   Username: string;
   Status: string;
-  FriendCount: number; // ✅ 修改：對應後端欄位
+  FriendCount: number; 
 };
 
 const TW_MOBILE_REGEX = /^09\d{8}$/;
@@ -54,6 +56,12 @@ export default function Browse() {
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
+  const [messageModal, setMessageModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    content: string;
+    type: "success" | "error";
+  }>({ isOpen: false, title: "", content: "", type: "success" });
 
   const phoneError = useMemo(() => {
     if (!joinForm.phone) return "";
@@ -69,8 +77,10 @@ export default function Browse() {
       setError(null);
 
       const token = localStorage.getItem("token");
+      // ✅ 修改這裡
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true", // 加入這一行
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
@@ -149,35 +159,64 @@ export default function Browse() {
   };
 
   const submitJoin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSession) return;
+      e.preventDefault();
+      if (!selectedSession) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) return alert("請先登入才能報名！");
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setMessageModal({
+          isOpen: true,
+          title: "尚未登入",
+          content: "請先登入，讓我們為你保留位置。",
+          type: "error"
+        });
+        return;
+      }
 
-    if (!TW_MOBILE_REGEX.test(joinForm.phone)) {
-      return alert("電話格式不正確");
-    }
+      try {
+        const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json", 
+            "Authorization": `Bearer ${token}`,
+            "ngrok-skip-browser-warning": "true" 
+          },
+          body: JSON.stringify({ 
+            phone: joinForm.phone, 
+            numPlayers: joinForm.numPlayers 
+          }),
+        });
 
-    try {
-      const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          phone: joinForm.phone,
-          numPlayers: joinForm.numPlayers, // 這裡傳 1 或 2
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message || "報名失敗");
+        const json = await res.json();
+        
+        if (!res.ok || !json.success) {
+          throw new Error(json.message || "報名失敗");
+        }
 
-      alert(json.message);
-      fetchData();
-      setIsModalOpen(false);
-    } catch (error: any) {
-      alert(error.message);
-    }
-  };
+        // ✅ 成功報名（或排入候補）
+        setMessageModal({
+          isOpen: true,
+          title: json.message?.includes("候補") ? "已排入候補" : "預約成功",
+          content: json.message?.includes("候補") 
+            ? "目前名額已滿，若有空位我們將第一時間通知你。" 
+            : "期待在球場與你相遇，請記得準時赴約。",
+          type: "success"
+        });
+        
+        // 重新整理資料並關閉報名視窗
+        fetchData();
+        setIsModalOpen(false);
+
+      } catch (error: any) {
+        // ✅ 錯誤處理
+        setMessageModal({
+          isOpen: true,
+          title: "提醒",
+          content: error.message || "連線不穩定，請稍後再試。",
+          type: "error"
+        });
+      }
+    }; 
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif relative">
@@ -249,7 +288,7 @@ export default function Browse() {
                     className={`px-4 py-2 text-[10px] tracking-widest transition rounded-sm font-bold uppercase ${
                       isJoined
                         ? "border border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white"
-                        : "bg-ink text-white hover:bg-sage"
+                        : "bg-sage text-white hover:bg-ink"
                     }`}
                   >
                     {isJoined ? "查看詳情" : "報名"}
@@ -375,8 +414,8 @@ export default function Browse() {
                       }
                       className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm font-sans cursor-pointer"
                     >
-                      <option value={1}>1 人（僅自己）</option>
-                      <option value={2}>2 人（含朋友）</option>
+                      <option value={1}>1 人（我）</option>
+                      <option value={2}>2 人（+朋友）</option>
                     </select>
                   </div>
 
@@ -420,7 +459,7 @@ export default function Browse() {
               </form>
             ) : (
               <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest">
-                已經成功預約這次相遇
+                已經成功預約
               </div>
             )}
           </div>
@@ -439,6 +478,36 @@ export default function Browse() {
           border-radius: 10px;
         }
       `}</style>
+      {/* --- 文青風訊息彈窗 --- */}
+      {messageModal.isOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
+            <div className="flex flex-col items-center">
+              {/* 裝飾小圖示 */}
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${messageModal.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
+                {messageModal.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
+              </div>
+              
+              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">
+                {messageModal.title}
+              </h2>
+              
+              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
+              
+              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">
+                {messageModal.content}
+              </p>
+
+              <button
+                onClick={() => setMessageModal({ ...messageModal, isOpen: false })}
+                className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase"
+              >
+                我知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

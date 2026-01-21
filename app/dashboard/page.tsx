@@ -16,7 +16,13 @@ const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
   const min = (i % 2 === 0 ? "00" : "30");
   return `${hour}:${min}`;
 });
-
+// 在初始值裡面加上 type: "success"
+const [msg, setMsg] = useState({ 
+  isOpen: false, 
+  title: "", 
+  content: "", 
+  type: "success" 
+});
 
 interface Session {
   id: number;
@@ -70,7 +76,13 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+      // ✅ 修改這裡，加上 ngrok-skip-browser-warning
+      const headers = { 
+        "Content-Type": "application/json", 
+        "Authorization": `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true" 
+      };
+
       const [resHosted, resJoined] = await Promise.all([
         fetch(`${API_URL}/api/games/mygame`, { headers }),
         fetch(`${API_URL}/api/games/joined`, { headers })
@@ -144,9 +156,9 @@ export default function Dashboard() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
-        fetchData(); // 重新整理
-        setCancelMenu({ isOpen: false, session: null }); // 關閉選單
+        setMsg({ isOpen: true, title: "已取消報名", content: "這段時光，我先不戒。", type: "success" });
+        fetchData();
+        setCancelMenu({ isOpen: false, session: null });
       }
     } catch (error) {
       alert("取消失敗");
@@ -205,7 +217,7 @@ export default function Dashboard() {
     });
 
     if (res.ok) {
-      alert("開團成功！");
+      setMsg({ isOpen: true, title: "開團成功", content: "新的一局已記錄在日誌中。", type: "success" });
       fetchData();
       setActiveTab("hosted");
       setNewSession({
@@ -270,29 +282,48 @@ export default function Dashboard() {
           <section className="animate-in fade-in slide-in-from-bottom-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {joinedSessions.length === 0 && !loading && <p className="col-span-2 text-center text-gray-400 italic py-10">尚未有報名紀錄。</p>}
-              {joinedSessions.map((session) => (
-                <div key={session.id} onClick={() => handleOpenDetail(session)} className="relative cursor-pointer bg-white border border-stone p-6 border-l-4 border-l-blue-100 hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg tracking-wide pr-4">{session.title}</h3>
-                    <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1">
-                      <UserMinus size={18} />
-                    </button>
-                  </div>
+              {joinedSessions.map((session) => {
+                const isWaitlist = session.myStatus === 'WAITLIST'; // 判斷是否為候補
+                
+                return (
+                  <div 
+                    key={session.id} 
+                    onClick={() => handleOpenDetail(session)} 
+                    className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 hover:shadow-md transition-all overflow-hidden ${
+                      isWaitlist ? "border-l-orange-400" : "border-l-blue-100"
+                    }`}
+                  >
+                    {/* 橘色候補標籤 */}
+                    {isWaitlist && (
+                      <div className="absolute top-0 right-0">
+                        <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">
+                          候補中
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="text-xs text-gray-500 font-sans space-y-1.5">
-                    <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
-                    <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
-                    <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
-                    <p className="flex items-center gap-2"><Banknote size={12}/> ${session.price}</p>
-                  </div>
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-lg tracking-wide pr-4">{session.title}</h3>
+                      <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1">
+                        <UserMinus size={18} />
+                      </button>
+                    </div>
 
-                  <div className="flex justify-end mt-6">
-                    <span className="text-[11px] text-gray-400 font-sans tracking-tighter">
-                      <span className="text-ink font-bold">{session.currentPlayers}</span> / {session.maxPlayers} 人
-                    </span>
+                    <div className="text-xs text-gray-500 font-sans space-y-1.5">
+                      <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
+                      <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
+                      <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
+                      <p className="flex items-center gap-2"><Banknote size={12}/> ${session.price}</p>
+                    </div>
+
+                    <div className="flex justify-end mt-6">
+                      <span className={`text-[11px] font-sans tracking-tighter ${isWaitlist ? "text-orange-400" : "text-gray-400"}`}>
+                        <span className="font-bold">{session.currentPlayers}</span> / {session.maxPlayers} 人
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
@@ -502,33 +533,35 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg tracking-widest text-sage font-bold">取消報名選項</h2>
+              <h2 className="text-lg tracking-widest text-sage font-bold">取消報名</h2>
               <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button>
             </div>
 
             <p className="text-sm text-gray-500 mb-8 font-sans leading-relaxed">
-              您目前報名了 <span className="text-sage font-bold">2 位</span> (含 1 位朋友)。<br/>
-              請選擇您要執行的操作：
+              您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span> 
+              {cancelMenu.session.friendCount ? ` (含 ${cancelMenu.session.friendCount} 位朋友)` : ""}。<br/>
+              請確認是否要執行取消操作：
             </p>
 
             <div className="space-y-4">
-              {/* 選項 1: 僅取消朋友 */}
-              <button
-                onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')}
-                className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-sm tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"
-              >
-                <UserMinus size={18} /> 僅取消朋友 (保留本人)
-              </button>
+              {/* 只有在有帶朋友的情況下才顯示「僅取消朋友」 */}
+              {cancelMenu.session.friendCount && cancelMenu.session.friendCount > 0 ? (
+                <button
+                  onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')}
+                  className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-sm tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"
+                >
+                  <UserMinus size={18} /> 僅取消朋友 (保留本人)
+                </button>
+              ) : null}
 
-              {/* 選項 2: 全部取消 */}
+              {/* 全部取消按鈕 */}
               <button
                 onClick={() => executeCancel(cancelMenu.session!.id, 'all')}
-                className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"
               >
-                <Trash2 size={18} /> 全部取消 (含本人)
+                <Trash2 size={18} /> {cancelMenu.session.friendCount ? "全部取消 (含本人)" : "確認取消報名"}
               </button>
 
-              {/* 選項 3: 放棄操作 */}
               <button
                 onClick={() => setCancelMenu({ isOpen: false, session: null })}
                 className="w-full py-4 text-gray-400 text-xs tracking-widest hover:text-gray-600 transition-all uppercase"
@@ -549,6 +582,36 @@ export default function Dashboard() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
       `}</style>
+      {/* --- 文青風訊息彈窗 --- */}
+      {msg.isOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
+            <div className="flex flex-col items-center">
+              {/* 裝飾小圖示 */}
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
+                {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
+              </div>
+              
+              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">
+                {msg.title}
+              </h2>
+              
+              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
+              
+              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">
+                {msg.content}
+              </p>
+
+              <button
+                onClick={() => setMsg({ ...msg, isOpen: false })}
+                className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase"
+              >
+                我知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

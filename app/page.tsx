@@ -68,16 +68,28 @@ export default function LoginPage() {
     <main className="min-h-screen bg-paper text-ink flex flex-col items-center justify-center p-6 font-serif">
       <div className="w-full max-w-md border border-stone bg-white p-10 shadow-sm rounded-sm">
         <div className="flex flex-col items-center mb-10">
-          <h1 className="text-4xl font-light tracking-[0.8em] text-sage mr-[-0.8em] mb-2">
-            {isLogin ? "羽球中毒勒戒中心" : "初 見"}
+          <h1 className="flex flex-col items-center mb-4">
+            {/* 上層：細線 + 功能小標 */}
+            <div className="flex items-center gap-4 mb-2">
+              <span className="w-10 h-[1px] bg-stone/20"></span>
+              <span className="text-[14px] tracking-[0.5em] text-gray-400 font-light uppercase ml-[0.5em]">
+                {isLogin ? "羽球中毒" : "初次加入"}
+              </span>
+              <span className="w-10 h-[1px] bg-stone/20"></span>
+            </div>
+
+            {/* 中間的線 */}
+            <div className="w-4 h-[3px] bg-sage opacity-40 mt-1"></div>
+
+            {/* 下層：Badminton Rehab —— 透過 mt-4 調整與上方綠線的距離 */}
+            <div className="flex items-center gap-2 mt-4">
+              <span className="w-4 h-[1px] bg-stone/30"></span>
+              <span className="text-[10px] tracking-[0.3em] text-gray-400 uppercase font-sans">
+                {isLogin ? "Badminton Rehab" : "First Encounter"}
+              </span>
+              <span className="w-4 h-[1px] bg-stone/30"></span>
+            </div>
           </h1>
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-[1px] bg-stone/30"></span>
-            <span className="text-[10px] tracking-[0.3em] text-gray-400 uppercase font-sans">
-              {isLogin ? "Badminton Rehab" : "First Encounter"}
-            </span>
-            <span className="w-4 h-[1px] bg-stone/30"></span>
-          </div>
         </div>
         
         <form onSubmit={handleAuth} className="space-y-6">
