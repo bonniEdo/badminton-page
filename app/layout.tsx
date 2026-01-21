@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "戒球日誌 · 在這裡，膩了，就是唯一的解藥。",
   openGraph: {
     title: "Badminton-Rehab",
-    description: "戒球日誌 · 記錄每一場球局",
+    description: "大哥 我想打球",
     url: "https://badminton-rehab.vercel.app/",
     siteName: "Badminton-Rehab",
     images: [
