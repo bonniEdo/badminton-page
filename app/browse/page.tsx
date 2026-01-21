@@ -94,7 +94,9 @@ export default function Browse() {
 
       const [resActive, resJoined] = await Promise.all([fetchActive, fetchJoined]);
       const jsonActive = await resActive.json();
-
+      console.log("JOINED raw response:", jsonActive);      // ✅ 看整包
+      console.log("JOINED first row:", jsonActive.data?.[0]); 
+      
       if (!resActive.ok || !jsonActive.success)
         throw new Error(jsonActive.message || "取得球局失敗");
 
@@ -147,7 +149,11 @@ export default function Browse() {
 
     try {
       const res = await fetch(`${API_URL}/api/games/${session.id}/players`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true", 
+        },
+
       });
       const json = await res.json();
       if (json.success) setParticipants(json.data);

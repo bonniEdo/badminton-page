@@ -90,6 +90,8 @@ export default function Dashboard() {
 
       const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
       const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
+      console.log("JOINED raw response:", jsonJoined);      // ✅ 看整包
+      console.log("JOINED first row:", jsonJoined.data?.[0]); // ✅ 看第一筆欄位
 
       const mapData = (data: any[]) => (data || []).map((g: any) => ({
         id: g.GameId,
@@ -123,7 +125,9 @@ export default function Dashboard() {
     setLoadingParticipants(true);
     const token = localStorage.getItem("token");
     fetch(`${API_URL}/api/games/${session.id}/players`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true",}
     })
     .then(res => res.json())
     .then(json => { if (json.success) setParticipants(json.data); })
