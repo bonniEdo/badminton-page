@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://badminton-rehab.vercel.app"), 
   title: "Badminton-Rehab",
   description: "戒球日誌 · 在這裡，膩了，就是唯一的解藥。",
   openGraph: {
