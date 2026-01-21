@@ -110,7 +110,7 @@ export default function Browse() {
             : fullDt.slice(11, 16),
           endTime: (g.EndTime ?? "").slice(0, 5),
           location: g.Location ?? "",
-          currentPlayers: Number(g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0), 
+          currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0), 
           maxPlayers: Number(g.MaxPlayers),
           price: Number(g.Price),
           notes: g.Notes || "",
@@ -265,7 +265,9 @@ export default function Browse() {
                     <span className="text-xs bg-stone/30 px-2 py-1 rounded text-gray-600">
                       主揪：{session.hostName}
                     </span>
-                    <span className="text-xs font-sans text-gray-500 flex items-center gap-1">
+                    <span className={`text-xs font-sans flex items-center gap-1 ${
+                      session.currentPlayers >= session.maxPlayers ? "text-orange-400 font-bold" : "text-gray-500"
+                    }`}>
                       {session.currentPlayers} / {session.maxPlayers}
                     </span>
                   </div>

@@ -101,8 +101,7 @@ export default function Dashboard() {
         maxPlayers: g.MaxPlayers,
         price: g.Price, 
         myStatus: g.MyStatus,
-        // ✅ 修正：優先讀取子查詢回傳的 CurrentPlayersCount
-        currentPlayers: Number(g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
+        currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
         friendCount: Number(g.FriendCount || 0), // 紀錄使用者自己帶的人數
         phone: g.Phone || g.PhoneNumber,
         notes: g.Notes
@@ -132,18 +131,10 @@ export default function Dashboard() {
   };
 
   const handleLeave = async (e: React.MouseEvent, session: Session) => {
-    e.stopPropagation();
-
-    // 如果有帶朋友，就開啟自定義選單讓使用者選
-    if (session.friendCount && session.friendCount > 0) {
+      e.stopPropagation();
+      // 不再判斷人數，直接開啟自定義選單
       setCancelMenu({ isOpen: true, session });
-    } else {
-      // 只有一個人時，用簡單的 confirm 即可，或也進選單
-      if (window.confirm("確定要取消報名嗎？")) {
-        executeCancel(session.id, 'all');
-      }
-    }
-  };
+    };
 
   // 真正執行 API 的 function
   const executeCancel = async (id: number, cancelType: string) => {
@@ -316,11 +307,15 @@ export default function Dashboard() {
                       <p className="flex items-center gap-2"><Banknote size={12}/> ${session.price}</p>
                     </div>
 
-                    <div className="flex justify-end mt-6">
-                      <span className={`text-[11px] font-sans tracking-tighter ${isWaitlist ? "text-orange-400" : "text-gray-400"}`}>
-                        <span className="font-bold">{session.currentPlayers}</span> / {session.maxPlayers} 人
-                      </span>
-                    </div>
+                  <div className="flex justify-end mt-6">
+                    <span className={`text-[11px] font-sans tracking-tighter ${isWaitlist ? "text-orange-400" : "text-gray-400"}`}>
+                      <span className={`font-bold ${isWaitlist ? "text-orange-500 text-sm" : ""}`}>
+                        {session.currentPlayers}
+                      </span> 
+                      <span className="mx-0.5">/</span> 
+                      {session.maxPlayers} 人
+                    </span>
+                  </div>
                   </div>
                 );
               })}
@@ -528,7 +523,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      {/* --- 手機友好的取消選擇選單 (Bottom Sheet 風格) --- */}
+      {/* --- 自定義取消選單 --- */}
       {cancelMenu.isOpen && cancelMenu.session && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
@@ -538,28 +533,34 @@ export default function Dashboard() {
             </div>
 
             <p className="text-sm text-gray-500 mb-8 font-sans leading-relaxed">
-              您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span> 
-              {cancelMenu.session.friendCount ? ` (含 ${cancelMenu.session.friendCount} 位朋友)` : ""}。<br/>
+              {cancelMenu.session.myStatus === 'WAITLIST' ? (
+                <>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>
+              ) : (
+                <>您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>
+              )}
+              {cancelMenu.session.friendCount && cancelMenu.session.friendCount > 0 ? ` (含 ${cancelMenu.session.friendCount} 位朋友)` : ""}。<br/>
               請確認是否要執行取消操作：
             </p>
 
             <div className="space-y-4">
-              {/* 只有在有帶朋友的情況下才顯示「僅取消朋友」 */}
-              {cancelMenu.session.friendCount && cancelMenu.session.friendCount > 0 ? (
+              {/* 選項 1：只有帶朋友時才顯示「僅取消朋友」 */}
+              {cancelMenu.session.friendCount && cancelMenu.session.friendCount > 0 && (
                 <button
                   onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')}
                   className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-sm tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"
                 >
                   <UserMinus size={18} /> 僅取消朋友 (保留本人)
                 </button>
-              ) : null}
+              )}
 
-              {/* 全部取消按鈕 */}
+              {/* 選項 2：主要的取消按鈕 */}
               <button
                 onClick={() => executeCancel(cancelMenu.session!.id, 'all')}
                 className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"
               >
-                <Trash2 size={18} /> {cancelMenu.session.friendCount ? "全部取消 (含本人)" : "確認取消報名"}
+                <Trash2 size={18} /> 
+                {/* 如果有帶人顯示「全部取消」，只有自己則顯示「確認取消報名」 */}
+                {cancelMenu.session.friendCount && cancelMenu.session.friendCount > 0 ? "全部取消 (含本人)" : "確認取消報名"}
               </button>
 
               <button
