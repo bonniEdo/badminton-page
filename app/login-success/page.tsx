@@ -17,7 +17,7 @@ function LoginSuccessContent() {
       // 延遲 2 秒跳轉，讓球友看一眼霸氣的歡迎詞
       const timer = setTimeout(() => {
         router.push("/dashboard"); // 跳轉到你的主功能頁
-      }, 2000);
+      }, 3000);
 
       return () => clearTimeout(timer);
     } else {
@@ -29,7 +29,7 @@ function LoginSuccessContent() {
   return (
     <main className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 font-serif text-center">
       <div className="animate-fade-in space-y-6">
-        <h1 className="text-4xl font-light tracking-[0.5em] text-sage">拾 羽</h1>
+        <h1 className="text-4xl font-light tracking-[0.5em] text-sage">勒戒中心</h1>
         
         <div className="space-y-2">
           <p className="text-xl text-ink">檢測到您的羽球成癮指數已超標。</p>

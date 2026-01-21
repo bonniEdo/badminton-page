@@ -186,13 +186,13 @@ export default function Browse() {
           href="/dashboard"
           className="inline-flex items-center text-sm text-gray-500 hover:text-sage transition"
         >
-          <ArrowLeft size={16} className="mr-2" /> 返回我的頁面
+          <ArrowLeft size={16} className="mr-2" /> 返回日誌
         </Link>
       </nav>
 
       <header className="py-12 text-center">
         <h1 className="text-2xl tracking-[0.2em] text-sage mb-2">尋找球局</h1>
-        <p className="text-xs text-gray-400 tracking-widest">在城市的一角，揮灑汗水</p>
+        <p className="text-xs text-gray-400 tracking-widest">在城市的一角，努力勒戒</p>
       </header>
 
       <div className="max-w-6xl mx-auto p-6">

@@ -69,7 +69,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md border border-stone bg-white p-10 shadow-sm rounded-sm">
         <div className="flex flex-col items-center mb-10">
           <h1 className="text-4xl font-light tracking-[0.8em] text-sage mr-[-0.8em] mb-2">
-            {isLogin ? "拾 羽" : "初 見"}
+            {isLogin ? "羽球中毒勒戒中心" : "初 見"}
           </h1>
           <div className="flex items-center gap-2">
             <span className="w-4 h-[1px] bg-stone/30"></span>
@@ -107,7 +107,7 @@ export default function LoginPage() {
             <span className="w-full border-t border-stone opacity-30"></span>
           </div>
           <div className="relative flex justify-center text-[10px] uppercase">
-            <span className="bg-white px-4 text-gray-400 tracking-[0.2em]">或透過 LINE 快速入院</span>
+            <span className="bg-white px-4 text-gray-400 tracking-[0.2em]">或透過 LINE 快速加入</span>
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export default function LoginPage() {
         >
           {/* 這裡使用了簡單的文字代替圖片，你可以根據需求加入 LINE Logo */}
           <span className="bg-[#06C755] text-white text-[10px] px-1.5 py-0.5 rounded-sm group-hover:bg-white group-hover:text-[#06C755] transition-colors">LINE</span>
-          領取號碼牌，申請勒戒
+          領取號碼牌．．．申請勒戒
         </button>
         {/* ----------------------------------- */}
 
@@ -128,7 +128,7 @@ export default function LoginPage() {
         </div>
       </div>
       <footer className="mt-12 text-xs text-stone tracking-widest text-gray-400">
-        Badminton Life &copy; 2025
+        Badminton Rehab &copy; 2025
       </footer>
     </main>
   );

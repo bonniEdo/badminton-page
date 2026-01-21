@@ -228,7 +228,15 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-20">
       <nav className="flex justify-between items-center p-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-xl tracking-widest text-sage font-light">我的羽球日誌</h1>
+        <div className="flex flex-col items-start mb-6">
+          <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">
+            戒球日誌
+          </h1>
+          <div className="w-12 h-[1px] bg-sage/30 mb-2"></div> {/* 極細裝飾線 */}
+          <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
+            在這裡，膩了，就是唯一的解藥。
+          </p>
+        </div>
         <Link href="/browse" className="flex items-center gap-2 text-sm text-gray-400 hover:text-sage transition">
           <Search size={16} /> <span className="tracking-widest">尋找球局</span>
         </Link>
