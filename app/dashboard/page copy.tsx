@@ -239,13 +239,13 @@ export default function Dashboard() {
           <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">
             戒球日誌
           </h1>
-          <div className="w-12 h-[1px] bg-sage/30 mb-3"></div> {/* 極細裝飾線 */}
+          <div className="w-12 h-[1px] bg-sage/30 mb-2"></div> {/* 極細裝飾線 */}
           <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
             在這裡，膩了，就是唯一的解藥。
           </p>
         </div>
-        <Link href="/dashboard" className="flex items-center gap-2 text-sm text-gray-400 hover:text-sage transition">
-          <Search size={20} /> <span className="tracking-widest">尋找球局</span>
+        <Link href="/browse" className="flex items-center gap-2 text-sm text-gray-400 hover:text-sage transition">
+          <Search size={16} /> <span className="tracking-widest">尋找球局</span>
         </Link>
       </nav>
 

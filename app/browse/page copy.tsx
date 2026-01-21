@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Search,
   ArrowLeft,
   X,
   Clock,
@@ -227,27 +226,13 @@ export default function Browse() {
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif relative">
-      <nav className="p-6 border-b border-stone/50 bg-white sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto flex justify-between items-end">
-        <div className="flex flex-col items-start mb-2">
-          <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">
-            戒球日誌
-          </h1>
-          <div className="w-12 h-[1px] bg-sage/30 mb-2"></div> {/* 極細裝飾線 */}
-          <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
-            在這裡，膩了，就是唯一的解藥。
-          </p>
-        </div>
-
-          {/* 右側：搜尋狀態/按鈕 */}
-          <Link 
-            href="/browse" 
-            className="flex items-center gap-3 text-gray-400 group cursor-pointer hover:text-sage transition-colors"
-          >
-            <Search size={20} className="stroke-[1.5px] text-stone-400 group-hover:text-sage transition-colors" />
-            <span className="text-sm tracking-[0.2em] font-light">日誌記錄</span>
-          </Link>
-        </div>
+      <nav className="p-6 border-b border-stone bg-white sticky top-0 z-10">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center text-sm text-gray-500 hover:text-sage transition"
+        >
+          <ArrowLeft size={16} className="mr-2" /> 返回日誌
+        </Link>
       </nav>
 
       <header className="py-12 text-center">
