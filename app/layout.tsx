@@ -21,10 +21,11 @@ export const metadata: Metadata = {
     title: "Badminton-Rehab",
     description: "大哥 我想打球",
     url: "https://badminton-rehab.vercel.app/",
-    siteName: "Badminton-Rehab",
+    siteName: "Badminton-Rehab-Center",
     images: [
       {
         url: "https://badminton-rehab.vercel.app/og.png",
+        secureUrl: "https://badminton-rehab.vercel.app/og.png",
         width: 1200,
         height: 630,
         alt: "Badminton-Rehab",
@@ -32,7 +33,16 @@ export const metadata: Metadata = {
     ],
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Badminton-Rehab",
+    description: "大哥 我想打球",
+    images: ["https://badminton-rehab.vercel.app/og.png"],
+  },
 };
+
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
