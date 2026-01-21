@@ -16,13 +16,7 @@ const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
   const min = (i % 2 === 0 ? "00" : "30");
   return `${hour}:${min}`;
 });
-// 在初始值裡面加上 type: "success"
-const [msg, setMsg] = useState({ 
-  isOpen: false, 
-  title: "", 
-  content: "", 
-  type: "success" 
-});
+
 
 interface Session {
   id: number;
@@ -54,6 +48,12 @@ export default function Dashboard() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [msg, setMsg] = useState({ 
+  isOpen: false, 
+  title: "", 
+  content: "", 
+  type: "success" 
+});
 
   useEffect(() => {
     const token = localStorage.getItem("token");
