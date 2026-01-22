@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: "戒球日誌 · 在這裡，膩了，就是唯一的解藥。",
   openGraph: {
     title: "Badminton-Rehab",
-    description: "大哥 我想打球",
+    description: "救命啊 好想打球",
     url: "https://badminton-rehab.vercel.app/",
     siteName: "Badminton-Rehab-Center",
     images: [
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Badminton-Rehab",
-    description: "大哥 我想打球",
+    description: "救命啊 好想打球",
     images: ["https://badminton-rehab.vercel.app/og.png"],
   },
 };

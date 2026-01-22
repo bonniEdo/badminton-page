@@ -17,7 +17,7 @@ function LoginSuccessContent() {
       // 延遲 2 秒跳轉，讓球友看一眼霸氣的歡迎詞
       const timer = setTimeout(() => {
         router.push("/dashboard"); // 跳轉到你的主功能頁
-      }, 3000);
+      }, 2000);
 
       return () => clearTimeout(timer);
     } else {
