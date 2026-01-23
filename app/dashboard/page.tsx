@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Search,
-  ArrowLeft,
   X,
   Clock,
   MapPin,
@@ -15,14 +14,18 @@ import {
   FileText,
   CheckCircle,
   Info,
+  LogOut,
+  Plus,
 } from "lucide-react";
+
+import { useRouter } from "next/navigation";
 
 const isBrowserProduction =
   typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 
-// --- 型別定義 ---
+// --- 1. 型別定義 (新增 isExpired) ---
 type Session = {
   id: number;
   hostName: string;
@@ -35,6 +38,8 @@ type Session = {
   maxPlayers: number;
   price: number;
   notes: string;
+  isExpired: boolean; 
+  friendCount: number;
 };
 
 type Participant = {
@@ -46,6 +51,7 @@ type Participant = {
 const TW_MOBILE_REGEX = /^09\d{8}$/;
 
 export default function Browse() {
+  const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [joinedIds, setJoinedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,29 +84,18 @@ export default function Browse() {
       setError(null);
 
       const token = localStorage.getItem("token");
-      // ✅ 修改這裡
       const headers: Record<string, string> = {
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true", // 加入這一行
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "ngrok-skip-browser-warning": "true",
       };
 
-      const fetchActive = fetch(`${API_URL}/api/games/activegames`, {
-        method: "GET",
-        headers,
-      });
-      const fetchJoined = token
-        ? fetch(`${API_URL}/api/games/joined`, { method: "GET", headers })
-        : Promise.resolve(null);
-
-      const [resActive, resJoined] = await Promise.all([fetchActive, fetchJoined]);
+      const resActive = await fetch(`${API_URL}/api/games/activegames`, { method: "GET", headers });
       const jsonActive = await resActive.json();
-      console.log("JOINED raw response:", jsonActive);      // ✅ 看整包
-      console.log("JOINED first row:", jsonActive.data?.[0]); 
       
-      if (!resActive.ok || !jsonActive.success)
-        throw new Error(jsonActive.message || "取得球局失敗");
+      if (!resActive.ok || !jsonActive.success) throw new Error(jsonActive.message || "取得球局失敗");
 
+      // --- 2. 修改 Mapping (接住後端的 isExpired) ---
       const mapped: Session[] = (jsonActive.data || []).map((g: any) => {
         const fullDt = g.GameDateTime ?? "";
         return {
@@ -108,24 +103,31 @@ export default function Browse() {
           hostName: g.hostName,
           title: g.Title,
           date: fullDt.slice(0, 10),
-          time: fullDt.includes("T")
-            ? fullDt.split("T")[1].slice(0, 5)
-            : fullDt.slice(11, 16),
+          time: fullDt.includes("T") ? fullDt.split("T")[1].slice(0, 5) : fullDt.slice(11, 16),
           endTime: (g.EndTime ?? "").slice(0, 5),
           location: g.Location ?? "",
           currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0), 
           maxPlayers: Number(g.MaxPlayers),
           price: Number(g.Price),
           notes: g.Notes || "",
+          isExpired: !!g.isExpired,
+          friendCount: Number(g.MyFriendCount || 0), 
         };
       });
 
       setSessions(mapped);
 
+      const resJoined = token ? await fetch(`${API_URL}/api/games/joined`, { method: "GET", headers }) : null;
       if (resJoined && resJoined.ok) {
         const jsonJoined = await resJoined.json();
         if (jsonJoined.success && Array.isArray(jsonJoined.data)) {
-          setJoinedIds(jsonJoined.data.map((g: any) => g.GameId));
+          // ✅ 再次確保前端過濾掉 CANCELED
+          const activeJoinedIds = jsonJoined.data
+            .filter((g: any) => g.MyStatus !== "CANCELED")
+            .map((g: any) => g.GameId);
+          setJoinedIds(activeJoinedIds);
+          console.log("列表資料檢查:", jsonJoined.data)
+          
         }
       }
     } catch (e: any) {
@@ -133,12 +135,26 @@ export default function Browse() {
     } finally {
       setLoading(false);
     }
+    
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
+  useEffect(() => { fetchData(); }, []);
+  const fetchCurrentParticipants = async (sessionId: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setLoadingParticipants(true);
+    try {
+      const res = await fetch(`${API_URL}/api/games/${sessionId}/players`, {
+        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
+      });
+      const json = await res.json();
+      if (json.success) setParticipants(json.data);
+    } catch (err) {
+      console.error("抓取名單失敗", err);
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
   const handleOpenModal = async (session: Session) => {
     const token = localStorage.getItem("token");
     if (!token) return alert("請先登入才能報名！");
@@ -146,15 +162,11 @@ export default function Browse() {
     setSelectedSession(session);
     setJoinForm({ phone: "", numPlayers: 1 });
     setIsModalOpen(true);
-    setLoadingParticipants(true);
+    fetchCurrentParticipants(session.id);
 
     try {
       const res = await fetch(`${API_URL}/api/games/${session.id}/players`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "ngrok-skip-browser-warning": "true", 
-        },
-
+        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
       });
       const json = await res.json();
       if (json.success) setParticipants(json.data);
@@ -165,65 +177,104 @@ export default function Browse() {
     }
   };
 
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.replace("/");
+  };
+
   const submitJoin = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!selectedSession) return;
+    e.preventDefault();
+    if (!selectedSession || selectedSession.isExpired) return;
 
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setMessageModal({
-          isOpen: true,
-          title: "尚未登入",
-          content: "請先登入，讓我們為你保留位置。",
-          type: "error"
-        });
-        return;
-      }
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${token}`, 
+          "ngrok-skip-browser-warning": "true" 
+        },
+        body: JSON.stringify({ 
+          phone: joinForm.phone, 
+          numPlayers: joinForm.numPlayers 
+        }),
+      });
 
-      try {
-        const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json", 
-            "Authorization": `Bearer ${token}`,
-            "ngrok-skip-browser-warning": "true" 
-          },
-          body: JSON.stringify({ 
-            phone: joinForm.phone, 
-            numPlayers: joinForm.numPlayers 
-          }),
-        });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || "報名失敗");
 
-        const json = await res.json();
-        
-        if (!res.ok || !json.success) {
-          throw new Error(json.message || "報名失敗");
+      // 1. ✅ 更新 joinedIds，這會讓表單消失，切換成「已經成功預約」的文字
+      setJoinedIds((prev) => [...prev, selectedSession.id]);
+
+      // 2. ✅ 更新當前選中球局的朋友數量與總人數 (這會讓按鈕消失並同步人數)
+      const addedFriends = joinForm.numPlayers > 1 ? 1 : 0;
+      setSelectedSession((prev) => 
+        prev ? { 
+          ...prev, 
+          friendCount: addedFriends,
+          currentPlayers: prev.currentPlayers + joinForm.numPlayers 
+        } : null
+      );
+
+      // 3. ✅ 立即重新抓取「名單」，這樣你就會出現在下方清單中
+      // 確保你已經定義了 fetchCurrentParticipants 函式
+      fetchCurrentParticipants(selectedSession.id);
+      
+      // 4. ✅ 更新背景的列表資料
+      fetchData();
+
+      // 5. 顯示成功視窗
+      setMessageModal({ 
+        isOpen: true, 
+        title: "預約成功", 
+        content: "期待在球場與你相遇。", 
+        type: "success" 
+      });
+
+    } catch (error: any) {
+      // 提醒：這裡建議用 setMessageModal 顯示錯誤比較美觀
+      setMessageModal({ 
+        isOpen: true, 
+        title: "提醒", 
+        content: error.message, 
+        type: "error" 
+      });
+    }
+  };
+
+  const handleAddFriend = async (session: Session) => {
+    const token = localStorage.getItem("token");
+    
+    try {
+      const res = await fetch(`${API_URL}/api/games/${session.id}/add-friend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true"
         }
+      });
+      
+      const json = await res.json();
+      if (json.success) {
+        setSelectedSession((prev) => (prev ? { ...prev, friendCount: 1 } : null));
 
-        // ✅ 成功報名（或排入候補）
-        setMessageModal({
-          isOpen: true,
-          title: json.message?.includes("候補") ? "已排入候補" : "預約成功",
-          content: json.message?.includes("候補") 
-            ? "目前名額已滿，若有空位我們將第一時間通知你。" 
-            : "期待在球場與你相遇，請記得準時赴約。",
-          type: "success"
-        });
-        
-        // 重新整理資料並關閉報名視窗
+        // ✅ 立即重新抓取名單，這樣畫面上就會多出 "+1"
+        fetchCurrentParticipants(session.id);
+
+        setMessageModal({ isOpen: true, title: "成功 +1", content: "已為朋友保留位置", type: "success" });
         fetchData();
-        setIsModalOpen(false);
-
-      } catch (error: any) {
-        // ✅ 錯誤處理
-        setMessageModal({
-          isOpen: true,
-          title: "提醒",
-          content: error.message || "連線不穩定，請稍後再試。",
-          type: "error"
-        });
+      } else {
+        alert(json.message);
       }
-    }; 
+      
+    } catch (err: any) {
+      // 如果你的 alert 顯示 "game is not defined"，代表上面 try 區塊有程式碼寫錯了
+      alert(err.message || "連線失敗");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif relative">
@@ -240,18 +291,10 @@ export default function Browse() {
         <Link href="/browse" className="flex items-center gap-2 text-sm text-gray-400 hover:text-sage transition">
           <Search size={20} /> <span className="tracking-widest">戒球日誌</span>
         </Link>
-      </nav>
-
-      <header className="py-12 text-center">
-        <h1 className="text-2xl tracking-[0.2em] text-sage mb-2">尋找球局</h1>
-        <p className="text-xs text-gray-400 tracking-widest">在城市的一角，努力勒戒</p>
-      </header>
-
+      </nav>      
       <div className="max-w-6xl mx-auto p-6">
         {loading ? (
           <p className="text-gray-400 text-sm italic">載入中...</p>
-        ) : error ? (
-          <p className="text-alert text-sm">取得資料失敗：{error}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sessions.map((session) => {
@@ -260,19 +303,27 @@ export default function Browse() {
                 <div
                   key={session.id}
                   onClick={() => handleOpenModal(session)}
+                  // --- 3. UI 樣式切換 (加上 grayscale 與 opacity) ---
                   className={`relative p-6 border transition-all duration-300 overflow-hidden cursor-pointer flex flex-col ${
-                    isJoined
-                      ? "border-orange-300 bg-orange-50/50"
-                      : "border-stone bg-white hover:border-gray-400"
+                    session.isExpired 
+                      ? "border-gray-200 bg-gray-50/80 grayscale opacity-70" // ✅ 過期灰色
+                      : isJoined 
+                        ? "border-orange-300 bg-orange-50/50" 
+                        : "border-stone bg-white hover:border-gray-400 shadow-sm"
                   }`}
                 >
-                  {isJoined && (
-                    <div className="absolute top-0 right-0">
-                      <div className="bg-orange-400 text-white text-xs px-3 py-1 font-bold tracking-wider rounded-bl-lg">
+                  {/* 狀態標籤 */}
+                  <div className="absolute top-0 right-0">
+                    {session.isExpired ? (
+                      <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">
+                        已結束
+                      </div>
+                    ) : isJoined ? (
+                      <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">
                         已報名
                       </div>
-                    </div>
-                  )}
+                    ) : null}
+                  </div>
 
                   <div className="flex justify-between items-start mb-4 mt-2">
                     <span className="text-xs bg-stone/30 px-2 py-1 rounded text-gray-600">
@@ -285,28 +336,26 @@ export default function Browse() {
                     </span>
                   </div>
 
-                  <h3 className="text-xl mb-2">{session.title}</h3>
+
+                  <h3 className={`text-xl mb-2 ${session.isExpired ? "text-gray-400" : ""}`}>{session.title}</h3>
 
                   <div className="text-sm text-gray-500 font-sans space-y-1 mb-4 flex-grow">
                     <p>📅 {session.date}</p>
                     <p>🕒 {session.time} - {session.endTime}</p>
                     <p>📍 {session.location}</p>
-                    <p>💰 {session.price}</p>
-                    {session.notes && (
-                      <p className="text-xs text-stone mt-2 italic line-clamp-1 border-t border-stone/20 pt-1">
-                        &ldquo;{session.notes}&rdquo;
-                      </p>
-                    )}
                   </div>
 
+                  {/* 按鈕樣式 */}
                   <button
                     className={`px-4 py-2 text-[10px] tracking-widest transition rounded-sm font-bold uppercase ${
-                      isJoined
-                        ? "border border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white"
-                        : "bg-sage text-white hover:bg-ink"
+                      session.isExpired
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed" // ✅ 過期按鈕
+                        : isJoined
+                          ? "border border-orange-400 text-orange-400"
+                          : "bg-sage text-white"
                     }`}
                   >
-                    {isJoined ? "查看詳情" : "報名"}
+                    {session.isExpired ? "結束勒戒" : isJoined ? "查看詳情" : "報名"}
                   </button>
                 </div>
               );
@@ -318,16 +367,11 @@ export default function Browse() {
       {/* --- Modal 視窗 --- */}
       {isModalOpen && selectedSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-8 max-w-md w-full shadow-xl relative animate-in fade-in zoom-in duration-200 border border-stone">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <X size={20} />
-            </button>
+          <div className={`bg-white p-8 max-w-md w-full shadow-xl relative border border-stone ${selectedSession.isExpired ? "grayscale-[0.5]" : ""}`}>
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20} /></button>
 
-            <h2 className="text-xl tracking-widest text-sage mb-4 border-l-4 border-sage pl-3">
-              球局詳情
+            <h2 className={`text-xl tracking-widest mb-4 border-l-4 pl-3 ${selectedSession.isExpired ? "border-gray-300 text-gray-400" : "border-sage text-sage"}`}>
+              {selectedSession.isExpired ? "球局紀錄" : "球局詳情"}
             </h2>
 
             <div className="mb-6 space-y-1 text-sm text-gray-600 font-sans">
@@ -355,7 +399,6 @@ export default function Browse() {
                 </div>
               )}
             </div>
-
             {/* --- 已報名名單區塊 --- */}
             <div className="mb-8 border-t border-stone pt-6">
               <div className="flex justify-between items-center mb-4">
@@ -413,20 +456,17 @@ export default function Browse() {
                 )}
               </div>
             </div>
-
-            {/* --- 報名表單 --- */}
+            
+            {/* --- 第一部分：報名表單 或 已預約狀態 --- */}
             {!joinedIds.includes(selectedSession.id) ? (
+              // 1. 尚未報名的使用者：顯示報名表單
               <form onSubmit={submitJoin} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">
-                      報名人數
-                    </label>
+                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">報名人數</label>
                     <select
                       value={joinForm.numPlayers}
-                      onChange={(e) =>
-                        setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })
-                      }
+                      onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })}
                       className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm font-sans cursor-pointer"
                     >
                       <option value={1}>1 人（我）</option>
@@ -435,10 +475,7 @@ export default function Browse() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">
-                      聯絡電話
-                    </label>
-
+                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">聯絡電話</label>
                     <input
                       type="tel"
                       required
@@ -454,32 +491,46 @@ export default function Browse() {
                       }`}
                       placeholder="0912345678"
                     />
-
-                    {phoneError && (
-                      <p className="mt-1 text-[10px] text-red-400 font-sans">{phoneError}</p>
-                    )}
+                    {phoneError && <p className="mt-1 text-[10px] text-red-400 font-sans">{phoneError}</p>}
                   </div>
                 </div>
-
                 <button
                   type="submit"
-                  disabled={!isPhoneValid}
-                  className={`w-full py-2 text-white text-sm tracking-widest transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed
-                    ${selectedSession.currentPlayers >= selectedSession.maxPlayers ? "bg-yellow-500" : "bg-sage"}`}
+                  disabled={!isPhoneValid || selectedSession.isExpired}
+                  className={`w-full py-2 text-white text-sm tracking-widest transition shadow-md disabled:opacity-50
+                    ${selectedSession.isExpired ? "bg-gray-400 cursor-not-allowed" : "bg-sage"}`}
                 >
-                  {selectedSession.currentPlayers >= selectedSession.maxPlayers
-                    ? "排入候補"
-                    : "確認報名"}
+                  {selectedSession.isExpired ? "報名已截止" : "確認報名"}
                 </button>
               </form>
             ) : (
-              <div className="py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest">
-                已經成功預約
+              // 2. 已經報名的使用者：顯示狀態
+              <div
+                className={`py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest ${
+                  selectedSession.isExpired ? "bg-gray-400 text-white" : ""
+                }`}
+              >
+                {selectedSession.isExpired ? "已嘗試勒戒" : "已經成功預約"}
               </div>
+            )}
+            {/* 找這段程式碼並替換 */}
+            {joinedIds.includes(selectedSession.id) && 
+            !selectedSession.isExpired && 
+            Number(selectedSession.friendCount || 0) === 0 && (
+              <button 
+                onClick={() => handleAddFriend(selectedSession)}
+                className="mt-4 w-full py-2 border border-sage text-sage text-[10px] tracking-[0.2em] hover:bg-sage/5 transition rounded-sm font-bold uppercase"
+              >
+                + 幫朋友報名 (限一位)
+              </button>
             )}
           </div>
         </div>
       )}
+      
+      <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone text-gray-400 hover:text-red-400 hover:border-red-400 transition-all text-[10px] tracking-widest z-50 uppercase">
+        <LogOut size={12} /> Sign Out
+      </button>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
