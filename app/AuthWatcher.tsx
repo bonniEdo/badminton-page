@@ -3,6 +3,8 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { jwtDecode } from "jwt-decode";
+
 
 export default function AuthWatcher({ children }: { children: React.ReactNode }) {
   const router = useRouter();
