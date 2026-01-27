@@ -30,7 +30,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
           const idToken = liff.getIDToken();
           if (idToken) {
             try {
-              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/liff-login`, {
+              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/liff-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idToken })
