@@ -49,9 +49,10 @@ export default function LoginPage() {
       const data = await res.json();
       if (res.ok) {
         if (isLogin) {
+
           localStorage.setItem("token", data.token);
-          localStorage.setItem("username", data.username || formData.email); 
-          router.push("/dashboard");
+          localStorage.setItem("user", JSON.stringify(data.user));
+          router.push(`/login-success?token=${data.token}&speed=fast`);
         } else {
           alert(data.message || "註冊成功！");
           setIsLogin(true);

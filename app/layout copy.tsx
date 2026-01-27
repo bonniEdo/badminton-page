@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AuthWatcher from "./AuthWatcher"; // 引入剛寫好的組件
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,7 +12,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Metadata 保留在 Server Side，這對 SEO 很好
+
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://badminton-rehab.vercel.app"), 
   title: "Badminton-Rehab",
@@ -42,6 +42,8 @@ export const metadata: Metadata = {
   },
 };
 
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -52,10 +54,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* 使用 AuthWatcher 包裹 children */}
-        <AuthWatcher>
-          {children}
-        </AuthWatcher>
+        {children}
       </body>
     </html>
   );

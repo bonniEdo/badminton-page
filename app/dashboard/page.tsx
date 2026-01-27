@@ -69,6 +69,8 @@ export default function Browse() {
     content: string;
     type: "success" | "error";
   }>({ isOpen: false, title: "", content: "", type: "success" });
+  const [userInfo, setUserInfo] = useState<{ username: string; avatarUrl?: string } | null>(null);
+
 
   const phoneError = useMemo(() => {
     if (!joinForm.phone) return "";
@@ -138,7 +140,23 @@ export default function Browse() {
     
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+      const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          try {
+            setUserInfo(JSON.parse(savedUser));
+          } catch (e) {
+            console.error("User parsing error", e);
+          }
+        }
+
+        // 3. 自動跳轉邏輯：如果沒 Token 直接踢回首頁
+        if (!localStorage.getItem('token')) {
+          router.replace("/");
+        }
+      }, [router]);
+  
   const fetchCurrentParticipants = async (sessionId: number) => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -276,22 +294,53 @@ export default function Browse() {
     }
   };
 
+
   return (
     <div className="min-h-screen bg-paper text-ink font-serif relative">
       <nav className="flex justify-between items-center p-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex flex-col items-start mb-6">
+        <div className="flex flex-col items-start">
           <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">
             戒球日誌
           </h1>
-          <div className="w-12 h-[1px] bg-sage/30 mb-3"></div> {/* 極細裝飾線 */}
+          <div className="w-12 h-[1px] bg-sage/30 mb-3"></div>
           <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
             在這裡，膩了，就是唯一的解藥。
           </p>
         </div>
-        <Link href="/browse" className="flex items-center gap-2 text-sm text-gray-400 hover:text-sage transition">
-          <Search size={20} /> <span className="tracking-widest">戒球日誌</span>
+
+        {/* --- 個人大頭貼 / 狀態區塊 --- */}
+        <Link href="/dashboard" className="group flex items-center gap-3 transition-all duration-300">
+          <div className="relative">
+            {/* 文青裝飾外圈 */}
+            <div className="absolute -inset-1 rounded-full border border-sage/20 group-hover:border-sage/50 transition-colors duration-500"></div>
+            
+            {/* 頭貼圖片或預設字 */}
+            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-stone-50 border border-white/50 shadow-sm flex items-center justify-center">
+              {userInfo?.avatarUrl ? (
+                <img 
+                  src={userInfo.avatarUrl} 
+                  alt="User" 
+                  className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-500"
+                />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full bg-sage/5 text-sage/60">
+                  <span className="text-[10px] font-light tracking-tighter">
+                    {userInfo?.username?.charAt(0) || '戒'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 用戶名與動態線條 */}
+          <div className="hidden sm:flex flex-col items-start">
+            <span className="text-[10px] tracking-[0.3em] text-gray-400 group-hover:text-sage transition-colors duration-300 uppercase">
+              {userInfo?.username || '球友'}
+            </span>
+            <div className="h-[px] w-0 group-hover:w-full bg-sage/30 transition-all duration-500 mt-0.5"></div>
+          </div>
         </Link>
-      </nav>      
+      </nav>     
       <div className="max-w-6xl mx-auto p-6">
         {loading ? (
           <p className="text-gray-400 text-sm italic">載入中...</p>

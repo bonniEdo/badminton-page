@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { jwtDecode } from "jwt-decode"; // 1. 引入解碼工具
 
 function LoginSuccessContent() {
   const router = useRouter();
@@ -8,24 +9,48 @@ function LoginSuccessContent() {
 
   useEffect(() => {
     const token = searchParams.get("token");
+    const speed = searchParams.get("speed");
 
     if (token) {
       // 1. 將 Token 存入 localStorage
       localStorage.setItem("token", token);
+      const waitTime = speed === 'fast' ? 500 : 2000;
+      
+      if (!localStorage.getItem('user')) {
+        try {
+          const decoded = jwtDecode(token);
+          localStorage.setItem('user', JSON.stringify(decoded));
+        } catch (e) { console.error(e); }
+      }
 
-      // 2. 這裡可以視需求解碼 token 或直接導向
-      // 延遲 2 秒跳轉，讓球友看一眼霸氣的歡迎詞
+      // --- 【新增部分：夾在這裡】 ---
+      try {
+        const decoded: any = jwtDecode(token);
+        // 從 token 中提取後端塞入的 id, email, username
+        // 注意：如果你的後端有存 AvatarUrl 在 token，這裡也能拿到
+        const userObj = {
+          id: decoded.id,
+          username: decoded.username,
+          email: decoded.email,
+          avatarUrl: decoded.avatarUrl || null // 如果後端 token 沒放，就給 null
+        };
+        
+        localStorage.setItem("user", JSON.stringify(userObj));
+        console.log("用戶資料已存儲:", userObj);
+      } catch (error) {
+        console.error("Token 解析失敗", error);
+      }
       const timer = setTimeout(() => {
-        router.push("/dashboard"); // 跳轉到你的主功能頁
-      }, 2000);
+        router.push("/dashboard");
+      }, waitTime);
+
 
       return () => clearTimeout(timer);
     } else {
-      // 如果沒拿到 token，送回登入頁
       router.push("/login");
     }
   }, [searchParams, router]);
-
+  
   return (
     <main className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 font-serif text-center">
       <div className="animate-fade-in space-y-6">
