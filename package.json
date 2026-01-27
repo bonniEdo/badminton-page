@@ -8,6 +8,7 @@
     "start": "next start -p 3001"
   },
   "dependencies": {
+    "@line/liff": "^2.27.3",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "jwt-decode": "^4.0.0",

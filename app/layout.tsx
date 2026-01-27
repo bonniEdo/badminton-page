@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthWatcher from "./AuthWatcher"; // 引入剛寫好的組件
+import LiffProvider from './LiffProvider';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,20 +43,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+
+export default function RootLayout({  children,
+  }: Readonly<{
+    children: React.ReactNode;
+  }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* 使用 AuthWatcher 包裹 children */}
-        <AuthWatcher>
-          {children}
-        </AuthWatcher>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <LiffProvider>
+          <AuthWatcher>
+            {children}
+          </AuthWatcher>
+        </LiffProvider>
       </body>
     </html>
   );
