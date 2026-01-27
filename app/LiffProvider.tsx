@@ -46,7 +46,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
                 if (data.success) {
                   localStorage.setItem('token', data.token);
                   localStorage.setItem('user', JSON.stringify(data.user));
-                  router.replace('/browse');
+                  router.replace('/login-success');
                   return;
                 }
               } catch (e) {
