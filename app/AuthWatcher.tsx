@@ -15,47 +15,77 @@ export default function AuthWatcher({ children }: { children: React.ReactNode })
   useEffect(() => {
     const checkAndRedirect = () => {
       const token = localStorage.getItem('token');
-      const isPublicPath = pathname === '/' || pathname === '/login';
-
+      const isPublicPath = pathname === '/' || pathname === '/login' || pathname === '/login-success';
+      if (isPublicPath) return;
       if (!token) {
-        if (!isPublicPath) router.push('/');
+        router.replace('/'); // 沒登入就踢走
         return;
       }
-
+      // if (!token) {
+      //   if (!isPublicPath) router.push('/');
+      //   return;
+      // }
       try {
         const decoded: any = jwtDecode(token);
         const currentTime = Date.now() / 1000;
 
-        // 如果過期了
         if (decoded.exp && decoded.exp < currentTime) {
           console.log("偵測到 Token 已過期");
-          
-          // 清除資料
           localStorage.removeItem('token');
-          localStorage.setItem('user', '');
-
-          if (!isPublicPath) {
-            // ✅ 觸發自定義彈窗，不再用 alert
-            setShowExpiredModal(true);
-          }
+          localStorage.removeItem('user');
+          setShowExpiredModal(true); // 顯示你的文青風彈窗
         }
       } catch (error) {
+        console.error("Token 解析失敗", error);
         localStorage.removeItem('token');
-        if (!isPublicPath) router.push('/');
+        router.replace('/');
       }
     };
 
     checkAndRedirect();
-    const heartbeat = setInterval(checkAndRedirect, 10000); // 10秒檢查一次
+    //   try {
+    //     const decoded: any = jwtDecode(token);
+    //     const currentTime = Date.now() / 1000;
 
+    //     // 如果過期了
+    //     if (decoded.exp && decoded.exp < currentTime) {
+    //       console.log("偵測到 Token 已過期");
+          
+    //       // 清除資料
+    //       localStorage.removeItem('token');
+    //       localStorage.setItem('user', '');
+
+    //       if (!isPublicPath) {
+    //         // ✅ 觸發自定義彈窗，不再用 alert
+    //         setShowExpiredModal(true);
+    //       }
+    //     }
+    //   } catch (error) {
+    //     localStorage.removeItem('token');
+    //     if (!isPublicPath) router.push('/');
+    //   }
+    // };
+
+    // checkAndRedirect();
+  //   const heartbeat = setInterval(checkAndRedirect, 10000); // 10秒檢查一次
+
+  //   return () => clearInterval(heartbeat);
+  // }, [pathname, router]);
+
+  // // 處理按下「我知道了」後的跳轉
+  // const handleConfirm = () => {
+  //   setShowExpiredModal(false);
+  //   router.push('/');
+  // };
+    const heartbeat = setInterval(checkAndRedirect, 10000);
     return () => clearInterval(heartbeat);
   }, [pathname, router]);
 
-  // 處理按下「我知道了」後的跳轉
   const handleConfirm = () => {
     setShowExpiredModal(false);
-    router.push('/');
+    router.replace('/');
   };
+
 
   return (
     <>
