@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import liff from '@line/liff';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -8,22 +8,32 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
 
-  // 控制是否顯示「正在確認勒戒身份」的載入畫面
-  const [isLiffLoading, setIsLiffLoading] = useState(false);
-  // 控制是否顯示原本的頁面內容 (例如 Login 頁)
+  // 決定是否顯示 Login 頁面
   const [shouldShowChildren, setShouldShowChildren] = useState(false);
+  // 決定是否顯示「勒戒中心」載入畫面
+  const [isLiffLoading, setIsLiffLoading] = useState(false);
+  
+  // ✅ 核心關鍵：使用 useRef 紀錄這「一整次」存取是否已經初始化過
+  // useRef 的值在換頁時會被保留，且不會觸發重新渲染
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    // 1. 立即判斷：如果不是在 LINE 瀏覽器內，直接放行顯示 Login 頁面
+    // 1. 如果已經初始化過，直接放行，不要再跑下面的邏輯
+    if (hasInitialized.current) {
+      setShouldShowChildren(true);
+      setIsLiffLoading(false);
+      return;
+    }
+
+    // 2. 快速判斷環境：非 LINE 環境直接放行
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
-    
-    // 如果是電腦或一般手機瀏覽器，且不是在處理自動跳轉，直接顯示內容
     if (!isLineBrowser) {
+      hasInitialized.current = true; // 標記已完成
       setShouldShowChildren(true);
       return;
     }
 
-    // 2. 如果是在 LINE 裡面，啟動「自動登入攔截」並顯示載入畫面
+    // 3. 確定在 LINE 內，且是第一次進入，啟動「識別畫面」
     setIsLiffLoading(true);
 
     liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || "你的_LIFF_ID" })
@@ -31,58 +41,60 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
         if (liff.isInClient()) {
           const localToken = localStorage.getItem('token');
 
-          // A. 已經有 Token，且目前在首頁，直接彈走
-          if (localToken && pathname === '/') {
+          // 如果已有 Token 且在門口，執行自動跳轉
+          if (localToken && (pathname === '/' || pathname === '/login')) {
             router.replace('/dashboard');
+            // 跳轉後，旗標會生效，下次換頁就不會再看到 Loading
+            hasInitialized.current = true; 
             return;
           }
 
-          // B. 沒 Token，執行自動登入換取身分
+          // 如果沒 Token，執行自動登入
           if (!localToken) {
             if (!liff.isLoggedIn()) {
-              liff.login(); // 強制登入 LINE 授權
+              liff.login();
               return;
             }
 
             const idToken = liff.getIDToken();
             if (idToken) {
               try {
-                // 注意：請確認後端路徑是 /api/user 還是 /api/users
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/liff-login`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ idToken })
                 });
                 const data = await res.json();
-                
                 if (data.success) {
                   localStorage.setItem('token', data.token);
                   localStorage.setItem('user', JSON.stringify(data.user));
-                  // ✅ 登入成功，直接去 dashboard
                   router.replace('/dashboard');
+                  hasInitialized.current = true;
                   return;
                 }
-              } catch (err) {
-                console.error("LIFF 自動登入失敗", err);
+              } catch (e) {
+                console.error(e);
               }
             }
           }
         }
         
-        // 如果自動登入失敗，或是已經在 dashboard 了，則放行顯示內容
+        // 流程結束，關閉 Loading 並標記已完成
+        hasInitialized.current = true;
         setIsLiffLoading(false);
         setShouldShowChildren(true);
       })
-      .catch((err: any) => {
-        console.error("LIFF 初始化失敗", err);
+      .catch((err) => {
+        console.error(err);
+        hasInitialized.current = true;
         setIsLiffLoading(false);
         setShouldShowChildren(true);
       });
-  }, [router, pathname]);
+      
+    // 注意：這裡的 dependency array 不再包含 pathname，避免換頁重複觸發
+  }, [router]); 
 
   // --- 渲染邏輯 ---
-
-  // 只有在 LINE 自動登入時，才會看到這個「勒戒中心」畫面
   if (isLiffLoading) {
     return (
       <main className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 text-center font-serif">
@@ -100,6 +112,5 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
     );
   }
 
-  // 網址直接開啟時，會直接跑這裡顯示 Login 頁面
-  return shouldShowChildren ? <>{children}</> : null;
+  return shouldShowChildren ? <>{children}</> : <div className="min-h-screen bg-paper" />;
 }
