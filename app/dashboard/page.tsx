@@ -309,7 +309,7 @@ export default function Browse() {
         </div>
 
         {/* --- 個人大頭貼 / 狀態區塊 --- */}
-        <Link href="/dashboard" className="group flex items-center gap-3 transition-all duration-300">
+        <Link href="/browse" className="group flex items-center gap-3 transition-all duration-300">
           <div className="relative">
             {/* 文青裝飾外圈 */}
             <div className="absolute -inset-1 rounded-full border border-sage/20 group-hover:border-sage/50 transition-colors duration-500"></div>
