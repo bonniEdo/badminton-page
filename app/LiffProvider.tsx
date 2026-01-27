@@ -56,7 +56,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 // 登入成功後去儀表板
-                router.replace('/login-success');
+                router.replace('/dashboard');
                 return;
               }
             } catch (e) {
