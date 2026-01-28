@@ -478,7 +478,9 @@ export default function Dashboard() {
               </div>
 
               <form onSubmit={handleCreate} className="bg-white border border-stone p-6 md:p-10 space-y-6 shadow-sm text-ink font-sans">
-
+                <div className="text-center mb-2">
+                  <p className="text-[10px] text-gray-400 tracking-[0.4em] uppercase">日誌填寫</p>
+                </div>
 
                 {/* 主題 - 全寬 */}
                 <div className="flex flex-col">
@@ -488,7 +490,7 @@ export default function Dashboard() {
                     value={newSession.title} 
                     onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} 
                     className="w-full h-12 bg-sage/5 border border-sage/10 px-4 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all text-sm font-sans" 
-                    placeholder="輸入戒球主題" 
+                    placeholder="輸入球局主題" 
                   />
                 </div>
 
@@ -559,7 +561,7 @@ export default function Dashboard() {
                     <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">場地號碼</label>
                     <input 
                       type="text" 
-                      placeholder="ex: 3F-3"
+                      placeholder="例如：3F-3"
                       value={newSession.courtNumber} 
                       onChange={(e) => setNewSession({ ...newSession, courtNumber: e.target.value })} 
                       className="w-full h-12 bg-sage/5 border border-sage/10 px-4 focus:outline-none rounded-sm transition-all text-sm font-sans placeholder:text-stone-300" 
