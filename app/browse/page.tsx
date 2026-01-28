@@ -496,26 +496,20 @@ export default function Dashboard() {
 
                 {/* 日期 & 人數上限 - 一半一半 */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">日期</label>
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">日期</label>
                     <input 
                       required 
                       type="date" 
                       min={todayStr} 
                       value={newSession.gameDate} 
                       onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} 
-                      className="w-full h-12 bg-sage/5 border border-sage/10 px-4 focus:outline-none rounded-sm transition-all text-sm font-sans" 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" 
                     />
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">人數上限</label>
-                    <input 
-                      required 
-                      type="number" 
-                      value={newSession.maxPlayers} 
-                      onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} 
-                      className="w-full h-12 bg-sage/5 border border-sage/10 px-4 focus:outline-none rounded-sm transition-all text-sm font-sans" 
-                    />
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">人數上限</label>
+                    <input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
                   </div>
                 </div>
 
