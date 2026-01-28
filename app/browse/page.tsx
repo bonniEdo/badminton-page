@@ -4,7 +4,7 @@ import Link from "next/link";
 import { 
   Trash2, Search, LogOut, UserMinus, 
   CheckCircle, Clock, X, Phone, MapPin, User, Banknote,
-  Info, Calendar, PlusCircle,FileText
+  Info, Calendar, PlusCircle,FileText,Copy
 } from "lucide-react"; 
 import { useRouter } from "next/navigation";
 
@@ -116,6 +116,7 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData(); }, []);
 
+
   const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
     setLoadingParticipants(true);
@@ -189,6 +190,31 @@ export default function Dashboard() {
       fetchData();
       setActiveTab("hosted");
     }
+  };
+  const handleCopy = (e: React.MouseEvent, s: Session) => {
+    e.stopPropagation(); // 防止觸發打開詳情彈窗
+    
+    setNewSession({
+      title: s.title,
+      gameDate: "", // 日期通常要重選，所以留空
+      gameTime: s.time,
+      endTime: s.endTime,
+      location: s.location,
+      maxPlayers: s.maxPlayers?.toString() || "",
+      price: s.price?.toString() || "",
+      phone: s.phone || "",
+      notes: s.notes || ""
+    });
+    
+    setActiveTab("create");
+    
+    // 文青風的小提醒
+    setMsg({ 
+      isOpen: true, 
+      title: "延續時光", 
+      content: "已為您載入往日設定，選個新日期即可再次啟程。", 
+      type: "success" 
+    });
   };
 
   return (
@@ -292,13 +318,23 @@ export default function Dashboard() {
                 >
                   <div className="flex justify-between items-start mb-3">
                     <h3 className={`text-lg tracking-wide pr-4 ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
-                    {!s.isExpired && (
-                      <button onClick={(e) => handleDelete(e, s.id)} className="text-gray-300 hover:text-red-400 transition-colors pt-1">
-                        <Trash2 size={16} />
+                    {/* 按鈕群組 */}
+                    <div className="flex gap-3">
+                      {/* 複製按鈕：無論是否過期都可以複製 */}
+                      <button 
+                        onClick={(e) => handleCopy(e, s)} 
+                        className="text-gray-300 hover:text-sage transition-colors pt-1"
+                        title="再續一局"
+                      >
+                        <Copy size={16} />
                       </button>
-                    )}
+                      {!s.isExpired && (
+                        <button onClick={(e) => handleDelete(e, s.id)} className="text-gray-300 hover:text-red-400 transition-colors pt-1">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-
                   <div className="text-xs text-gray-500 font-sans space-y-1.5">
                     <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
                     <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
@@ -320,18 +356,21 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* === 分頁：發起開團 略... === */}
+        {/* === 分頁：發起開團 === */}
         {activeTab === "create" && (
            <section className="animate-in fade-in slide-in-from-bottom-2">
             <div className="max-w-xl mx-auto">
+              {newSession.title && (
+                <div className="text-center mb-6 animate-pulse">
+                  <p className="text-[10px] text-sage tracking-[0.2em] italic">正在從往日紀錄中，裁切一段新的風景。</p>
+                </div>
+              )}
               <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink font-sans">
-                {/* 你的創建表單內容... */}
                 <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">發起新的相遇</p></div>
                 <div>
                   <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主題</label>
                   <input required value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" placeholder="輸入球局主題" />
                 </div>
-                {/* 表單剩餘部分... */}
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">日期</label>

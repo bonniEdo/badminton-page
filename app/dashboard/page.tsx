@@ -79,6 +79,26 @@ export default function Browse() {
   }, [joinForm.phone]);
 
   const isPhoneValid = useMemo(() => TW_MOBILE_REGEX.test(joinForm.phone), [joinForm.phone]);
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      // 優先級 1：未過期的排在前面，已過期的排在後面
+      if (a.isExpired !== b.isExpired) {
+        return a.isExpired ? 1 : -1;
+      }
+
+      // 優先級 2：將日期與時間結合成 Date 物件進行比較
+      const dateTimeA = new Date(`${a.date}T${a.time}:00`).getTime();
+      const dateTimeB = new Date(`${b.date}T${b.time}:00`).getTime();
+
+      // 如果是未過期的球局：時間越早（越靠近現在）的排越前面
+      if (!a.isExpired) {
+        return dateTimeA - dateTimeB;
+      }
+
+      // 如果是已過期的球局：時間越晚（最近剛打完的）排越前面
+      return dateTimeB - dateTimeA;
+    });
+  }, [sessions]);
 
   const fetchData = async () => {
     try {
@@ -310,12 +330,24 @@ export default function Browse() {
 
         {/* --- 個人大頭貼 / 狀態區塊 --- */}
         <Link href="/browse" className="group flex items-center gap-3 transition-all duration-300">
+        {/* 文字說明區 - 增加日誌引導 */}
+          <div className="flex flex-col items-end">
+            <span className="text-[11px] tracking-[0.4em] text-sage font-bold group-hover:text-ink transition-colors duration-300 uppercase">
+              戒球日誌
+            </span>
+            <span className="text-[9px] tracking-[0.2em] text-gray-500 font-light opacity-80 group-hover:opacity-100 transition-all">
+              {userInfo?.username || '球友'}
+            </span>
+            {/* 裝飾短線 */}
+            <div className="h-[1px] w-4 group-hover:w-full bg-sage/20 transition-all duration-700 mt-1"></div>
+          </div>
+
+          {/* 頭貼部分 */}
           <div className="relative">
-            {/* 文青裝飾外圈 */}
-            <div className="absolute -inset-1 rounded-full border border-sage/20 group-hover:border-sage/50 transition-colors duration-500"></div>
+            {/* 文青裝飾外圈 - 增加一個呼吸感動畫 */}
+            <div className="absolute -inset-1 rounded-full border border-sage/20 group-hover:border-sage/50 group-hover:scale-110 transition-all duration-500"></div>
             
-            {/* 頭貼圖片或預設字 */}
-            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-stone-50 border border-white/50 shadow-sm flex items-center justify-center">
+            <div className="relative w-11 h-11 rounded-full overflow-hidden bg-stone-50 border border-white/50 shadow-sm flex items-center justify-center">
               {userInfo?.avatarUrl ? (
                 <img 
                   src={userInfo.avatarUrl} 
@@ -324,20 +356,10 @@ export default function Browse() {
                 />
               ) : (
                 <div className="flex items-center justify-center w-full h-full bg-sage/5 text-sage/60">
-                  <span className="text-[10px] font-light tracking-tighter">
-                    {userInfo?.username?.charAt(0) || '戒'}
-                  </span>
+                  <User size={18} strokeWidth={1.5} />
                 </div>
               )}
             </div>
-          </div>
-
-          {/* 用戶名與動態線條 */}
-          <div className="hidden sm:flex flex-col items-start">
-            <span className="text-[10px] tracking-[0.3em] text-gray-400 group-hover:text-sage transition-colors duration-300 uppercase">
-              {userInfo?.username || '球友'}
-            </span>
-            <div className="h-[px] w-0 group-hover:w-full bg-sage/30 transition-all duration-500 mt-0.5"></div>
           </div>
         </Link>
       </nav>     
@@ -346,7 +368,7 @@ export default function Browse() {
           <p className="text-gray-400 text-sm italic">載入中...</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sessions.map((session) => {
+            {sortedSessions.map((session) => {
               const isJoined = joinedIds.includes(session.id);
               return (
                 <div
