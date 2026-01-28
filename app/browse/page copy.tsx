@@ -468,152 +468,90 @@ export default function Dashboard() {
 
         {/* === 分頁：發起開團 === */}
         {activeTab === "create" && (
-          <section className="animate-in fade-in slide-in-from-bottom-2 px-2">
+           <section className="animate-in fade-in slide-in-from-bottom-2">
             <div className="max-w-xl mx-auto">
-              {/* 頂部導引 */}
-              <div className="text-center mb-8">
-                <p className="text-[10px] text-sage tracking-[0.3em] uppercase italic">
-                  {newSession.title ? "正在從往日紀錄中，裁切一段新的風景。" : "發起新的相遇"}
-                </p>
-              </div>
-
-              <form onSubmit={handleCreate} className="bg-white border border-stone p-6 md:p-10 space-y-6 shadow-sm text-ink font-sans">
-                <div className="text-center mb-2">
-                  <p className="text-[10px] text-gray-400 tracking-[0.4em] uppercase">日誌填寫</p>
+              {newSession.title && (
+                <div className="text-center mb-6 animate-pulse">
+                  <p className="text-[10px] text-sage tracking-[0.2em] italic">正在從往日紀錄中，裁切一段新的風景。</p>
                 </div>
-
-                {/* --- 統一輸入框樣式變數 (方便閱讀) --- */}
-                {/* 這裡我們將所有 input, select 統一設定 h-11 (約 44px) --- */}
-                const inputClass = "w-full h-11 bg-sage/5 border border-sage/10 p-3 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all text-sm font-sans";
-
-                {/* 主題 (全寬) */}
-                <div className="flex flex-col">
-                  <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">主題</label>
-                  <input 
-                    required 
-                    value={newSession.title} 
-                    onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} 
-                    className="w-full h-11 bg-sage/5 border border-sage/10 p-3 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all text-sm font-sans" 
-                    placeholder="輸入球局主題" 
-                  />
+              )}
+              <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink font-sans">
+                <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">發起新的相遇</p></div>
+                <div>
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主題</label>
+                  <input required value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" placeholder="輸入球局主題" />
                 </div>
-
-                {/* 日期 & 人數 (手機 1:1) */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6">
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">日期</label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">日期</label>
                     <input 
                       required 
                       type="date" 
                       min={todayStr} 
                       value={newSession.gameDate} 
                       onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} 
-                      className="w-full h-11 bg-sage/5 border border-sage/10 p-3 focus:outline-none focus:bg-sage/10 focus:border-sage/30 rounded-sm transition-all text-sm font-sans" 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" 
                     />
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">人數上限</label>
-                    <input 
-                      required 
-                      type="number" 
-                      value={newSession.maxPlayers} 
-                      onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} 
-                      className="w-full h-11 bg-sage/5 border border-sage/10 p-3 focus:outline-none rounded-sm text-sm font-sans" 
-                      placeholder="12"
-                    />
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">人數上限</label>
+                    <input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
                   </div>
                 </div>
-
-                {/* 時間 (手機 1:1) */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6">
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">開始時間</label>
-                    <select 
-                      value={newSession.gameTime} 
-                      onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} 
-                      className="w-full h-11 bg-sage/5 border border-sage/10 px-3 focus:outline-none rounded-sm text-sm font-sans appearance-none cursor-pointer"
-                    >
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">開始時間</label>
+                    <select value={newSession.gameTime} onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">結束時間</label>
-                    <select 
-                      value={newSession.endTime} 
-                      onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} 
-                      className="w-full h-11 bg-sage/5 border border-sage/10 px-3 focus:outline-none rounded-sm text-sm font-sans appearance-none cursor-pointer"
-                    >
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">結束時間</label>
+                    <select value={newSession.endTime} onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 </div>
-
-                {/* 球館 & 場地 (手機 1:1) */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6">
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">選擇球館</label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">選擇球館</label>
                     <select 
                       value={newSession.location} 
                       onChange={(e) => setNewSession({ ...newSession, location: e.target.value })}
-                      className="w-full h-11 bg-sage/5 border border-sage/10 px-3 focus:outline-none rounded-sm text-sm font-sans appearance-none cursor-pointer"
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all"
                     >
                       {LOCATION_OPTIONS.map(loc => (
                         <option key={loc} value={loc}>{loc}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase font-sans">場地號碼</label>
+
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">場地號碼</label>
                     <input 
                       type="text" 
-                      placeholder="3, 4"
+                      placeholder="例如：3, 4"
                       value={newSession.courtNumber} 
                       onChange={(e) => setNewSession({ ...newSession, courtNumber: e.target.value })} 
-                      className="w-full h-11 bg-sage/5 border border-sage/10 p-3 focus:outline-none rounded-sm text-sm font-sans placeholder:text-stone-300" 
+                      className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all"
                     />
                   </div>
                 </div>
-
-                {/* 費用 & 聯繫 (手機 1:1) */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6">
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">費用 ($)</label>
-                    <input 
-                      required 
-                      type="number" 
-                      value={newSession.price} 
-                      onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} 
-                      className="w-full h-11 bg-sage/5 border border-sage/10 p-3 focus:outline-none rounded-sm text-sm font-sans" 
-                      placeholder="200"
-                    />
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">費用 ($)</label>
+                    <input required type="number" value={newSession.price} onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">主揪資訊</label>
-                    <input 
-                      required 
-                      type="text" 
-                      placeholder="LINE ID" 
-                      value={newSession.phone} 
-                      onChange={(e) => setNewSession({ ...newSession, phone: e.target.value })} 
-                      className="w-full h-11 bg-sage/5 border border-sage/10 p-3 focus:outline-none rounded-sm text-[11px] font-sans" 
-                    />
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主揪資訊</label>
+                    <input required type="text" placeholder="EX：主揪LINE ID / 主揪識別方法" value={newSession.phone} onChange={(e) => setNewSession({ ...newSession, phone: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
                   </div>
                 </div>
-
-                {/* 備註 (全寬) */}
-                <div className="flex flex-col">
-                  <label className="text-[10px] text-stone-400 mb-1.5 tracking-widest uppercase">球局備註</label>
-                  <textarea 
-                    rows={3} 
-                    value={newSession.notes} 
-                    onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} 
-                    className="w-full bg-sage/5 border border-sage/10 p-3 focus:outline-none rounded-sm resize-none text-xs font-sans placeholder:text-stone-300" 
-                    placeholder="補充程度、用球、或是任何想說的話..." 
-                  />
+                <div>
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">球局備註</label>
+                  <textarea rows={3} value={newSession.notes} onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" placeholder="補充資訊...EX：程度 / 用球 / anything" />
                 </div>
-
-                {/* 按鈕 */}
-                <button type="submit" className="w-full h-12 mt-4 bg-sage text-white hover:bg-sage-600 transition-all flex items-center justify-center gap-2 tracking-[0.4em] text-xs uppercase font-serif shadow-sm">
+                <button type="submit" className="w-full py-3 mt-4 border border-sage text-sage hover:bg-sage hover:text-white transition-all flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif">
                   <PlusCircle size={14} /> 確認發布球局
                 </button>
               </form>
