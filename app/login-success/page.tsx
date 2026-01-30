@@ -23,27 +23,23 @@ function LoginSuccessContent() {
         } catch (e) { console.error(e); }
       }
 
-      // --- 【新增部分：夾在這裡】 ---
-      try {
-        const decoded: any = jwtDecode(token);
-        // 從 token 中提取後端塞入的 id, email, username
-        // 注意：如果你的後端有存 AvatarUrl 在 token，這裡也能拿到
-        const userObj = {
-          id: decoded.id,
-          username: decoded.username,
-          email: decoded.email,
-          avatarUrl: decoded.avatarUrl || null // 如果後端 token 沒放，就給 null
-        };
-        
-        localStorage.setItem("user", JSON.stringify(userObj));
-        console.log("用戶資料已存儲:", userObj);
-      } catch (error) {
-        console.error("Token 解析失敗", error);
-      }
+      // --- 【修改跳轉邏輯】 ---
       const timer = setTimeout(() => {
-        router.push("/dashboard");
-      }, waitTime);
 
+        const nextParam = searchParams.get("next");
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        
+        let targetPath = "/dashboard"; // 預設值
+
+        if (nextParam) {
+          targetPath = nextParam;
+        } else if (storedUser.is_profile_completed === false || storedUser.is_profile_completed === 0) {
+          targetPath = "/rating"; 
+        }
+
+        console.log("最終跳轉目標：", targetPath);
+        router.push(targetPath);
+      }, waitTime);
 
       return () => clearTimeout(timer);
     } else {

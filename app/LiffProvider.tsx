@@ -8,7 +8,6 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
 
-  // 預設為 Loading，擋住所有 children
   const [isLiffLoading, setIsLiffLoading] = useState(true);
   const hasInitialized = useRef(false);
 
@@ -17,11 +16,14 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
 
     // 情境 1: 非 LINE 環境 (PC)
     if (!isLineBrowser) {
-      // 檢查 PC 是否已有 token 且在首頁，若是，準備跳轉，不關 Loading
       const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      
       if (token && (pathname === '/' || pathname === '/login')) {
-        router.replace('/dashboard');
-        // 注意：這裡不設 false，讓畫面停在 Loading 直到路徑變更
+        // ✅ 根據填寫狀態決定跳轉目的地
+        const user = userStr ? JSON.parse(userStr) : {};
+        const target = user.is_profile_completed ? '/dashboard' : '/rating';
+        router.replace(target);
       } else {
         setIsLiffLoading(false);
       }
@@ -35,17 +37,18 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
     liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || "" })
       .then(async () => {
         const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
 
         if (token) {
           if (pathname === '/' || pathname === '/login') {
-            // 已有 Token，直接叫 Next.js 跳轉，但 Loading 繼續轉
-            // 這樣就不會閃出 children 裡的 PC 登入頁
-            router.replace('/dashboard');
+            // ✅ 根據填寫狀態決定跳轉目的地
+            const user = userStr ? JSON.parse(userStr) : {};
+            const target = user.is_profile_completed ? '/dashboard' : '/rating';
+            router.replace(target);
           } else {
             setIsLiffLoading(false);
           }
         } else {
-          // 沒有 Token，跑 LIFF 登入流程
           if (!liff.isLoggedIn()) {
             liff.login();
             return;
@@ -63,10 +66,11 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
               if (data.success) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
-                // 成功後準備跳轉，Loading 依然不准停！
-                router.replace('/dashboard');
+                
+                // ✅ 登入成功後根據後端回傳狀態跳轉
+                const target = data.user.is_profile_completed ? '/dashboard' : '/rating';
+                router.replace(target);
               } else {
-                // 如果後端換票失敗，才放行 children (讓使用者看到 PC 登入頁去手動登入)
                 setIsLiffLoading(false);
               }
             } catch (e) {
@@ -78,18 +82,16 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
       .catch(() => setIsLiffLoading(false));
   }, [router, pathname]);
 
-  // --- 核心防護：只有路徑成功變更到目的地，才關閉 Loading ---
+  // --- 核心防護：抵達目的地才關閉 Loading ---
   useEffect(() => {
     const token = localStorage.getItem('token');
     
-    // 只有當「已經有 token」且「網址已經抵達非登入頁」時，才放行 children
-    // 這樣保證 LINE 自動登入時，絕對不會閃過根目錄 (/) 的 PC 登入頁面
+    // 只要 token 存在且網址已離開 / 或 /login，就放行 children
     if (token && pathname !== '/' && pathname !== '/login') {
       setIsLiffLoading(false);
     }
   }, [pathname]);
 
-  // --- 渲染邏輯 ---
   if (isLiffLoading) {
     return (
       <main className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 text-center font-serif">
@@ -107,6 +109,5 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
     );
   }
 
-  // 只有抵達 /dashboard 或是自動登入失敗時，這裡的 children 才會顯示出來
   return <>{children}</>;
 }

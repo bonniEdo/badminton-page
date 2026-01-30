@@ -40,6 +40,7 @@ type Session = {
   notes: string;
   isExpired: boolean; 
   friendCount: number;
+  badminton_level: string;
 };
 
 type Participant = {
@@ -69,7 +70,7 @@ export default function Browse() {
     content: string;
     type: "success" | "error";
   }>({ isOpen: false, title: "", content: "", type: "success" });
-  const [userInfo, setUserInfo] = useState<{ username: string; avatarUrl?: string } | null>(null);
+  const [userInfo, setUserInfo] = useState<{ username: string; avatarUrl?: string; badminton_level?: string; } | null>(null);
 
 
   const phoneError = useMemo(() => {
@@ -134,6 +135,7 @@ export default function Browse() {
           notes: g.Notes || "",
           isExpired: !!g.isExpired,
           friendCount: Number(g.MyFriendCount || 0), 
+          badminton_level:g.badminton_level || "",
         };
       });
 
@@ -316,53 +318,70 @@ export default function Browse() {
 
 
   return (
-    <div className="min-h-screen bg-paper text-ink font-serif relative">
+    <div className="min-h-screen bg-paper text-ink font-serif pb-20">
       <nav className="flex justify-between items-center p-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex flex-col items-start">
-          <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">
-            戒球日誌
-          </h1>
+        <div className="flex flex-col items-start mb-6">
+          <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">戒球日誌</h1>
           <div className="w-12 h-[1px] bg-sage/30 mb-3"></div>
-          <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
-            在這裡，膩了，就是唯一的解藥。
-          </p>
+          <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
         </div>
 
-        {/* --- 個人大頭貼 / 狀態區塊 --- */}
-        <Link href="/browse" className="group flex items-center gap-3 transition-all duration-300">
-        {/* 文字說明區 - 增加日誌引導 */}
-          <div className="flex flex-col items-end">
-            <span className="text-[11px] tracking-[0.4em] text-sage font-bold group-hover:text-ink transition-colors duration-300 uppercase">
-              戒球日誌
-            </span>
-            <span className="text-[9px] tracking-[0.2em] text-gray-500 font-light opacity-80 group-hover:opacity-100 transition-all">
-              {userInfo?.username || '球友'}
-            </span>
-            {/* 裝飾短線 */}
-            <div className="h-[1px] w-4 group-hover:w-full bg-sage/20 transition-all duration-700 mt-1"></div>
-          </div>
+        {/* 右側：一體化導航與個人資訊 */}
+        <div className="flex items-center gap-12">
+          
+          {/* 尋找藥方 (Browse) - 改為像雜誌目錄的排版 */}
+          <Link href="/browse" className="group flex flex-col items-end">
+            <span className="text-xs tracking-[0.4em] text-stone-800 font-semibold uppercase mb-1">
+            我的日誌
+            </span>             
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-sage/40"></div>
+              <span className="text-[9px] tracking-[0.2em] text-sage font-light uppercase">
+              Diary  
+              </span>
+            </div>
+          </Link>
 
-          {/* 頭貼部分 */}
-          <div className="relative">
-            {/* 文青裝飾外圈 - 增加一個呼吸感動畫 */}
-            <div className="absolute -inset-1 rounded-full border border-sage/20 group-hover:border-sage/50 group-hover:scale-110 transition-all duration-500"></div>
-            
-            <div className="relative w-11 h-11 rounded-full overflow-hidden bg-stone-50 border border-white/50 shadow-sm flex items-center justify-center">
-              {userInfo?.avatarUrl ? (
-                <img 
-                  src={userInfo.avatarUrl} 
-                  alt="User" 
-                  className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-500"
-                />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full bg-sage/5 text-sage/60">
-                  <User size={18} strokeWidth={1.5} />
-                </div>
-              )}
+          {/* 垂直分割線 - 極細 */}
+          <div className="h-8 w-[1px] bg-stone-200"></div>
+
+          {/* 個人資訊區塊 - 藝廊標籤風格 */}
+          <div className="flex items-center gap-5">
+            <div className="flex flex-col items-end justify-center">
+              {/* 名字：大寫、高字距、沉穩 */}
+              <span className="text-xs tracking-[0.4em] text-stone-800 font-semibold uppercase mb-1">
+                {userInfo?.username}
+              </span>
+              
+              {/* 等級：直接作為名字下方的補語，加一個細小的點綴 */}
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-sage/40"></div>
+                <span className="text-[9px] tracking-[0.2em] text-sage font-light uppercase">
+                  {userInfo?.badminton_level?.split(/[:：]/)[0] || "Lv.Diagnostic"}
+                </span>
+              </div>
+            </div>
+
+            {/* 頭像：全無框設計，改用鼠尾草綠的柔和光暈 */}
+            <div className="relative cursor-pointer group">
+              <div className="absolute inset-0 bg-sage/10 rounded-full blur-md group-hover:blur-lg transition-all"></div>
+              <div className="relative w-12 h-12 rounded-full overflow-hidden grayscale-[30%] group-hover:grayscale-0 transition-all duration-700">
+                {userInfo?.avatarUrl ? (
+                  <img 
+                    src={userInfo.avatarUrl} 
+                    alt="User" 
+                    className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-700"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full bg-stone-100 text-stone-300">
+                    <User size={18} strokeWidth={1} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </Link>
-      </nav>     
+        </div>
+      </nav>
       <div className="max-w-6xl mx-auto p-6">
         {loading ? (
           <p className="text-gray-400 text-sm italic">載入中...</p>

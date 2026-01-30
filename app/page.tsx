@@ -37,7 +37,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
+ const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     const endpoint = isLogin ? "/api/user/login" : "/api/user/create"; 
     try {
@@ -47,12 +47,24 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
       const data = await res.json();
+
       if (res.ok) {
         if (isLogin) {
-
+          // 1. 先儲存資料
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
-          router.push(`/login-success?token=${data.token}&speed=fast`);
+
+          // 2. 決定最終目的地
+          // 如果你有 login-success 頁面做轉場，建議把目的地當成參數傳過去
+          // 或者直接跳轉到目標頁面
+          const targetPath = data.user.is_profile_completed ? "/dashboard" : "/rating";
+          
+          // 選項 A：如果你想經過 login-success (推薦，比較有儀式感)
+          router.push(`/login-success?token=${data.token}&next=${targetPath}`);
+
+          // 選項 B：如果你想直接跳轉 (最快)
+          // router.push(targetPath);
+
         } else {
           alert(data.message || "註冊成功！");
           setIsLogin(true);
@@ -64,6 +76,7 @@ export default function LoginPage() {
       alert("連線錯誤");
     }
   };
+
 
   return (
     <main className="min-h-screen bg-paper text-ink flex flex-col items-center justify-center p-6 font-serif">
