@@ -268,53 +268,56 @@ export default function Browse() {
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-20">
-      <nav className="flex justify-between items-center p-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex flex-col items-start mb-6">
-          <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">戒球日誌</h1>
-          <div className="w-12 h-[1px] bg-sage/30 mb-3"></div>
-          <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
+      <nav className="flex justify-between items-center px-4 py-3 md:px-8 md:py-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-30">
+        {/* 左側：標題區塊 - 移除 mb-6 避免撐開高度 */}
+        <div className="flex flex-col items-start">
+          <h1 className="text-base md:text-xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">
+            戒球日誌
+          </h1>
+          {/* 手機端隱藏細線與副標，保持簡潔 */}
+          <div className="hidden md:block w-12 h-[1px] bg-sage/30 my-1"></div>
+          <p className="hidden md:block text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
+            在這裡，膩了，就是唯一的解藥。
+          </p>
         </div>
 
-        {/* 右側：一體化導航與個人資訊 */}
-        <div className="flex items-center gap-12">
+        {/* 右側：導航與個人資訊 - 調整手機端 gap */}
+        <div className="flex items-center gap-4 md:gap-12">
           
-          {/* 尋找藥方 (Browse) - 改為像雜誌目錄的排版 */}
+          {/* 導覽連結 - 手機端縮小字距 */}
           <Link href="/browse" className="group flex flex-col items-end">
-            <span className="text-xs tracking-[0.4em] text-stone-800 font-semibold uppercase mb-1">
-            我的日誌
+            <span className="text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">
+              我的日誌
             </span>             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               <div className="w-1 h-1 rounded-full bg-sage/40"></div>
-              <span className="text-[9px] tracking-[0.2em] text-sage font-light uppercase">
-              Diary  
+              <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">
+                Diary  
               </span>
             </div>
           </Link>
 
-          {/* 垂直分割線 - 極細 */}
-          <div className="h-8 w-[1px] bg-stone-200"></div>
+          {/* 垂直分割線 - 調整高度 */}
+          <div className="h-6 md:h-8 w-[1px] bg-stone-200"></div>
 
-          {/* 個人資訊區塊 - 藝廊標籤風格 */}
-          <div className="flex items-center gap-5">
+          {/* 個人資訊區塊 */}
+          <div className="flex items-center gap-3 md:gap-5">
             <div className="flex flex-col items-end justify-center">
-              {/* 名字：大寫、高字距、沉穩 */}
-              <span className="text-xs tracking-[0.4em] text-stone-800 font-semibold uppercase mb-1">
+              <span className="text-[10px] md:text-xs tracking-[0.1em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">
                 {userInfo?.username}
               </span>
-              
-              {/* 等級：直接作為名字下方的補語，加一個細小的點綴 */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 md:gap-2">
                 <div className="w-1 h-1 rounded-full bg-sage/40"></div>
-                <span className="text-[9px] tracking-[0.2em] text-sage font-light uppercase">
+                <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">
                   {userInfo?.badminton_level?.split(/[:：]/)[0] || "Lv.Diagnostic"}
                 </span>
               </div>
             </div>
 
-            {/* 頭像：全無框設計，改用鼠尾草綠的柔和光暈 */}
+            {/* 頭像 - 手機端縮小尺寸 */}
             <div className="relative cursor-pointer group">
               <div className="absolute inset-0 bg-sage/10 rounded-full blur-md group-hover:blur-lg transition-all"></div>
-              <div className="relative w-12 h-12 rounded-full overflow-hidden grayscale-[30%] group-hover:grayscale-0 transition-all duration-700">
+              <div className="relative w-9 h-9 md:w-12 md:h-12 rounded-full overflow-hidden grayscale-[30%] group-hover:grayscale-0 transition-all duration-700">
                 {userInfo?.avatarUrl ? (
                   <img 
                     src={userInfo.avatarUrl} 
@@ -323,7 +326,7 @@ export default function Browse() {
                   />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full bg-stone-100 text-stone-300">
-                    <User size={18} strokeWidth={1} />
+                    <User size={14} strokeWidth={1} />
                   </div>
                 )}
               </div>

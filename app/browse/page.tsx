@@ -305,26 +305,38 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-20">
-      <nav className="flex justify-between items-center p-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex flex-col items-start mb-6">
-          <h1 className="text-xl tracking-[0.5em] text-sage font-light mb-1">戒球日誌</h1>
-          <div className="w-12 h-[1px] bg-sage/30 mb-3"></div>
-          <p className="text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
+      <nav className="flex justify-between items-center px-4 py-3 md:px-8 md:py-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-30">
+        {/* 左側：標題區塊 - 移除 mb-6 避免垂直撐開 */}
+        <div className="flex flex-col items-start">
+          <h1 className="text-lg md:text-xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">
+            戒球日誌
+          </h1>
+          {/* 手機端隱藏裝飾線與副標題，節省空間 */}
+          <div className="hidden md:block w-12 h-[1px] bg-sage/30 my-2"></div>
+          <p className="hidden md:block text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
+            在這裡，膩了，就是唯一的解藥。
+          </p>
         </div>
-        {/* <Link href="/dashboard" className="flex items-center gap-2 text-sm text-gray-400 hover:text-sage transition">
-          <Search size={20} /> <span className="tracking-widest">尋找球局</span>
-        </Link> */}
-        <Link href="/dashboard" className="flex items-center gap-2 text-sm text-gray-400 hover:text-sage transition">
-          <Search size={20} /> <span className="text-xs tracking-widest text-stone-800 font-semibold uppercase mb-1">
-            尋找球局
+
+        {/* 右側：導覽連結 - 尋找藥方 (Dashboard) */}
+        <Link href="/dashboard" className="group flex items-center gap-3 md:gap-4 transition-all">
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">
+              尋找球局
             </span>             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               <div className="w-1 h-1 rounded-full bg-sage/40"></div>
-              <span className="text-[9px] tracking-[0.2em] text-sage font-light uppercase">
-              search  
+              <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">
+                Search
               </span>
             </div>
-          </Link>
+          </div>
+          
+          {/* 放大鏡圖標 - 稍微做個圓形背景點綴 */}
+          <div className="p-2 rounded-full bg-sage/5 text-sage group-hover:bg-sage/10 transition-colors">
+            <Search size={18} className="md:w-5 md:h-5" />
+          </div>
+        </Link>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 mt-10">
