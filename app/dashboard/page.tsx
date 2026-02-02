@@ -7,26 +7,34 @@ import {
   X,
   Clock,
   MapPin,
-  Calendar,
+  CalendarClock,
   Users,
   User,
+  CircleDollarSign,
   Banknote,
   FileText,
   CheckCircle,
   Info,
   LogOut,
-  Plus,
+  PlusCircle,
+  UserCheck,
 } from "lucide-react";
-
 import { useRouter } from "next/navigation";
 
-const isBrowserProduction =
-  typeof window !== "undefined" && window.location.hostname !== "localhost";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
+const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 
-// --- 1. 型別定義 (新增 isExpired) ---
-type Session = {
+const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
+  const hour = Math.floor(i / 2).toString().padStart(2, "0");
+  const min = (i % 2 === 0 ? "00" : "30");
+  return `${hour}:${min}`;
+});
+
+const LOCATION_OPTIONS = ["竹東鎮立羽球場", "竹東國民運動中心", "竹東國小"];
+const TW_MOBILE_REGEX = /^09\d{8}$/;
+
+// --- 型別定義 ---
+interface Session {
   id: number;
   hostName: string;
   title: string;
@@ -38,284 +46,225 @@ type Session = {
   maxPlayers: number;
   price: number;
   notes: string;
-  isExpired: boolean; 
-  friendCount: number;
-  badminton_level: string;
-};
+  isExpired: boolean;
+  friendCount: number; // 本人帶的朋友數
+  badminton_level?: string;
+}
 
-type Participant = {
+interface Participant {
   Username: string;
   Status: string;
-  FriendCount: number; 
-};
-
-const TW_MOBILE_REGEX = /^09\d{8}$/;
+  FriendCount: number;
+}
 
 export default function Browse() {
   const router = useRouter();
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  // 狀態管理
+  const [activeTab, setActiveTab] = useState<"browse" | "create">("browse");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [joinedIds, setJoinedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [userInfo, setUserInfo] = useState<{ username: string; avatarUrl?: string; badminton_level?: string } | null>(null);
 
+  // 表單狀態
   const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
-  const [messageModal, setMessageModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    content: string;
-    type: "success" | "error";
-  }>({ isOpen: false, title: "", content: "", type: "success" });
-  const [userInfo, setUserInfo] = useState<{ username: string; avatarUrl?: string; badminton_level?: string; } | null>(null);
+  const [newSession, setNewSession] = useState({
+    title: "", gameDate: "", gameTime: "18:00", location: "竹東鎮立羽球場", courtNumber: "", endTime: "20:00", maxPlayers: "", price: "", phone: "", notes: ""
+  });
 
+  // 提示訊息
+  const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
 
-  const phoneError = useMemo(() => {
-    if (!joinForm.phone) return "";
-    if (!TW_MOBILE_REGEX.test(joinForm.phone)) return "請輸入正確手機號碼（09 開頭共 10 碼）";
-    return "";
-  }, [joinForm.phone]);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/");
+    } else {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) setUserInfo(JSON.parse(savedUser));
+      fetchData();
+    }
+  }, [router]);
+// 檢查是否有從 Dashboard 傳過來的「複製球局」資料
+  useEffect(() => {
+    const savedData = sessionStorage.getItem("copySessionData");
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        
+        // 1. 將資料填入開團表單 (setNewSession)
+        setNewSession((prev) => ({
+          ...prev,
+          ...data,
+          gameDate: "", // 日期通常需要重新選擇，所以維持空白
+        }));
 
-  const isPhoneValid = useMemo(() => TW_MOBILE_REGEX.test(joinForm.phone), [joinForm.phone]);
-  const sortedSessions = useMemo(() => {
-    return [...sessions].sort((a, b) => {
-      // 優先級 1：未過期的排在前面，已過期的排在後面
-      if (a.isExpired !== b.isExpired) {
-        return a.isExpired ? 1 : -1;
+        // 2. 自動切換到「發起開團」分頁
+        setActiveTab("create");
+
+        // 3. 填完後清除暫存，避免下次進來又自動填寫
+        sessionStorage.removeItem("copySessionData");
+
+        // 4. 文青風小提醒
+        setMsg({ 
+          isOpen: true, 
+          title: "延續時光", 
+          content: "已為您載入往日設定，選個新日期即可再次啟程。", 
+          type: "success" 
+        });
+      } catch (e) {
+        console.error("解析複製資料失敗", e);
       }
-
-      // 優先級 2：將日期與時間結合成 Date 物件進行比較
-      const dateTimeA = new Date(`${a.date}T${a.time}:00`).getTime();
-      const dateTimeB = new Date(`${b.date}T${b.time}:00`).getTime();
-
-      // 如果是未過期的球局：時間越早（越靠近現在）的排越前面
-      if (!a.isExpired) {
-        return dateTimeA - dateTimeB;
-      }
-
-      // 如果是已過期的球局：時間越晚（最近剛打完的）排越前面
-      return dateTimeB - dateTimeA;
-    });
-  }, [sessions]);
+    }
+  }, []); // 僅在組件掛載時執行一次
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
-
       const token = localStorage.getItem("token");
-      const headers: Record<string, string> = {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true",
+      const headers = { 
+        "Authorization": `Bearer ${token}`, 
+        "Content-Type": "application/json", 
+        "ngrok-skip-browser-warning": "true" 
       };
 
-      const resActive = await fetch(`${API_URL}/api/games/activegames`, { method: "GET", headers });
-      const jsonActive = await resActive.json();
-      
-      if (!resActive.ok || !jsonActive.success) throw new Error(jsonActive.message || "取得球局失敗");
+      const [resActive, resJoined] = await Promise.all([
+        fetch(`${API_URL}/api/games/activegames`, { headers }),
+        fetch(`${API_URL}/api/games/joined`, { headers })
+      ]);
 
-      // --- 2. 修改 Mapping (接住後端的 isExpired) ---
-      const mapped: Session[] = (jsonActive.data || []).map((g: any) => {
-        const fullDt = g.GameDateTime ?? "";
-        return {
+      if (resActive.ok) {
+        const json = await resActive.json();
+        const mapped = (json.data || []).map((g: any) => ({
           id: g.GameId,
           hostName: g.hostName,
           title: g.Title,
-          date: fullDt.slice(0, 10),
-          time: fullDt.includes("T") ? fullDt.split("T")[1].slice(0, 5) : fullDt.slice(11, 16),
+          date: (g.GameDateTime ?? "").slice(0, 10),
+          time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
           endTime: (g.EndTime ?? "").slice(0, 5),
           location: g.Location ?? "",
-          currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0), 
+          currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
           maxPlayers: Number(g.MaxPlayers),
           price: Number(g.Price),
           notes: g.Notes || "",
           isExpired: !!g.isExpired,
-          friendCount: Number(g.MyFriendCount || 0), 
-          badminton_level:g.badminton_level || "",
-        };
-      });
-
-      setSessions(mapped);
-
-      const resJoined = token ? await fetch(`${API_URL}/api/games/joined`, { method: "GET", headers }) : null;
-      if (resJoined && resJoined.ok) {
-        const jsonJoined = await resJoined.json();
-        if (jsonJoined.success && Array.isArray(jsonJoined.data)) {
-          // ✅ 再次確保前端過濾掉 CANCELED
-          const activeJoinedIds = jsonJoined.data
-            .filter((g: any) => g.MyStatus !== "CANCELED")
-            .map((g: any) => g.GameId);
-          setJoinedIds(activeJoinedIds);
-          console.log("列表資料檢查:", jsonJoined.data)
-          
-        }
+          friendCount: Number(g.MyFriendCount || 0),
+          badminton_level: g.badminton_level || "",
+        }));
+        setSessions(mapped);
       }
-    } catch (e: any) {
-      setError(e.message || "未知錯誤");
+
+      if (resJoined.ok) {
+        const json = await resJoined.json();
+        setJoinedIds((json.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
+      }
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
-    
   };
 
-  useEffect(() => {
-    fetchData();
-      const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-          try {
-            setUserInfo(JSON.parse(savedUser));
-          } catch (e) {
-            console.error("User parsing error", e);
-          }
-        }
-
-        // 3. 自動跳轉邏輯：如果沒 Token 直接踢回首頁
-        if (!localStorage.getItem('token')) {
-          router.replace("/");
-        }
-      }, [router]);
-  
-  const fetchCurrentParticipants = async (sessionId: number) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const fetchParticipants = async (sessionId: number) => {
     setLoadingParticipants(true);
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/games/${sessionId}/players`, {
-        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
+        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
       });
       const json = await res.json();
       if (json.success) setParticipants(json.data);
-    } catch (err) {
-      console.error("抓取名單失敗", err);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoadingParticipants(false);
     }
   };
-  const handleOpenModal = async (session: Session) => {
-    const token = localStorage.getItem("token");
-    if (!token) return alert("請先登入才能報名！");
 
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
+      const timeA = new Date(`${a.date}T${a.time}`).getTime();
+      const timeB = new Date(`${b.date}T${b.time}`).getTime();
+      return a.isExpired ? timeB - timeA : timeA - timeB;
+    });
+  }, [sessions]);
+
+  const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
     setJoinForm({ phone: "", numPlayers: 1 });
-    setIsModalOpen(true);
-    fetchCurrentParticipants(session.id);
+    fetchParticipants(session.id);
+  };
 
-    try {
-      const res = await fetch(`${API_URL}/api/games/${session.id}/players`, {
-        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
-      });
-      const json = await res.json();
-      if (json.success) setParticipants(json.data);
-    } catch (err) {
-      console.error("抓取名單失敗", err);
-    } finally {
-      setLoadingParticipants(false);
+  const submitJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSession) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(joinForm),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setMsg({ isOpen: true, title: "預約成功", content: "期待在球場與你相遇。", type: "success" });
+      fetchData();
+      fetchParticipants(selectedSession.id);
+      setJoinedIds(prev => [...prev, selectedSession.id]);
+    } else {
+      setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
     }
   };
 
+  const handleAddFriend = async () => {
+    if (!selectedSession) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/add-friend`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
+    });
+    const json = await res.json();
+    if (json.success) {
+      setMsg({ isOpen: true, title: "成功 +1", content: "已為朋友保留位置。", type: "success" });
+      fetchData();
+      fetchParticipants(selectedSession.id);
+      setSelectedSession(prev => prev ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : null);
+    } else {
+      setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    const start = new Date(`${newSession.gameDate}T${newSession.gameTime}:00`);
+    const end = new Date(`${newSession.gameDate}T${newSession.endTime}:00`);
+    if (start <= new Date()) return alert("開團時間必須晚於現在");
+    if (end <= start) return alert("結束時間必須晚於開始時間");
+
+    const fullLocation = newSession.courtNumber ? `${newSession.location} (${newSession.courtNumber}號場)` : newSession.location;
+    const res = await fetch(`${API_URL}/api/games/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ ...newSession, location: fullLocation, maxPlayers: Number(newSession.maxPlayers), price: Number(newSession.price) }),
+    });
+
+    if (res.ok) {
+      setMsg({ isOpen: true, title: "開團成功", content: "新的一局已記錄在日誌中。", type: "success" });
+      fetchData();
+      setActiveTab("browse");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.replace("/");
   };
-
-  const submitJoin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSession || selectedSession.isExpired) return;
-
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${token}`, 
-          "ngrok-skip-browser-warning": "true" 
-        },
-        body: JSON.stringify({ 
-          phone: joinForm.phone, 
-          numPlayers: joinForm.numPlayers 
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message || "報名失敗");
-
-      // 1. ✅ 更新 joinedIds，這會讓表單消失，切換成「已經成功預約」的文字
-      setJoinedIds((prev) => [...prev, selectedSession.id]);
-
-      // 2. ✅ 更新當前選中球局的朋友數量與總人數 (這會讓按鈕消失並同步人數)
-      const addedFriends = joinForm.numPlayers > 1 ? 1 : 0;
-      setSelectedSession((prev) => 
-        prev ? { 
-          ...prev, 
-          friendCount: addedFriends,
-          currentPlayers: prev.currentPlayers + joinForm.numPlayers 
-        } : null
-      );
-
-      // 3. ✅ 立即重新抓取「名單」，這樣你就會出現在下方清單中
-      // 確保你已經定義了 fetchCurrentParticipants 函式
-      fetchCurrentParticipants(selectedSession.id);
-      
-      // 4. ✅ 更新背景的列表資料
-      fetchData();
-
-      // 5. 顯示成功視窗
-      setMessageModal({ 
-        isOpen: true, 
-        title: "預約成功", 
-        content: "期待在球場與你相遇。", 
-        type: "success" 
-      });
-
-    } catch (error: any) {
-      // 提醒：這裡建議用 setMessageModal 顯示錯誤比較美觀
-      setMessageModal({ 
-        isOpen: true, 
-        title: "提醒", 
-        content: error.message, 
-        type: "error" 
-      });
-    }
-  };
-
-  const handleAddFriend = async (session: Session) => {
-    const token = localStorage.getItem("token");
-    
-    try {
-      const res = await fetch(`${API_URL}/api/games/${session.id}/add-friend`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "ngrok-skip-browser-warning": "true"
-        }
-      });
-      
-      const json = await res.json();
-      if (json.success) {
-        setSelectedSession((prev) => (prev ? { ...prev, friendCount: 1 } : null));
-
-        // ✅ 立即重新抓取名單，這樣畫面上就會多出 "+1"
-        fetchCurrentParticipants(session.id);
-
-        setMessageModal({ isOpen: true, title: "成功 +1", content: "已為朋友保留位置", type: "success" });
-        fetchData();
-      } else {
-        alert(json.message);
-      }
-      
-    } catch (err: any) {
-      // 如果你的 alert 顯示 "game is not defined"，代表上面 try 區塊有程式碼寫錯了
-      alert(err.message || "連線失敗");
-    }
-  };
-
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-20">
@@ -382,288 +331,197 @@ export default function Browse() {
           </div>
         </div>
       </nav>
-      <div className="max-w-6xl mx-auto p-6">
-        {loading ? (
-          <p className="text-gray-400 text-sm italic">載入中...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sortedSessions.map((session) => {
-              const isJoined = joinedIds.includes(session.id);
+
+      <div className="max-w-4xl mx-auto px-6 mt-10">
+        <div className="flex justify-center border-b border-stone/30 gap-12 text-sm tracking-[0.2em]">
+          <button onClick={() => setActiveTab("browse")} className={`pb-4 transition-all relative ${activeTab === "browse" ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>
+            尋找球局
+            {activeTab === "browse" && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}
+          </button>
+          <button onClick={() => setActiveTab("create")} className={`pb-4 transition-all relative ${activeTab === "create" ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>
+            發起開團
+            {activeTab === "create" && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}
+          </button>
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto p-6 mt-8">
+        {activeTab === "browse" && (
+          <section className="animate-in fade-in slide-in-from-bottom-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {sortedSessions.map((s) => {
+              const isJoined = joinedIds.includes(s.id);
               return (
-                <div
-                  key={session.id}
-                  onClick={() => handleOpenModal(session)}
-                  // --- 3. UI 樣式切換 (加上 grayscale 與 opacity) ---
-                  className={`relative p-6 border transition-all duration-300 overflow-hidden cursor-pointer flex flex-col ${
-                    session.isExpired 
-                      ? "border-gray-200 bg-gray-50/80 grayscale opacity-70" // ✅ 過期灰色
-                      : isJoined 
-                        ? "border-orange-300 bg-orange-50/50" 
-                        : "border-stone bg-white hover:border-gray-400 shadow-sm"
-                  }`}
-                >
-                  {/* 狀態標籤 */}
+                <div key={s.id} onClick={() => handleOpenDetail(s)} 
+                  className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+                    s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70" : isJoined ? "border-l-orange-400 shadow-sm" : "border-l-sage shadow-sm"
+                  }`}>
                   <div className="absolute top-0 right-0">
-                    {session.isExpired ? (
-                      <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">
-                        已結束
-                      </div>
-                    ) : isJoined ? (
-                      <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">
-                        已報名
-                      </div>
-                    ) : null}
+                    {s.isExpired ? <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已結束</div> : isJoined ? <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div> : null}
                   </div>
-
-                  <div className="flex justify-between items-start mb-4 mt-2">
-                    <span className="text-xs bg-stone/30 px-2 py-1 rounded text-gray-600">
-                      主揪：{session.hostName}
-                    </span>
-                    <span className={`text-xs font-sans flex items-center gap-1 ${
-                      session.currentPlayers >= session.maxPlayers ? "text-orange-400 font-bold" : "text-gray-500"
-                    }`}>
-                      {session.currentPlayers} / {session.maxPlayers}
-                    </span>
+                  <div className="mb-4">
+                    <span className="text-[10px] text-gray-400 tracking-widest uppercase block mb-1">主揪：{s.hostName}</span>
+                    <h3 className={`text-lg tracking-wide ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
                   </div>
-
-
-                  <h3 className={`text-xl mb-2 ${session.isExpired ? "text-gray-400" : ""}`}>{session.title}</h3>
-
-                  <div className="text-sm text-gray-500 font-sans space-y-1 mb-4 flex-grow">
-                    <p>📅 {session.date}</p>
-                    <p>🕒 {session.time} - {session.endTime}</p>
-                    <p>📍 {session.location}</p>
+                  <div className="text-xs text-gray-500 font-sans space-y-1.5 mb-6">
+                    <p>📅  {s.date}</p>
+                    <p>🕒  {s.time} - {s.endTime}</p>
+                    <p>📍  {s.location}</p>
+                    {/* <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
+                    <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
+                    <p className="flex items-center gap-2"><MapPin size={12}/> {s.location}</p> */}
                   </div>
-
-                  {/* 按鈕樣式 */}
-                  <button
-                    className={`px-4 py-2 text-[10px] tracking-widest transition rounded-sm font-bold uppercase ${
-                      session.isExpired
-                        ? "bg-gray-200 text-gray-400 cursor-not-allowed" // ✅ 過期按鈕
-                        : isJoined
-                          ? "border border-orange-400 text-orange-400"
-                          : "bg-sage text-white"
-                    }`}
-                  >
-                    {session.isExpired ? "結束勒戒" : isJoined ? "查看詳情" : "報名"}
-                  </button>
+                  <div className="flex justify-end items-center mt-auto pt-4 border-t border-stone/10">
+                    <span className="text-[11px] text-gray-400 font-sans"><span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人</span>
+                  </div>
                 </div>
               );
             })}
-          </div>
+          </section>
         )}
-      </div>
 
-      {/* --- Modal 視窗 --- */}
-      {isModalOpen && selectedSession && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`bg-white p-8 max-w-md w-full shadow-xl relative border border-stone ${selectedSession.isExpired ? "grayscale-[0.5]" : ""}`}>
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20} /></button>
-
-            <h2 className={`text-xl tracking-widest mb-4 border-l-4 pl-3 ${selectedSession.isExpired ? "border-gray-300 text-gray-400" : "border-sage text-sage"}`}>
-              {selectedSession.isExpired ? "球局紀錄" : "球局詳情"}
-            </h2>
-
-            <div className="mb-6 space-y-1 text-sm text-gray-600 font-sans">
-              <p className="text-lg font-serif text-ink mb-2">{selectedSession.title}</p>
-              <p className="flex items-center gap-2">
-                <Calendar size={14} className="text-sage" /> {selectedSession.date}
-              </p>
-              <p className="flex items-center gap-2">
-                <Clock size={14} className="text-sage" /> {selectedSession.time} -{" "}
-                {selectedSession.endTime}
-              </p>
-              <p className="flex items-center gap-2">
-                <MapPin size={14} className="text-sage" /> {selectedSession.location}
-              </p>
-              <p className="flex items-center gap-3">
-                <Banknote size={14} className="text-sage" /> 費用: ${selectedSession.price}
-              </p>
-
-              {selectedSession.notes && (
-                <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed">
-                  <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter">
-                    <FileText size={12} /> Notes
-                  </div>
-                  {selectedSession.notes}
+        {activeTab === "create" && (
+          <section className="animate-in fade-in slide-in-from-bottom-2 max-w-xl mx-auto">
+             <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink font-sans">
+                <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">開立新的處方</p></div>
+                <div>
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主題</label>
+                  <input required value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" placeholder="輸入球局主題" />
                 </div>
-              )}
-            </div>
-            {/* --- 已報名名單區塊 --- */}
-            <div className="mb-8 border-t border-stone pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
-                  <Users size={14} /> 已報名名單
-                </h3>
-                <span className="text-[10px] text-sage font-sans italic">
-                  {/* ✅ 修正：確保顯示的是該場次正確的人數 */}
-                  {selectedSession.currentPlayers} / {selectedSession.maxPlayers}
-                </span>
-              </div>
-
-              <div className="min-h-[60px] max-h-40 overflow-y-auto custom-scrollbar">
-                {loadingParticipants ? (
-                  <p className="text-xs italic text-gray-300 animate-pulse">尋找夥伴中...</p>
-                ) : participants.length === 0 ? (
-                  <p className="text-xs italic text-gray-300">目前還沒有人，期待你的加入</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {participants
-                      .flatMap((p) => {
-                        // ✅ 修改：根據 FriendCount 來決定是否顯示 +1
-                        const friendCount = Number(p.FriendCount || 0); 
-                        if (friendCount > 0) {
-                          return [
-                            { ...p, DisplayName: p.Username },
-                            { ...p, DisplayName: `${p.Username}+1` },
-                          ];
-                        }
-                        return [{ ...p, DisplayName: p.Username }];
-                      })
-                      .map((p, i) => (
-                        <div
-                          key={i}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans transition-all
-                          ${
-                            p.Status === "WAITLIST"
-                              ? "bg-stone-50 text-stone-400 border border-dashed border-stone-200"
-                              : "bg-sage/5 text-sage border border-sage/10 hover:bg-sage/10 shadow-sm"
-                          }`}
-                        >
-                          <User
-                            size={10}
-                            className={p.Status === "WAITLIST" ? "text-stone-300" : "text-sage/60"}
-                          />
-                          <span>{(p as any).DisplayName}</span>
-                          {p.Status === "WAITLIST" && (
-                            <span className="bg-orange-100 text-orange-500 text-[8px] px-1 rounded ml-0.5 font-bold">
-                              候
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* --- 第一部分：報名表單 或 已預約狀態 --- */}
-            {!joinedIds.includes(selectedSession.id) ? (
-              // 1. 尚未報名的使用者：顯示報名表單
-              <form onSubmit={submitJoin} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">報名人數</label>
-                    <select
-                      value={joinForm.numPlayers}
-                      onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })}
-                      className="w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm font-sans cursor-pointer"
-                    >
-                      <option value={1}>1 人（我）</option>
-                      <option value={2}>2 人（+朋友）</option>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">日期</label>
+                    <input required type="date" min={todayStr} value={newSession.gameDate} onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">人數上限</label>
+                    <input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">開始時間</label>
+                    <select value={newSession.gameTime} onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">
+                      {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1 font-sans">聯絡電話</label>
-                    <input
-                      type="tel"
-                      required
-                      inputMode="numeric"
-                      value={joinForm.phone}
-                      onChange={(e) => {
-                        const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
-                        setJoinForm({ ...joinForm, phone: digitsOnly });
-                      }}
-                      maxLength={10}
-                      className={`w-full bg-stone/20 p-2 focus:outline-none focus:bg-stone/40 text-sm font-sans ${
-                        phoneError ? "border border-red-300" : ""
-                      }`}
-                      placeholder="0912345678"
-                    />
-                    {phoneError && <p className="mt-1 text-[10px] text-red-400 font-sans">{phoneError}</p>}
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">結束時間</label>
+                    <select value={newSession.endTime} onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">
+                      {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!isPhoneValid || selectedSession.isExpired}
-                  className={`w-full py-2 text-white text-sm tracking-widest transition shadow-md disabled:opacity-50
-                    ${selectedSession.isExpired ? "bg-gray-400 cursor-not-allowed" : "bg-sage"}`}
-                >
-                  {selectedSession.isExpired ? "報名已截止" : "確認報名"}
+                <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">球館</label>
+                    <select value={newSession.location} onChange={(e) => setNewSession({ ...newSession, location: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">
+                      {LOCATION_OPTIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                    </select>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">費用 ($)</label>
+                    <input required type="number" value={newSession.price} onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">聯絡資訊</label>
+                    <input required type="text" placeholder="主揪識別方式" value={newSession.phone} onChange={(e) => setNewSession({ ...newSession, phone: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
+                  </div>
+                </div>
+                <button type="submit" className="w-full py-3 mt-4 border border-sage text-sage hover:bg-sage hover:text-white transition-all flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif">
+                  <PlusCircle size={14} /> 確認發布球局
                 </button>
               </form>
+          </section>
+        )}
+      </main>
+
+      {selectedSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+          <div className="bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200">
+            <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage"><X size={24}/></button>
+            <h2 className="text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
+            
+            <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
+              <p className="flex items-center gap-3 italic"><CalendarClock size={14} />{selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
+              <p className="flex items-center gap-3 italic"><MapPin size={14} />{selectedSession.location}</p>
+              <p className="flex items-center gap-3 font-bold text-sage"><CircleDollarSign size={14} /> 費用: ${selectedSession.price}</p>
+              {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic leading-relaxed">{selectedSession.notes}</div>}
+            </div>
+
+            <div className="border-t border-stone/10 pt-6 mb-8">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-[10px] tracking-widest text-gray-400 uppercase">Participants</h3>
+                    <span className="text-[10px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
+                </div>
+                <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 custom-scrollbar">
+                    {participants.flatMap(p => {
+                      const list = [{...p, Display: p.Username}];
+                      if (p.FriendCount > 0) list.push({...p, Display: `${p.Username}+1`});
+                      return list;
+                    }).map((p, i) => (
+                        <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border ${p.Status === 'WAITLIST' ? 'text-stone-300 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
+                            <User size={10} /> <span>{p.Display}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {!joinedIds.includes(selectedSession.id) && !selectedSession.isExpired ? (
+              <form onSubmit={submitJoin} className="space-y-4">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[9px] text-stone-400 mb-1 uppercase tracking-widest">報名人數</label>
+                      <select value={joinForm.numPlayers} onChange={(e)=>setJoinForm({...joinForm, numPlayers:Number(e.target.value)})} className="w-full bg-sage/5 border border-sage/10 p-2 text-xs focus:outline-none rounded-sm">
+                          <option value={1}>1 人 (我)</option>
+                          <option value={2}>2 人 (+朋友)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] text-stone-400 mb-1 uppercase tracking-widest">手機號碼</label>
+                      <input required type="tel" value={joinForm.phone} onChange={(e)=>setJoinForm({...joinForm, phone:e.target.value.replace(/\D/g,"").slice(0,10)})} className="w-full bg-sage/5 border border-sage/10 p-2 text-xs focus:outline-none rounded-sm" placeholder="0912..." />
+                    </div>
+                 </div>
+                 <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 bg-sage text-white text-[10px] tracking-widest uppercase hover:bg-sage/90 transition-all disabled:opacity-50 font-serif">確認預約</button>
+              </form>
             ) : (
-              // 2. 已經報名的使用者：顯示狀態
-              <div
-                className={`py-3 text-center text-orange-400 text-xs font-bold border border-orange-100 bg-orange-50/50 rounded-sm tracking-widest ${
-                  selectedSession.isExpired ? "bg-gray-400 text-white" : ""
-                }`}
-              >
-                {selectedSession.isExpired ? "已嘗試勒戒" : "已經成功預約"}
-              </div>
-            )}
-            {/* 找這段程式碼並替換 */}
-            {joinedIds.includes(selectedSession.id) && 
-            !selectedSession.isExpired && 
-            Number(selectedSession.friendCount || 0) === 0 && (
-              <button 
-                onClick={() => handleAddFriend(selectedSession)}
-                className="mt-4 w-full py-2 border border-sage text-sage text-[10px] tracking-[0.2em] hover:bg-sage/5 transition rounded-sm font-bold uppercase"
-              >
-                + 幫朋友報名 (限一位)
-              </button>
+                <div className="space-y-4">
+                  <div className="py-3 text-center text-orange-400 text-[10px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">
+                      {selectedSession.isExpired ? "球局已結束" : "已成功預約"}
+                  </div>
+                  {/* 追加朋友功能 */}
+                  {!selectedSession.isExpired && selectedSession.friendCount === 0 && (
+                    <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[10px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
+                      + 幫朋友報名 (限一位)
+                    </button>
+                  )}
+                </div>
             )}
           </div>
         </div>
       )}
-      
+
+      {msg.isOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl text-center">
+            <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
+              {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
+            </div>
+            <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
+            <p className="text-sm text-gray-400 italic mb-10 tracking-widest">{msg.content}</p>
+            <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] uppercase hover:bg-stone/5 transition">我知道了</button>
+          </div>
+        </div>
+      )}
+
       <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone text-gray-400 hover:text-red-400 hover:border-red-400 transition-all text-[10px] tracking-widest z-50 uppercase">
         <LogOut size={12} /> Sign Out
       </button>
 
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f9f9f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e2e2;
-          border-radius: 10px;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
       `}</style>
-      {/* --- 文青風訊息彈窗 --- */}
-      {messageModal.isOpen && (
-        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
-            <div className="flex flex-col items-center">
-              {/* 裝飾小圖示 */}
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${messageModal.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
-                {messageModal.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
-              </div>
-              
-              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">
-                {messageModal.title}
-              </h2>
-              
-              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              
-              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">
-                {messageModal.content}
-              </p>
-
-              <button
-                onClick={() => setMessageModal({ ...messageModal, isOpen: false })}
-                className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase"
-              >
-                我知道了
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
