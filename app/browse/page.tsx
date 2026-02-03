@@ -1,11 +1,24 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { 
-  Eye, EyeOff, Trash2, Search, LogOut, UserMinus, 
-  CheckCircle, Clock, X, Phone, MapPin, User, Banknote,
-  Info, Calendar, PlusCircle,FileText,Copy, UserCheck
-} from "lucide-react"; 
+import {
+  Search,
+  X,
+  Clock,
+  MapPin,
+  CalendarClock,
+  Users,
+  User,
+  CircleDollarSign,
+  Banknote,
+  FileText,
+  CheckCircle,
+  Info,
+  LogOut,
+  PlusCircle,
+  UserCheck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -17,199 +30,243 @@ const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
   return `${hour}:${min}`;
 });
 
-// --- 1. 型別定義 (新增 isExpired) ---
+const LOCATION_OPTIONS = ["竹東鎮立羽球場", "竹東國民運動中心", "竹東國小"];
+const TW_MOBILE_REGEX = /^09\d{8}$/;
+
+// --- 型別定義 ---
 interface Session {
   id: number;
+  hostName: string;
   title: string;
   date: string;
   time: string;
-  location: string;
   endTime: string;
-  maxPlayers?: number | string;
-  price?: number; 
-  myStatus?: string; 
-  currentPlayers?: number;
-  phone?: string;
-  notes?: string;
-  friendCount?: number; 
-  isExpired: boolean; // ✅ 新增
+  location: string;
+  currentPlayers: number;
+  maxPlayers: number;
+  price: number;
+  notes: string;
+  isExpired: boolean;
+  friendCount: number; 
+  badminton_level?: string;
+  courtCount: number;
+  courtNumber?: string; // 新增
 }
 
 interface Participant {
   Username: string;
   Status: string;
-  FriendCount?: number; 
+  FriendCount: number;
 }
 
-export default function Dashboard() {
-  const todayStr = new Date().toISOString().split("T")[0]; 
-
+export default function Browse() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"joined" | "hosted" | "create">("joined");
-  const [hostedSessions, setHostedSessions] = useState<Session[]>([]); 
-  const [joinedSessions, setJoinedSessions] = useState<Session[]>([]); 
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const [activeTab, setActiveTab] = useState<"browse" | "create">("browse");
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [joinedIds, setJoinedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
-  const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ 
-    isOpen: false, 
-    id: null 
+  const [userInfo, setUserInfo] = useState<{ username: string; avatarUrl?: string; badminton_level?: string } | null>(null);
+
+  const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
+  
+  // ✅ 修正：確保狀態包含 courtCount 與 courtNumber
+  const [newSession, setNewSession] = useState({
+    title: "", 
+    gameDate: "", 
+    gameTime: "18:00", 
+    location: "竹東鎮立羽球場", 
+    courtNumber: "", // 這裡維持原本欄位名
+    courtCount: "1", // 預設 1 面場 (用字串方便 input 處理)
+    endTime: "20:00", 
+    maxPlayers: "", 
+    price: "", 
+    phone: "", 
+    notes: ""
   });
+
+  const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) router.replace("/");
+    if (!token) {
+      router.replace("/");
+    } else {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) setUserInfo(JSON.parse(savedUser));
+      fetchData();
+    }
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    router.replace("/");
-  };
-
-  const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null; }>({ isOpen: false, session: null });
+  useEffect(() => {
+    const savedData = sessionStorage.getItem("copySessionData");
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        setNewSession((prev) => ({
+          ...prev,
+          ...data, // 這裡會包含 location, courtNumber, courtCount 等
+          gameDate: "", 
+        }));
+        setActiveTab("create");
+        sessionStorage.removeItem("copySessionData");
+        setMsg({ 
+          isOpen: true, 
+          title: "延續時光", 
+          content: "已為您載入往日設定，選個新日期即可再次啟程。", 
+          type: "success" 
+        });
+      } catch (e) {
+        console.error("解析複製資料失敗", e);
+      }
+    }
+  }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      if (!token) return;
-
       const headers = { 
+        "Authorization": `Bearer ${token}`, 
         "Content-Type": "application/json", 
-        "Authorization": `Bearer ${token}`,
         "ngrok-skip-browser-warning": "true" 
       };
 
-      const [resHosted, resJoined] = await Promise.all([
-        fetch(`${API_URL}/api/games/mygame`, { headers }),
+      const [resActive, resJoined] = await Promise.all([
+        fetch(`${API_URL}/api/games/activegames`, { headers }),
         fetch(`${API_URL}/api/games/joined`, { headers })
       ]);
 
-      const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
-      const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
+      if (resActive.ok) {
+        const json = await resActive.json();
+        const mapped = (json.data || []).map((g: any) => ({
+          id: g.GameId,
+          hostName: g.hostName,
+          title: g.Title,
+          date: (g.GameDateTime ?? "").slice(0, 10),
+          time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
+          endTime: (g.EndTime ?? "").slice(0, 5),
+          location: g.Location ?? "", // 這裡拿到的已經是後端合併過的字串
+          currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
+          maxPlayers: Number(g.MaxPlayers),
+          price: Number(g.Price),
+          notes: g.Notes || "",
+          isExpired: !!g.isExpired,
+          friendCount: Number(g.MyFriendCount || 0),
+          badminton_level: g.badminton_level || "",
+          courtCount: Number(g.CourtCount || 1),
+        }));
+        setSessions(mapped);
+      }
 
-
-      // --- 2. 修改 Mapping (接住 isExpired) ---
-      const mapData = (data: any[]) => (data || []).map((g: any) => ({
-        id: g.GameId,
-        title: g.Title ?? "未命名球局",
-        date: (g.GameDateTime ?? "").slice(0, 10), 
-        time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
-        endTime: (g.EndTime ?? "").slice(0, 5),
-        location: g.Location ?? "未定地點",
-        maxPlayers: g.MaxPlayers,
-        price: g.Price, 
-        myStatus: g.MyStatus,
-        currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
-        friendCount: Number(g.FriendCount || 0),
-        phone: g.Phone || g.HostContact,
-        notes: g.Notes,
-        isExpired: !!g.isExpired,
-        isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt), 
-
-      }));
-
-      if (jsonHosted.success) setHostedSessions(mapData(jsonHosted.data));
-      if (jsonJoined.success) setJoinedSessions(mapData(jsonJoined.data));
-    } catch (e: any) {
-      console.error(e.message);
+      if (resJoined.ok) {
+        const json = await resJoined.json();
+        setJoinedIds((json.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
+      }
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchParticipants = async (sessionId: number) => {
+    setLoadingParticipants(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API_URL}/api/games/${sessionId}/players`, {
+        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
+      });
+      const json = await res.json();
+      if (json.success) setParticipants(json.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
 
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
+      const timeA = new Date(`${a.date}T${a.time}`).getTime();
+      const timeB = new Date(`${b.date}T${b.time}`).getTime();
+      return a.isExpired ? timeB - timeA : timeA - timeB;
+    });
+  }, [sessions]);
 
   const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
-    setLoadingParticipants(true);
+    setJoinForm({ phone: "", numPlayers: 1 });
+    fetchParticipants(session.id);
+  };
+
+  const submitJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSession) return;
     const token = localStorage.getItem("token");
-    fetch(`${API_URL}/api/games/${session.id}/players`, {
-      headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
-    })
-    .then(res => res.json())
-    .then(json => { if (json.success) setParticipants(json.data); })
-    .finally(() => setLoadingParticipants(false));
-  };
-
-  const handleLeave = async (e: React.MouseEvent, session: Session) => {
-    e.stopPropagation();
-    if (session.isExpired) return; // ✅ 過期球局不允許操作取消
-    setCancelMenu({ isOpen: true, session });
-  };
-
-  const executeCancel = async (id: number, cancelType: string) => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_URL}/api/games/${id}/join`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ cancelType })
+    const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(joinForm),
     });
     const json = await res.json();
     if (json.success) {
-      setMsg({ isOpen: true, title: "已取消報名", content: "這段時光，我先不戒。", type: "success" });
+      setMsg({ isOpen: true, title: "預約成功", content: "期待在球場與你相遇。", type: "success" });
       fetchData();
-      setCancelMenu({ isOpen: false, session: null });
-    }
-  };
-
-  const handleDelete = (e: React.MouseEvent, id: number) => {
-      e.stopPropagation(); // 防止打開詳情
-      setDeleteConfirm({ isOpen: true, id });
-  };
-  
-  const executeDelete = async () => {
-    if (!deleteConfirm.id) return;
-    
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.ok) {
-      // 關閉確認視窗
-      setDeleteConfirm({ isOpen: false, id: null });
-      
-      // 更新列表
-      fetchData();       
-      // 顯示文青風成功訊息
-      setMsg({ 
-        isOpen: true, 
-        title: "聚會終止", 
-        content: "這場相遇，我們留在回憶裡就好了。", 
-        type: "success" 
-      });
+      fetchParticipants(selectedSession.id);
+      setJoinedIds(prev => [...prev, selectedSession.id]);
     } else {
-      setMsg({ 
-        isOpen: true, 
-        title: "提醒", 
-        content: "時光似乎不願被抹去，請稍後再試。", 
-        type: "error" 
-      });
+      setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
     }
   };
 
-  const [newSession, setNewSession] = useState({
-    title: "", gameDate: "", gameTime: "18:00", location: "竹東鎮立羽球場",courtNumber: "", endTime:"20:00", maxPlayers: "", price: "", phone: "", notes: ""
-  });
-  const LOCATION_OPTIONS = ["竹東鎮立羽球場", "竹東國民運動中心", "竹東國小"];
+  const handleAddFriend = async () => {
+    if (!selectedSession) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/add-friend`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
+    });
+    const json = await res.json();
+    if (json.success) {
+      setMsg({ isOpen: true, title: "成功 +1", content: "已為朋友保留位置。", type: "success" });
+      fetchData();
+      fetchParticipants(selectedSession.id);
+      setSelectedSession(prev => prev ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : null);
+    } else {
+      setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
+    }
+  };
+
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
     const start = new Date(`${newSession.gameDate}T${newSession.gameTime}:00`);
     const end = new Date(`${newSession.gameDate}T${newSession.endTime}:00`);
-    const now = new Date();
-    if (start <= now) return alert("開團時間必須晚於現在時間");
-      
-    if (end <= start) return alert("結束時間必須晚於開始時間");
-    const fullLocation = newSession.courtNumber ? `${newSession.location} (${newSession.courtNumber}號場)`: newSession.location;
-    const payload = { ...newSession, location:fullLocation, maxPlayers: Number(newSession.maxPlayers), price: Number(newSession.price), Notes: newSession.notes };
+    
+    if (start <= new Date()) {
+        setMsg({ isOpen: true, title: "提醒", content: "開團時間必須晚於現在", type: "error" });
+        return;
+    }
+    if (end <= start) {
+        setMsg({ isOpen: true, title: "提醒", content: "結束時間必須晚於開始時間", type: "error" });
+        return;
+    }
+
+    // ✅ 改動：不手動合併字串，直接傳送獨立欄位給後端
+    const payload = { 
+      ...newSession, 
+      maxPlayers: Number(newSession.maxPlayers), 
+      price: Number(newSession.price),
+      courtCount: Number(newSession.courtCount) // 確保是數字
+    };
+
     const res = await fetch(`${API_URL}/api/games/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -219,428 +276,213 @@ export default function Dashboard() {
     if (res.ok) {
       setMsg({ isOpen: true, title: "開團成功", content: "新的一局已記錄在日誌中。", type: "success" });
       fetchData();
-      setActiveTab("hosted");
+      router.push("/dashboard");
+    } else {
+      const err = await res.json();
+      setMsg({ isOpen: true, title: "開團失敗", content: err.message, type: "error" });
     }
   };
-  const handleCopy = (e: React.MouseEvent, s: Session) => {
-    e.stopPropagation(); // 防止觸發打開詳情彈窗
-    let locName = s.location;
-    let cNum = "";
-    if (s.location.includes(" (") && s.location.includes("號場)")) {
-      const parts = s.location.split(" (");
-      locName = parts[0];
-      cNum = parts[1].replace("號場)", "");
-    }
-    
-    // setNewSession({
-    //   title: s.title,
-    //   gameDate: "", // 日期通常要重選，所以留空
-    //   gameTime: s.time,
-    //   endTime: s.endTime,
-    //   location: locName,
-    //   courtNumber: cNum, // 還原場地號碼
-    //   maxPlayers: s.maxPlayers?.toString() || "",
-    //   price: s.price?.toString() || "",
-    //   phone: s.phone || "",
-    //   notes: s.notes || ""
-    // });
-    // setActiveTab("create");
 
-    const copyData = {
-      title: s.title,
-      gameTime: s.time,
-      endTime: s.endTime,
-      location: locName,
-      courtNumber: cNum,
-      maxPlayers: s.maxPlayers?.toString() || "",
-      price: s.price?.toString() || "",
-      phone: s.phone || "",
-      notes: s.notes || ""
-    };
-    sessionStorage.setItem("copySessionData", JSON.stringify(copyData));
-    router.push("/dashboard");
-    
-    // 文青風的小提醒
-    setMsg({ 
-      isOpen: true, 
-      title: "延續時光", 
-      content: "已為您載入往日設定，選個新日期即可再次啟程。", 
-      type: "success" 
-    });
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.replace("/");
   };
-  // --- 排序邏輯：將進行中的排前面，取消的沉底，並都依照日期排序 ---
-  const sortedJoined = useMemo(() => {
-    return [...joinedSessions].sort((a, b) => {
-      const isACanceled = (a as any).isHostCanceled;
-      const isBCanceled = (b as any).isHostCanceled;
-
-      // 1. 優先級：未取消的在前面 (false < true)
-      if (isACanceled !== isBCanceled) {
-        return isACanceled ? 1 : -1;
-      }
-
-      // 2. 次要優先級：依照日期時間先後 (由近到遠)
-      const timeA = new Date(`${a.date}T${a.time}`).getTime();
-      const timeB = new Date(`${b.date}T${b.time}`).getTime();
-      return timeA - timeB;
-    });
-  }, [joinedSessions]);
-
-  const sortedHosted = useMemo(() => {
-    return [...hostedSessions].sort((a, b) => {
-      const isACanceled = (a as any).isHostCanceled;
-      const isBCanceled = (b as any).isHostCanceled;
-
-      // 1. 優先級：未取消的在前面
-      if (isACanceled !== isBCanceled) {
-        return isACanceled ? 1 : -1;
-      }
-
-      // 2. 次要優先級：依照日期時間先後
-      const timeA = new Date(`${a.date}T${a.time}`).getTime();
-      const timeB = new Date(`${b.date}T${b.time}`).getTime();
-      return timeA - timeB;
-    });
-  }, [hostedSessions]);
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-20">
       <nav className="flex justify-between items-center px-4 py-3 md:px-8 md:py-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-30">
-        {/* 左側：標題區塊 - 移除 mb-6 避免垂直撐開 */}
         <div className="flex flex-col items-start">
-          <h1 className="text-lg md:text-xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">
-            戒球日誌
-          </h1>
-          {/* 手機端隱藏裝飾線與副標題，節省空間 */}
-          <div className="hidden md:block w-12 h-[1px] bg-sage/30 my-2"></div>
-          <p className="hidden md:block text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">
-            在這裡，膩了，就是唯一的解藥。
-          </p>
+          <h1 className="text-base md:text-xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">戒球日誌</h1>
+          <div className="hidden md:block w-12 h-[1px] bg-sage/30 my-1"></div>
+          <p className="hidden md:block text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
         </div>
-
-        {/* 右側：導覽連結 - 尋找藥方 (Dashboard) */}
-        <Link href="/dashboard" className="group flex items-center gap-3 md:gap-4 transition-all">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">
-              尋找球局
-            </span>             
+        <div className="flex items-center gap-4 md:gap-12">
+          <Link href="/dashboard" className="group flex flex-col items-end">
+            <span className="text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">我的日誌</span>             
             <div className="flex items-center gap-1 md:gap-2">
               <div className="w-1 h-1 rounded-full bg-sage/40"></div>
-              <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">
-                Search
-              </span>
+              <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">Diary</span>
+            </div>
+          </Link>
+          <div className="h-6 md:h-8 w-[1px] bg-stone-200"></div>
+          <div className="flex items-center gap-3 md:gap-5">
+            <div className="flex flex-col items-end justify-center">
+              <span className="text-[10px] md:text-xs tracking-[0.1em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">{userInfo?.username}</span>
+              <div className="flex items-center gap-1 md:gap-2">
+                <div className="w-1 h-1 rounded-full bg-sage/40"></div>
+                <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">{userInfo?.badminton_level?.split(/[:：]/)[0] || "Lv.Diagnostic"}</span>
+              </div>
+            </div>
+            <div className="relative cursor-pointer group">
+              <div className="absolute inset-0 bg-sage/10 rounded-full blur-md group-hover:blur-lg transition-all"></div>
+              <div className="relative w-9 h-9 md:w-12 md:h-12 rounded-full overflow-hidden grayscale-[30%] group-hover:grayscale-0 transition-all duration-700">
+                {userInfo?.avatarUrl ? (
+                  <img src={userInfo.avatarUrl} alt="User" className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-700" />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full bg-stone-100 text-stone-300"><User size={14} strokeWidth={1} /></div>
+                )}
+              </div>
             </div>
           </div>
-          
-          {/* 放大鏡圖標 - 稍微做個圓形背景點綴 */}
-          <div className="p-2 rounded-full bg-sage/5 text-sage group-hover:bg-sage/10 transition-colors">
-            <Search size={18} className="md:w-5 md:h-5" />
-          </div>
-        </Link>
+        </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 mt-10">
         <div className="flex justify-center border-b border-stone/30 gap-12 text-sm tracking-[0.2em]">
-          {[{ id: "joined", label: "我報名的" }, { id: "hosted", label: "我發布的" }].map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`pb-4 transition-all relative ${activeTab === tab.id ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>
-              {tab.label}
-              {activeTab === tab.id && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}
-            </button>
-          ))}
+          <button onClick={() => setActiveTab("browse")} className={`pb-4 transition-all relative ${activeTab === "browse" ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>尋找球局{activeTab === "browse" && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}</button>
+          <button onClick={() => setActiveTab("create")} className={`pb-4 transition-all relative ${activeTab === "create" ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>建立新局{activeTab === "create" && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}</button>
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto p-6 mt-8">
-        
-        {/* === 分頁：我報名的球局 === */}
-        {activeTab === "joined" && (
-          <section className="animate-in fade-in slide-in-from-bottom-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {sortedJoined.map((session) => {
-                const isWaitlist = session.myStatus === 'WAITLIST';
-                // 檢查是否被取消
-                const isCancelled = (session as any).isHostCanceled;
-
-                return (
-                  <div 
-                    key={session.id} 
-                    onClick={() => handleOpenDetail(session)} 
-                    className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
-                      isCancelled 
-                        ? "border-l-red-200 bg-gray-50 opacity-60 grayscale" // 被取消的樣式
-                        : session.isExpired 
-                          ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
-                          : isWaitlist ? "border-l-orange-400 shadow-sm" : "border-l-blue-100 shadow-sm"
-                    }`}
-                  >
-                    {/* 標籤顯示 (右上角只保留 已打完 或 候補) */}
-                    <div className="absolute top-0 right-0">
-                      {!isCancelled && session.isExpired ? (
-                        <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">
-                          已打完
-                        </div>
-                      ) : !isCancelled && isWaitlist ? (
-                        <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">
-                          候補中
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className={`text-lg tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : ""}`}>
-                        {session.title}
-                      </h3>
-                      {/* 如果球局沒取消且沒過期，才顯示退出按鈕 */}
-                      {!isCancelled && !session.isExpired && (
-                        <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1">
-                          <UserMinus size={18} />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="text-xs text-gray-500 font-sans space-y-1.5">
-                      <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
-                      <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
-                      <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
-                    </div>
-
-                    <div className="flex justify-end mt-6">
-                      {isCancelled ? (
-                        /* 將主揪已取消移至此處，改為大寫斜體增加辨識度 */
-                        <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">
-                          主揪已取消
-                        </span>
-                      ) : session.isExpired ? (
-                        <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">
-                          已嘗試勒戒
-                        </span>
-                      ) : (
-                        <span className={`text-[11px] font-sans tracking-tighter ${isWaitlist ? "text-orange-400" : "text-gray-400"}`}>
-                          <span className={`font-bold ${isWaitlist ? "text-orange-500 text-sm" : ""}`}>{session.currentPlayers}</span> 
-                          <span className="mx-0.5">/</span> {session.maxPlayers} 人
-                        </span>
-                      )}
-                    </div>
+      <main className="max-w-6xl mx-auto p-6 mt-8">
+        {activeTab === "browse" && (
+          <section className="animate-in fade-in slide-in-from-bottom-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {sortedSessions.map((s) => {
+              const isJoined = joinedIds.includes(s.id);
+              return (
+                <div key={s.id} onClick={() => handleOpenDetail(s)} className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70" : isJoined ? "border-l-orange-400 shadow-sm" : "border-l-sage shadow-sm"}`}>
+                  <div className="absolute top-0 right-0">{s.isExpired ? <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已結束</div> : isJoined ? <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div> : null}</div>
+                  <div className="mb-4">
+                    <span className="text-[10px] text-gray-400 tracking-widest uppercase block mb-1">主揪：{s.hostName}</span>
+                    <h3 className={`text-lg tracking-wide ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="text-xs text-gray-500 font-sans space-y-1.5 mb-6">
+                    <p>📅 {s.date}</p><p>🕒 {s.time} - {s.endTime}</p><p>📍 {s.location}</p>
+                  </div>
+                  <div className="flex justify-end items-center mt-auto pt-4 border-t border-stone/10">
+                    <span className="text-[11px] text-gray-400 font-sans"><span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人</span>
+                  </div>
+                </div>
+              );
+            })}
           </section>
         )}
 
-        {/* === 分頁：已發布的球局 === */}
-        {activeTab === "hosted" && (
-          <section className="animate-in fade-in slide-in-from-bottom-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {sortedJoined.map(s => {
-                const isCanceled = (s as any).isHostCanceled; // 拿到取消標記
+        {activeTab === "create" && (
+          <section className="animate-in fade-in slide-in-from-bottom-2 max-w-xl mx-auto">
+            <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink font-sans">
+              <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">發起新的球局</p></div>
+              <div>
+                <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主題</label>
+                <input required value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" placeholder="輸入球局主題" />
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">日期</label><input required type="date" min={todayStr} value={newSession.gameDate} onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" /></div>
+                <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">人數上限</label><input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">開始時間</label><select value={newSession.gameTime} onChange={(e) => setNewSession({ ...newSession, gameTime: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">{TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">結束時間</label><select value={newSession.endTime} onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">{TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+              </div>
+              <div>
+                <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">球館</label>
+                <select value={newSession.location} onChange={(e) => setNewSession({ ...newSession, location: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">{LOCATION_OPTIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}</select>
+              </div>
 
-                return (
-                  <div 
-                    key={s.id} 
-                    onClick={() => handleOpenDetail(s)} 
-                    className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
-                      isCanceled 
-                        ? "border-l-red-200 bg-gray-50 opacity-40 grayscale" // 取消的樣式
-                        : s.isExpired 
-                          ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70" 
-                          : "border-l-sage shadow-sm"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className={`text-lg tracking-wide pr-4 ${
-                        isCanceled ? "text-stone-500" : s.isExpired ? "text-gray-400" : ""
-                      }`}>
-                        {s.title}
-                      </h3>
-                      
-                      <div className="flex gap-3">
-                        {/* 即使取消了，依然保留「複製」按鈕，方便下次再開 */}
-                        <button 
-                          onClick={(e) => handleCopy(e, s)} 
-                          className="text-gray-300 hover:text-sage transition-colors pt-1"
-                        >
-                          <Copy size={16} />
-                        </button>
-                        
-                        {/* 如果已經取消，就不用再顯示刪除按鈕了 */}
-                        {!isCanceled && !s.isExpired && (
-                          <button onClick={(e) => handleDelete(e, s.id)} className="text-gray-300 hover:text-red-400 transition-colors pt-1">
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+              {/* ✅ 新增/修正：場地數量 & 場地號碼 */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">場地數量 (面)</label>
+                  <select value={newSession.courtCount} onChange={(e) => setNewSession({ ...newSession, courtCount: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all">
+                    {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} 面場</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">場地號碼 (選填)</label>
+                  <input type="text" placeholder="例如：A, B 或 3號" value={newSession.courtNumber} onChange={(e) => setNewSession({ ...newSession, courtNumber: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" />
+                </div>
+              </div>
 
-                    <div className="text-xs text-gray-500 font-sans space-y-1.5">
-                      <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
-                      <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
-                      <p className="flex items-center gap-2"><MapPin size={12} /> {s.location}</p>
-                    </div>
-
-                    {/* 右下角狀態區 */}
-                    <div className="flex justify-end mt-6">
-                      {isCanceled ? (
-                        /* 樣式同步：紅色、加粗、斜體 */
-                        <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">
-                          此局已取消
-                        </span>
-                      ) : s.isExpired ? (
-                        <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">
-                          球局紀錄
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-gray-400 font-sans tracking-tighter">
-                          <span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">費用 ($)</label><input required type="number" value={newSession.price} onChange={(e) => setNewSession({ ...newSession, price: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" /></div>
+                <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">主揪聯絡資訊</label><input required type="text" placeholder="主揪識別方式" value={newSession.phone} onChange={(e) => setNewSession({ ...newSession, phone: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all" /></div>
+              </div>
+              <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">資訊補充</label><textarea rows={3} value={newSession.notes} onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} className="w-full bg-sage/5 border border-sage/10 p-2 focus:outline-none rounded-sm transition-all resize-none" placeholder="補充說明（如：用球、程度要求等）" /></div>
+              <button type="submit" className="w-full py-3 mt-4 border border-sage text-sage hover:bg-sage hover:text-white transition-all flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif"><PlusCircle size={14} /> 確認發布球局</button>
+            </form>
           </section>
         )}
-
       </main>
 
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in fade-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
-            <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
-            <h2 className={`text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>
-              {selectedSession.isExpired ? "球局紀錄" : selectedSession.title}
-            </h2>
-            <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
-              <p className="flex items-center gap-3 italic"><Calendar size={14} /> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
-              <p className="flex items-center gap-3 italic"><MapPin size={14} /> {selectedSession.location}</p>
-              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage" /> {selectedSession.phone ? selectedSession.phone : "現場找主揪"}</p>
-              <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14} /> 費用: ${selectedSession.price}</p>
-            </div>
-              {selectedSession.notes && (
-                <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed">
-                  <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter">
-                    <FileText size={12} /> Notes
-                  </div>
-                  {selectedSession.notes}
-                </div>
-              )}
+          <div className="bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200">
+            <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage"><X size={24}/></button>
+            <h2 className="text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
             
-            <div className="border-t border-stone/10 pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[10px] tracking-widest text-gray-400 uppercase">Participants</h3>
-                <span className="text-[10px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
-              </div>
-              <div className="max-h-32 overflow-y-auto custom-scrollbar">
-                <div className="flex flex-wrap gap-2">
-                  {participants
-                    .flatMap((p) => {
-                      const friendCount = Number(p.FriendCount || 0);
-                      if (friendCount > 0) return [{ ...p, DisplayName: p.Username }, { ...p, DisplayName: `${p.Username}+1` }];
-                      return [{ ...p, DisplayName: p.Username }];
-                    })
-                    .map((p, i) => (
-                      <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border ${p.Status === 'WAITLIST' ? 'text-stone-300 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
-                        <User size={10} /> <span>{(p as any).DisplayName}</span>
-                      </div>
+            <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
+              <p className="flex items-center gap-3 italic"><CalendarClock size={14} />{selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
+              <p className="flex items-center gap-3 italic"><MapPin size={14} />{selectedSession.location}</p>
+              <p className="flex items-center gap-3 font-bold text-sage"><CircleDollarSign size={14} /> 費用: ${selectedSession.price}</p>
+              {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic leading-relaxed">{selectedSession.notes}</div>}
+            </div>
+
+            <div className="border-t border-stone/10 pt-6 mb-8">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-[10px] tracking-widest text-gray-400 uppercase">Participants</h3>
+                    <span className="text-[10px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
+                </div>
+                <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 custom-scrollbar">
+                    {participants.flatMap(p => {
+                      const list = [{...p, Display: p.Username}];
+                      if (p.FriendCount > 0) list.push({...p, Display: `${p.Username}+1`});
+                      return list;
+                    }).map((p, i) => (
+                        <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border ${p.Status === 'WAITLIST' ? 'text-stone-300 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
+                            <User size={10} /> <span>{p.Display}</span>
+                        </div>
                     ))}
                 </div>
-              </div>
             </div>
-            <button onClick={() => setSelectedSession(null)} className="w-full mt-10 py-2 border border-stone text-gray-400 text-[10px] tracking-widest hover:text-sage hover:border-sage transition-all uppercase">Close</button>
+
+            {!joinedIds.includes(selectedSession.id) && !selectedSession.isExpired ? (
+              <form onSubmit={submitJoin} className="space-y-4">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[9px] text-stone-400 mb-1 uppercase tracking-widest">報名人數</label>
+                      <select value={joinForm.numPlayers} onChange={(e)=>setJoinForm({...joinForm, numPlayers:Number(e.target.value)})} className="w-full bg-sage/5 border border-sage/10 p-2 text-xs focus:outline-none rounded-sm">
+                          <option value={1}>1 人 (我)</option>
+                          <option value={2}>2 人 (+朋友)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] text-stone-400 mb-1 uppercase tracking-widest">手機號碼</label>
+                      <input required type="tel" value={joinForm.phone} onChange={(e)=>setJoinForm({...joinForm, phone:e.target.value.replace(/\D/g,"").slice(0,10)})} className="w-full bg-sage/5 border border-sage/10 p-2 text-xs focus:outline-none rounded-sm" placeholder="0912..." />
+                    </div>
+                 </div>
+                 <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 bg-sage text-white text-[10px] tracking-widest uppercase hover:bg-sage/90 transition-all disabled:opacity-50 font-serif">確認預約</button>
+              </form>
+            ) : (
+                <div className="space-y-4">
+                  <div className="py-3 text-center text-orange-400 text-[10px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">
+                      {selectedSession.isExpired ? "球局已結束" : "已成功預約"}
+                  </div>
+                  {/* 追加朋友功能 */}
+                  {!selectedSession.isExpired && selectedSession.friendCount === 0 && (
+                    <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[10px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
+                      + 幫朋友報名 (限一位)
+                    </button>
+                  )}
+                </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* --- 自定義取消選單 --- */}
-      {cancelMenu.isOpen && cancelMenu.session && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg tracking-widest text-sage font-bold">取消報名</h2>
-              <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button>
+      {msg.isOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl text-center">
+            <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
+              {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
             </div>
-
-            <p className="text-sm text-gray-500 mb-8 font-sans leading-relaxed">
-              {cancelMenu.session.myStatus === 'WAITLIST' ? (
-                <>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>
-              ) : (
-                <>您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>
-              )}
-              {cancelMenu.session.friendCount && cancelMenu.session.friendCount > 0 ? ` (含 ${cancelMenu.session.friendCount} 位朋友)` : ""}。<br/>
-              請確認是否要執行取消操作：
-            </p>
-
-            <div className="space-y-4">
-              {/* 選項 1：只有帶朋友時才顯示「僅取消朋友」 */}
-              {(cancelMenu.session?.friendCount || 0) > 0 && (
-                <button
-                  onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')}
-                  className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-sm tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"
-                >
-                  <UserMinus size={18} /> 僅取消朋友 (保留本人)
-                </button>
-              )}
-
-              {/* 選項 2：主要的取消按鈕 */}
-              <button
-                onClick={() => executeCancel(cancelMenu.session!.id, 'all')}
-                className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"
-              >
-                <Trash2 size={18} /> 
-                {/* 如果有帶人顯示「全部取消」，只有自己則顯示「確認取消報名」 */}
-                {(cancelMenu.session.friendCount || 0) > 0 ? ` (含 ${cancelMenu.session.friendCount} 位朋友)` : ""}
-              </button>
-
-              <button
-                onClick={() => setCancelMenu({ isOpen: false, session: null })}
-                className="w-full py-4 text-gray-400 text-xs tracking-widest hover:text-gray-600 transition-all uppercase"
-              >
-                回到我的日誌
-              </button>
-            </div>
+            <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
+            <p className="text-sm text-gray-400 italic mb-10 tracking-widest">{msg.content}</p>
+            <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] uppercase hover:bg-stone/5 transition">我知道了</button>
           </div>
         </div>
       )}
-      {deleteConfirm.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6">
-                <Trash2 size={24} />
-              </div>
-              
-              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">
-                終止這段時光？
-              </h2>
-              
-              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              
-              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">
-                一旦取消，所有的預約與期待都將隨風而去。<br/>
-                確定要抹去這場球局嗎？
-              </p>
 
-              <div className="w-full space-y-3">
-                <button
-                  onClick={executeDelete}
-                  className="w-full py-4 bg-red-500 text-white text-xs tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold"
-                >
-                  確認取消球局
-                </button>
-                
-                <button
-                  onClick={() => setDeleteConfirm({ isOpen: false, id: null })}
-                  className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm"
-                >
-                  保留這份期待
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* 登出按鈕 */}
       <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone text-gray-400 hover:text-red-400 hover:border-red-400 transition-all text-[10px] tracking-widest z-50 uppercase">
         <LogOut size={12} /> Sign Out
       </button>
@@ -650,37 +492,6 @@ export default function Dashboard() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
       `}</style>
-
-      {/* --- 文青風訊息彈窗 --- */}
-      {msg.isOpen && (
-        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
-            <div className="flex flex-col items-center">
-              {/* 裝飾小圖示 */}
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
-                {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
-              </div>
-              
-              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">
-                {msg.title}
-              </h2>
-              
-              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              
-              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">
-                {msg.content}
-              </p>
-
-              <button
-                onClick={() => setMsg({ ...msg, isOpen: false })}
-                className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase"
-              >
-                我知道了
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

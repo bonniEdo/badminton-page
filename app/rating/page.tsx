@@ -43,14 +43,14 @@ export default function RatingWizardPage() {
     const userStr = localStorage.getItem("user");
     if (userStr) {
       const user = JSON.parse(userStr);
-      if (user.is_profile_completed) router.replace("/dashboard");
+      if (user.is_profile_completed) router.replace("/browse");
     }
   }, [router]);
 
   const handleSkip = () => setIsAlertOpen(true);
   const confirmSkip = () => {
     setIsAlertOpen(false);
-    router.push("/dashboard");
+    router.push("/browse");
   };
 
   const handleFinish = async () => {
@@ -66,7 +66,7 @@ export default function RatingWizardPage() {
         let user = userStr ? JSON.parse(userStr) : {};
         user.is_profile_completed = true;
         localStorage.setItem("user", JSON.stringify(user));
-        router.push("/dashboard");
+        router.push("/browse");
       }
     } catch (e) { console.error(e); }
   };

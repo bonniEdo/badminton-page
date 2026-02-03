@@ -22,7 +22,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
       if (token && (pathname === '/' || pathname === '/login')) {
         // ✅ 根據填寫狀態決定跳轉目的地
         const user = userStr ? JSON.parse(userStr) : {};
-        const target = user.is_profile_completed ? '/dashboard' : '/rating';
+        const target = user.is_profile_completed ? '/browse' : '/rating';
         router.replace(target);
       } else {
         setIsLiffLoading(false);
@@ -43,7 +43,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
           if (pathname === '/' || pathname === '/login') {
             // ✅ 根據填寫狀態決定跳轉目的地
             const user = userStr ? JSON.parse(userStr) : {};
-            const target = user.is_profile_completed ? '/dashboard' : '/rating';
+            const target = user.is_profile_completed ? '/browse' : '/rating';
             router.replace(target);
           } else {
             setIsLiffLoading(false);
@@ -68,7 +68,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
                 localStorage.setItem('user', JSON.stringify(data.user));
                 
                 // ✅ 登入成功後根據後端回傳狀態跳轉
-                const target = data.user.is_profile_completed ? '/dashboard' : '/rating';
+                const target = data.user.is_profile_completed ? '/browse' : '/rating';
                 router.replace(target);
               } else {
                 setIsLiffLoading(false);

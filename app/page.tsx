@@ -57,7 +57,7 @@ export default function LoginPage() {
           // 2. 決定最終目的地
           // 如果你有 login-success 頁面做轉場，建議把目的地當成參數傳過去
           // 或者直接跳轉到目標頁面
-          const targetPath = data.user.is_profile_completed ? "/dashboard" : "/rating";
+          const targetPath = data.user.is_profile_completed ? "/browse" : "/rating";
           
           // 選項 A：如果你想經過 login-success (推薦，比較有儀式感)
           router.push(`/login-success?token=${data.token}&next=${targetPath}`);

@@ -29,7 +29,7 @@ function LoginSuccessContent() {
         const nextParam = searchParams.get("next");
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
         
-        let targetPath = "/dashboard"; // 預設值
+        let targetPath = "/browse"; // 預設值
 
         if (nextParam) {
           targetPath = nextParam;
