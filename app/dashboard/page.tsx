@@ -173,7 +173,7 @@ export default function Dashboard() {
         setCheckInModal({ isOpen: false, session: null });
         setMsg({ 
           isOpen: true, 
-          title: "已簽下場蹤", 
+          title: "已通知主揪", 
           content: "今日的汗水，已被記錄在冊。請靜候主揪安排上場。", 
           type: "success" 
         });
