@@ -89,24 +89,24 @@ export default function RatingWizardPage() {
       { label: "Level 2-3：新手階 (初顯症狀)", desc: "懂規則且能穩定發球，開始產生「想買新拍」的危險念頭。" }
     ],
     "重度中毒": [
-      { label: "Level 4-5：初階 (病入膏肓)", desc: "具備基礎步法與握拍，長球可達後場，已經無法忍受一天沒拿拍。" },
+      { label: "Level 4-5：初階 (球入膏肓)", desc: "具備基礎步法與握拍，長球可達後場，已經無法忍受一天沒拿拍。" },
       { label: "Level 6-7：初中階 (反覆發作)", desc: "懂基本雙打輪轉，開始會切球殺球，非受迫時移動回球尚屬穩定。" }
     ],
     "病入膏肓": [
-      { label: "Level 8-9：中階 (末期中毒)", desc: "輪轉熟練，切殺長吊穩定度達九成。一看到球館燈光就會手癢。" },
+      { label: "Level 8-9：中階 (末期球毒)", desc: "輪轉熟練，切殺長吊穩定度達九成。一看到球館燈光就會手癢。" },
       { label: "Level 10-12：中進階 (幻聽球聲)", desc: "戰術運用自如，反拍球路流暢，步法靈敏，能在睡夢中打假動作。" }
     ],
     "大毒梟": [
-      { label: "Level 13-15：高階 (職業病患)", desc: "校隊、體保生等級。攻防無死角，球速快到常人肉眼難以捕捉。" },
+      { label: "Level 13-15：高階 (職業球友)", desc: "校隊、體保生等級。攻防無死角，球速快到常人肉眼難以捕捉。" },
       { label: "Level 16-18：神人級 (羽球之神)", desc: "甲組前段或國手級。技術入化境，本人就是羽球病毒的源頭。" }
     ]
   };
 
   const categories = [
-    { key: "初次染毒", title: "初次染毒", sub: "L1-3" },
-    { key: "重度中毒", title: "重度中毒", sub: "L4-7" },
-    { key: "病入膏肓", title: "病入膏肓", sub: "L8-12" },
-    { key: "大毒梟", title: "大毒梟", sub: "L13-18" }
+    { key: "初次染毒", title: "初次碰球", sub: "L1-3" },
+    { key: "重度中毒", title: "重度球毒", sub: "L4-7" },
+    { key: "病入膏肓", title: "球得我心", sub: "L8-12" },
+    { key: "大毒梟", title: "球入五臟", sub: "L13-18" }
   ];
 
   return (
@@ -136,12 +136,12 @@ export default function RatingWizardPage() {
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="mb-14 text-center">
               <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 01</span>
-              <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">癮 齡</h2>
+              <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">球 齡</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-xs text-stone-300 tracking-[0.2em] italic">這場與羽球的病毒邂逅，持續了多久？</p>
+              <p className="text-xs text-stone-300 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
             </div>
             <div className="space-y-5">
-              {["不到 1 年 (初試禁果)", "1 - 3  年 (常態性用藥)", "3 - 5  年 (重度成癮)", "5  年以上 (終身帶原)"].map((opt) => (
+              {["不到 1 年", "1 - 3  年", "3 - 5  年", "5  年以上"].map((opt) => (
                 <button key={opt} onClick={() => { setFormData({ ...formData, years: opt }); setStep(2); }}
                   className="w-full py-7 border border-stone-50 bg-white hover:bg-[#A8B58E] hover:text-white transition-all text-sm tracking-[0.4em] text-stone-500 rounded-2xl shadow-sm hover:shadow-lg active:scale-[0.98]">
                   {opt}
@@ -162,12 +162,17 @@ export default function RatingWizardPage() {
             </div>
             <div className="grid grid-cols-2 gap-5">
               {categories.map((cat) => {
-                const isDisabled = cat.key === "初次染毒" && formData.years !== "不到 1 年 (初試禁果)";
+                // ✅ 關鍵邏輯：只有第一步選 "不到 1 年" 的人可以選 "初次染毒" (初次碰球)
+                // 如果類別是初次染毒，且年資不是 "不到 1 年"，則禁用
+                const isDisabled = cat.key === "初次染毒" && formData.years !== "不到 1 年";
+                
                 return (
                   <button key={cat.key} disabled={isDisabled}
                     onClick={() => { if (!isDisabled) { setMainCategory(cat.key); setStep(3); } }}
                     className={`aspect-square border border-stone-50 bg-white flex flex-col items-center justify-center rounded-[2.5rem] group shadow-sm transition-all
-                      ${isDisabled ? "opacity-30 grayscale cursor-not-allowed" : "hover:bg-[#A8B58E] hover:shadow-lg active:scale-[0.95]"}`}>
+                      ${isDisabled 
+                        ? "opacity-30 grayscale cursor-not-allowed bg-stone-50" 
+                        : "hover:bg-[#A8B58E] hover:shadow-lg active:scale-[0.95]"}`}>
                     <span className={`text-xl font-light mb-2 transition-colors ${isDisabled ? "text-stone-300" : "text-stone-600 group-hover:text-white"}`}>{cat.title}</span>
                     <span className={`text-[9px] tracking-[0.2em] uppercase font-bold transition-colors ${isDisabled ? "text-stone-200" : "text-stone-300 group-hover:text-white/70"}`}>{cat.sub}</span>
                   </button>

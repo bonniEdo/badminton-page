@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { 
   Eye, EyeOff, Trash2, Search, LogOut, UserMinus, 
@@ -45,8 +45,9 @@ export default function Dashboard() {
   const todayStr = new Date().toLocaleDateString('en-CA'); 
 
   const router = useRouter();
-  const searchParams = useSearchParams(); // 2. 取得參數工具
+  const searchParams = useSearchParams(); 
   const [activeTab, setActiveTab] = useState<"joined" | "hosted">("joined");
+  const [showExpired, setShowExpired] = useState(true); // 控制是否顯示過期
   const [hostedSessions, setHostedSessions] = useState<Session[]>([]); 
   const [joinedSessions, setJoinedSessions] = useState<Session[]>([]); 
   const [loading, setLoading] = useState(true);
@@ -58,25 +59,51 @@ export default function Dashboard() {
   const [checkInModal, setCheckInModal] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null; }>({ isOpen: false, session: null });
+  
+  // 程度選擇 Modal 狀態
+  const [levelModal, setLevelModal] = useState({ isOpen: false });
 
   useEffect(() => {
-    
     const token = localStorage.getItem("token");
     if (!token) router.replace("/");
     fetchData();
   }, [router]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "hosted") {
+      setActiveTab("hosted");
+    }
+  }, [searchParams]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
     router.replace("/");
   };
-  useEffect(() => {
-        const tab = searchParams.get("tab"); // 檢查網址有沒有 ?tab=...
-        if (tab === "hosted") {
-            setActiveTab("hosted"); // 如果有，就切換到我發布的
+
+  const fetchParticipants = useCallback(async (gameId: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setLoadingParticipants(true);
+    try {
+      const res = await fetch(`${API_URL}/api/games/${gameId}/players`, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          "ngrok-skip-browser-warning": "true" 
         }
-  }, [searchParams]);
+      });
+      const json = await res.json();
+      if (json.success) {
+        setParticipants(json.data);
+      }
+    } catch (err) {
+      console.error("Fetch participants error:", err);
+    } finally {
+      setLoadingParticipants(false);
+    }
+  }, []);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -137,7 +164,6 @@ export default function Dashboard() {
           'Content-Type': 'application/json', 
           'Authorization': `Bearer ${token}` 
         },
-        // 這裡傳送後端需要的 gameId
         body: JSON.stringify({ gameId: checkInModal.session.id })
       });
 
@@ -151,7 +177,8 @@ export default function Dashboard() {
           content: "今日的汗水，已被記錄在冊。請靜候主揪安排上場。", 
           type: "success" 
         });
-        fetchData(); // 重新整理列表以更新狀態
+        fetchData(); 
+        fetchParticipants(checkInModal.session.id); 
       } else {
         alert(json.message || "簽到失敗");
       }
@@ -162,25 +189,11 @@ export default function Dashboard() {
 
   const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
-    setLoadingParticipants(true);
-    const token = localStorage.getItem("token");
-    
-    fetch(`${API_URL}/api/games/${session.id}/players`, {
-      headers: { 
-        Authorization: `Bearer ${token}`, 
-        "ngrok-skip-browser-warning": "true" 
-      }
-    })
-    .then(res => res.json())
-    .then(json => { 
-      if (json.success) {
-        setParticipants(json.data); 
-      } 
-    })
-    .finally(() => setLoadingParticipants(false));
+    fetchParticipants(session.id);
   };
+
   const handleLeave = (e: React.MouseEvent, session: Session) => {
-    e.stopPropagation(); // 防止觸發打開詳情彈窗
+    e.stopPropagation(); 
     setCancelMenu({ isOpen: true, session });
   };
 
@@ -204,13 +217,62 @@ export default function Dashboard() {
           content: "這段時光，我先不戒。", 
           type: "success" 
         });
-        fetchData(); // 重新整理列表
+        fetchData(); 
+        if (selectedSession && selectedSession.id === id) {
+            if (cancelType === 'friend_only') {
+              setSelectedSession(prev => prev ? { ...prev, friendCount: 0 } : null);
+            }
+            fetchParticipants(id); 
+        }
         setCancelMenu({ isOpen: false, session: null });
       } else {
-        alert(json.message); // 顯示後端擋下來的訊息 (例如：已簽到不可取消)
+        alert(json.message);
       }
     } catch (error) {
       console.error("Cancel error:", error);
+    }
+  };
+
+  const handleAddFriendClick = () => {
+    if (!selectedSession) return;
+    const hasAddedFriend = (selectedSession.friendCount && selectedSession.friendCount >= 1) || 
+                           participants.some(p => p.Username.includes("+1"));
+    if (hasAddedFriend) {
+      setMsg({
+        isOpen: true,
+        title: "提 醒",
+        content: "每人限帶一位朋友",
+        type: "info"
+      });
+      return; 
+    }
+    setLevelModal({ isOpen: true });
+  };
+
+  const executeAddFriend = async (friendLevel: number) => {
+    if (!selectedSession) return;
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/add-friend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ friendLevel })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setLevelModal({ isOpen: false });
+        setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
+        fetchData(); 
+        fetchParticipants(selectedSession.id); 
+        setMsg({ isOpen: true, title: "成功攜帶隊友", content: "已將您的朋友納入麾下。", type: "success" });
+      } else {
+        alert(json.message);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -230,31 +292,23 @@ export default function Dashboard() {
 
   const handleCopy = (e: React.MouseEvent, s: Session) => {
     e.stopPropagation(); 
-    
     let locName = s.location;
     let cNum = "";
-    let cCount = "1"; // 預設 1 面場
-
-    // 解析邏輯：例如 "竹東 (A,B / 2面場)"
+    let cCount = "1";
     if (s.location.includes(" (")) {
       const [base, extra] = s.location.split(" (");
-      locName = base; // "竹東"
-      const content = extra.replace(")", ""); // "A,B / 2面場"
-
+      locName = base; 
+      const content = extra.replace(")", ""); 
       if (content.includes(" / ")) {
-        // 有場號也有場地數
         const [numPart, countPart] = content.split(" / ");
         cNum = numPart;
         cCount = countPart.replace("面場", "");
       } else if (content.includes("面場")) {
-        // 只有場地數
         cCount = content.replace("面場", "");
       } else {
-        // 只有場地號
         cNum = content;
       }
     }
-
     const copyData = {
       title: s.title,
       gameTime: s.time,
@@ -267,24 +321,26 @@ export default function Dashboard() {
       phone: s.phone || "",
       notes: s.notes || ""
     };
-
     sessionStorage.setItem("copySessionData", JSON.stringify(copyData));
     router.push("/browse"); 
   };
 
-  const sortedJoined = useMemo(() => {
-    return [...joinedSessions].sort((a, b) => {
-      if (a.isHostCanceled !== b.isHostCanceled) return a.isHostCanceled ? 1 : -1;
-      return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
-    });
-  }, [joinedSessions]);
+  // ✅ 修正後的排序邏輯：未過期 > 主揪取消 > 過期
+  const sortAndFilter = (sessions: Session[]) => {
+    return sessions
+      .filter(s => showExpired ? true : !s.isExpired)
+      .sort((a, b) => {
+        // 1. 先比是否過期 (未過期的排前面)
+        if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
+        // 2. 再比是否被取消 (未取消的排前面)
+        if (a.isHostCanceled !== b.isHostCanceled) return a.isHostCanceled ? 1 : -1;
+        // 3. 最後按時間排序
+        return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
+      });
+  };
 
-  const sortedHosted = useMemo(() => {
-    return [...hostedSessions].sort((a, b) => {
-      if (a.isHostCanceled !== b.isHostCanceled) return a.isHostCanceled ? 1 : -1;
-      return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
-    });
-  }, [hostedSessions]);
+  const sortedJoined = useMemo(() => sortAndFilter(joinedSessions), [joinedSessions, showExpired]);
+  const sortedHosted = useMemo(() => sortAndFilter(hostedSessions), [hostedSessions, showExpired]);
 
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-20">
@@ -302,20 +358,31 @@ export default function Dashboard() {
               <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">Search</span>
             </div>
           </div>
-          <div className="p-2 rounded-full bg-sage/5 text-sage group-hover:bg-sage/10 transition-colors">
-            <Search size={18} />
+          <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-sage/[0.03] border border-sage/[0.08] flex items-center justify-center transition-all duration-500 group-hover:bg-sage/[0.06] group-hover:scale-105 group-hover:rotate-3 shadow-sm">
+            <Search size={18} className="text-sage opacity-70" strokeWidth={1.2} />
           </div>
         </Link>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 mt-10">
-        <div className="flex justify-center border-b border-stone/30 gap-12 text-sm tracking-[0.2em]">
-          {[{ id: "joined", label: "我報名的" }, { id: "hosted", label: "我發布的" }].map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`pb-4 transition-all relative ${activeTab === tab.id ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>
-              {tab.label}
-              {activeTab === tab.id && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}
-            </button>
-          ))}
+        <div className="flex justify-between items-center border-b border-stone/30">
+          <div className="flex gap-12 text-sm tracking-[0.2em]">
+            {[{ id: "joined", label: "我報名的" }, { id: "hosted", label: "我發布的" }].map((tab) => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`pb-4 transition-all relative ${activeTab === tab.id ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>
+                {tab.label}
+                {activeTab === tab.id && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}
+              </button>
+            ))}
+          </div>
+
+          {/* ✅ 過期顯示開關 */}
+          <button 
+            onClick={() => setShowExpired(!showExpired)}
+            className={`flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
+          >
+            {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
+            {showExpired ? "顯示過期" : "隱藏過期"}
+          </button>
         </div>
       </div>
 
@@ -334,7 +401,6 @@ export default function Dashboard() {
                         ? "border-l-red-200 bg-gray-50 opacity-60 grayscale"
                         : session.isExpired 
                           ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
-                          // ✅ 莫蘭迪黃色微光效果：今日且需要簽到的球局
                           : needsCheckIn && isToday 
                             ? "border-l-[#D6C58D] shadow-[0_0_20px_rgba(214,197,141,0.4)] ring-1 ring-[#D6C58D]/10 bg-[#FAF9F6]" 
                             : session.myStatus === 'WAITLIST' ? "border-l-orange-400 shadow-sm" : "border-l-blue-100 shadow-sm"
@@ -369,7 +435,6 @@ export default function Dashboard() {
                       <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
                     </div>
 
-                    {/* ✅ 簽到按鈕使用莫蘭迪黃配色 */}
                     {!isCancelled && !session.isExpired && isToday && needsCheckIn && (
                       <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
                         <button 
@@ -444,12 +509,11 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* ✅ 新增：進入場蹤看板按鈕 (僅在未取消且未過期時顯示) */}
               {!s.isHostCanceled && !s.isExpired && (
                 <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
                   <Link
                     href={`/dashboard/live/${s.id}`}
-                    onClick={(e) => e.stopPropagation()} // 防止觸發卡片的詳情彈窗
+                    onClick={(e) => e.stopPropagation()} 
                     className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[10px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm"
                   >
                     <Zap size={12} fill="currentColor" className="animate-pulse" />
@@ -463,26 +527,7 @@ export default function Dashboard() {
       )}
       </main>
 
-      {/* ✅ 簽到儀式專用 Modal */}
-      {checkInModal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-paper/95 backdrop-blur-md animate-in fade-in duration-700">
-          <div className="max-w-xs w-full text-center space-y-10 p-8">
-            <div className="relative mx-auto w-20 h-20 border border-[#D6C58D]/30 rounded-full flex items-center justify-center">
-               <MapPin size={28} strokeWidth={1} className="text-[#A68F4C] animate-bounce" />
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-xl tracking-[0.4em] text-stone-800 font-light">抵達現場</h2>
-              <div className="w-8 h-[1px] bg-[#D6C58D]/40 mx-auto"></div>
-              <p className="text-[11px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但故事已經開始了。 」</p>
-            </div>
-            <div className="space-y-3">
-              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[10px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
-              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-300 text-[9px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* 詳情 Modal */}
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
           <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
@@ -513,17 +558,67 @@ export default function Dashboard() {
                           : 'text-sage border-sage/20 bg-sage/5'}`}
                     >
                       <User size={10} /> 
-                      {/* ✅ 後端回傳的 Username 已經包含 "+1" 了 */}
                       <span>{p.Username}</span> 
                     </div>
                   ))}
                 </div>
               </div>
             </div>
+
+            {!selectedSession.isExpired && !selectedSession.isHostCanceled && (
+              <div className="mt-8">
+                <button 
+                  onClick={handleAddFriendClick}
+                  className="w-full py-4 border border-sage text-sage text-[10px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2"
+                >
+                  <PlusCircle size={14} /> ＋ 幫朋友報名 (限一位)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {/* 程度選擇 Modal */}
+      {levelModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="bg-white border border-stone w-full max-w-sm rounded-[3rem] p-12 shadow-2xl relative text-center">
+              <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8">
+                 <Layout className="text-sage opacity-50" size={24} />
+              </div>
+              <h2 className="text-2xl tracking-[0.3em] text-stone-700 font-light mb-2">朋友的程度</h2>
+              <p className="text-[10px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
+              
+              <div className="space-y-4">
+                 {[
+                   { label: "初次碰球 (L1-3)", value: 2 },
+                   { label: "重度球毒 (L4-7)", value: 5 },
+                   { label: "球得我心 (L8-12)", value: 10 },
+                   { label: "球入五臟 (L13-18)", value: 15 }
+                 ].map((lvl) => (
+                   <button 
+                    key={lvl.value}
+                    onClick={() => executeAddFriend(lvl.value)}
+                    className="w-full py-5 px-6 rounded-full border border-stone/10 bg-white text-stone-500 text-xs tracking-[0.2em] hover:bg-sage hover:text-white hover:border-sage transition-all duration-500 font-light"
+                   >
+                     {lvl.label}
+                   </button>
+                 ))}
+              </div>
+
+              <button 
+                onClick={() => setLevelModal({ isOpen: false })}
+                className="mt-10 text-[10px] text-gray-300 tracking-[0.4em] uppercase hover:text-stone-500"
+              >
+                取消
+              </button>
+           </div>
+        </div>
+      )}
+
+      {msg.isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center"><div className="flex flex-col items-center"><div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>{msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}</div><h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2><div className="w-8 h-[1px] bg-stone/30 mb-6"></div><p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p><button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button></div></div></div>
+      )}
       {cancelMenu.isOpen && cancelMenu.session && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
@@ -533,13 +628,26 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
       {deleteConfirm.isOpen && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center"><div className="flex flex-col items-center"><div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24} /></div><h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2><div className="w-8 h-[1px] bg-stone/30 mb-6"></div><p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p><div className="w-full space-y-3"><button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-xs tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button><button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button></div></div></div></div>
       )}
-
-      {msg.isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center"><div className="flex flex-col items-center"><div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>{msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}</div><h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2><div className="w-8 h-[1px] bg-stone/30 mb-6"></div><p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p><button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button></div></div></div>
+      {checkInModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-paper/95 backdrop-blur-md animate-in fade-in duration-700">
+          <div className="max-w-xs w-full text-center space-y-10 p-8">
+            <div className="relative mx-auto w-20 h-20 border border-[#D6C58D]/30 rounded-full flex items-center justify-center">
+               <MapPin size={28} strokeWidth={1} className="text-[#A68F4C] animate-bounce" />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-xl tracking-[0.4em] text-stone-800 font-light">抵達現場</h2>
+              <div className="w-8 h-[1px] bg-[#D6C58D]/40 mx-auto"></div>
+              <p className="text-[11px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但故事已經開始了。 」</p>
+            </div>
+            <div className="space-y-3">
+              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[10px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
+              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-300 text-[9px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone text-gray-400 hover:text-red-400 hover:border-red-400 transition-all text-[10px] tracking-widest z-50 uppercase"><LogOut size={12} /> Sign Out</button>

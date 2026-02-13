@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { jwtDecode } from "jwt-decode"; // 1. 引入解碼工具
+
+// 設定 API URL (與 LoginPage 一致)
+const isDev = process.env.NODE_ENV === 'development';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isDev ? "http://localhost:3000" : "");
 
 function LoginSuccessContent() {
   const router = useRouter();
@@ -10,38 +13,53 @@ function LoginSuccessContent() {
   useEffect(() => {
     const token = searchParams.get("token");
     const speed = searchParams.get("speed");
+    const isProfileCompletedParam = searchParams.get("is_profile_completed"); // 從 URL 拿狀態
 
     if (token) {
       // 1. 將 Token 存入 localStorage
       localStorage.setItem("token", token);
-      const waitTime = speed === 'fast' ? 500 : 2000;
       
-      if (!localStorage.getItem('user')) {
+      const syncAndRedirect = async () => {
         try {
-          const decoded = jwtDecode(token);
-          localStorage.setItem('user', JSON.stringify(decoded));
-        } catch (e) { console.error(e); }
-      }
+          // ✅ 關鍵：直接跟後端拿最新、包含大頭貼與數字等級的資料
+          const res = await fetch(`${API_URL}/api/user/me`, {
+            headers: { 
+              "Authorization": `Bearer ${token}`,
+              "ngrok-skip-browser-warning": "true" 
+            }
+          });
+          const data = await res.json();
 
-      // --- 【修改跳轉邏輯】 ---
-      const timer = setTimeout(() => {
+          if (data.success) {
+            // 2. 儲存最精準的 User 物件
+            localStorage.setItem("user", JSON.stringify(data.user));
 
-        const nextParam = searchParams.get("next");
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        
-        let targetPath = "/browse"; // 預設值
+            const waitTime = speed === 'fast' ? 500 : 2000;
+            const nextParam = searchParams.get("next");
+            
+            // 3. 決定跳轉目標 (優先看 URL 參數，再看資料庫回傳)
+            let targetPath = "/browse"; 
+            const isFinished = isProfileCompletedParam === "true" || data.user.is_profile_completed === true;
 
-        if (nextParam) {
-          targetPath = nextParam;
-        } else if (storedUser.is_profile_completed === false || storedUser.is_profile_completed === 0) {
-          targetPath = "/rating"; 
+            if (nextParam) {
+              targetPath = nextParam;
+            } else if (!isFinished) {
+              targetPath = "/rating"; 
+            }
+
+            console.log("勒戒通道同步成功，目標：", targetPath);
+            
+            setTimeout(() => {
+              router.push(targetPath);
+            }, waitTime);
+          }
+        } catch (e) {
+          console.error("同步失敗：", e);
+          router.push("/login");
         }
+      };
 
-        console.log("最終跳轉目標：", targetPath);
-        router.push(targetPath);
-      }, waitTime);
-
-      return () => clearTimeout(timer);
+      syncAndRedirect();
     } else {
       router.push("/login");
     }
