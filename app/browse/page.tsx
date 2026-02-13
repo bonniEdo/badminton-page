@@ -365,6 +365,7 @@ export default function Browse() {
             </div>
           </Link>
           <div className="h-6 md:h-8 w-[1px] bg-stone-200"></div>
+          <Link href="/profile" className="group flex items-center gap-3 md:gap-5">
           <div className="flex items-center gap-3 md:gap-5">
             <div className="flex flex-col items-end justify-center">
               {/* 使用者名稱與藍勾勾 */}
@@ -398,6 +399,7 @@ export default function Browse() {
               </div>
             </div>
             </div>
+          </Link>
         </div>
       </nav>
 
