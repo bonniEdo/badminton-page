@@ -7,6 +7,7 @@ import {
   Zap, Droplets, BrainCircuit, History, Calendar, Swords, ChevronRight, Trophy, XCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import AppHeader from "../components/AppHeader";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -106,7 +107,12 @@ export default function ProfilePage() {
     router.replace("/");
   };
 
-  if (loading) return <div className="h-screen bg-[#FAF9F6] flex items-center justify-center italic text-sage animate-pulse font-serif">Scanning logs...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-[#FAF9F6] font-serif pb-24">
+      <AppHeader />
+      <div className="flex items-center justify-center h-[60vh] italic text-sage animate-pulse">Scanning logs...</div>
+    </div>
+  );
 
   const winCount = matches.filter(m => m.result === 'win').length;
   const validMatchesCount = matches.filter(m => m.result === 'win' || m.result === 'loss').length;
@@ -274,18 +280,11 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-stone-800 font-serif pb-24 overflow-x-hidden selection:bg-sage/10">
+      <AppHeader />
 
-      {/* 導覽列 */}
-      <nav className="px-4 md:px-6 py-6 flex justify-between items-center max-w-2xl mx-auto sticky top-0 bg-[#FAF9F6]/80 backdrop-blur-md z-40">
-        <button onClick={() => router.back()} className="text-stone-400 hover:text-sage transition-all">
-          <ChevronLeft className="w-7 h-7" />
-        </button>
-        <div className="text-center">
-          <h1 className="text-[20px] tracking-[0.4em] font-black text-stone-500 uppercase italic leading-none">個人紀錄</h1>
-        </div>
-        <button className="text-stone-400 hover:text-sage transition-all">
-        </button>
-      </nav>
+      <div className="max-w-2xl mx-auto px-4 pt-6">
+        <h1 className="text-center text-[20px] tracking-[0.4em] font-black text-stone-500 uppercase italic leading-none">個人紀錄</h1>
+      </div>
 
       <main className="max-w-2xl mx-auto px-4 md:px-8 animate-in fade-in duration-1000">
 

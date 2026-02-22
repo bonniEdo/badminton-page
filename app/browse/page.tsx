@@ -201,6 +201,13 @@ export default function Browse() {
     );
   };
 
+  if (loading) return (
+    <div className="min-h-screen bg-paper font-serif pb-24">
+      <AppHeader />
+      <div className="flex items-center justify-center h-[60vh] italic text-sage animate-pulse">Loading...</div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-paper text-ink font-serif pb-24">
       <AppHeader />
@@ -324,7 +331,7 @@ export default function Browse() {
         </div>
       )}
 
-      <Link href="/create" className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-sage text-white rounded-full shadow-lg shadow-sage/30 flex items-center justify-center hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200">
+      <Link href="/create" className="fixed bottom-24 md:bottom-6 right-6 z-40 w-14 h-14 bg-sage text-white rounded-full shadow-lg shadow-sage/30 flex items-center justify-center hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200">
         <Plus size={24} strokeWidth={2} />
       </Link>
     </div>
