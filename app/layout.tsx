@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Serif_TC } from "next/font/google";
 import "./globals.css";
-import AuthWatcher from "./AuthWatcher"; // 引入剛寫好的組件
+import AuthWatcher from "./AuthWatcher";
 import LiffProvider from './LiffProvider';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const notoSerifTC = Noto_Serif_TC({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-serif",
 });
 
 // Metadata 保留在 Server Side，這對 SEO 很好
@@ -50,7 +46,7 @@ export default function RootLayout({  children,
   }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${notoSerifTC.variable} antialiased`}>
         <LiffProvider>
           <AuthWatcher>
             {children}

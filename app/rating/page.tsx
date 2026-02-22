@@ -1,9 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Info, UserCheck, ChevronLeft, Sparkles, Syringe } from "lucide-react";
+import { UserCheck, ChevronLeft, Sparkles, Syringe } from "lucide-react";
 
-// --- 勒戒所風格：自定義彈出視窗 ---
 const CustomAlert = ({ isOpen, onClose, onConfirm, title, message }: any) => {
   if (!isOpen) return null;
   return (
@@ -32,12 +31,64 @@ const CustomAlert = ({ isOpen, onClose, onConfirm, title, message }: any) => {
   );
 };
 
+const categories = [
+  { key: "初次碰球", title: "初次碰球", sub: "L1-3", base: 1, max: 3,
+    desc: "能基本發球與接球，正在學習握拍姿勢與步法，球感尚在培養中。" },
+  { key: "重度球毒", title: "重度球毒", sub: "L4-7", base: 4, max: 7,
+    desc: "能穩定來回對打，掌握高遠球與切球，開始練習網前小球與基本殺球。" },
+  { key: "球得我心", title: "球得我心", sub: "L8-12", base: 8, max: 12,
+    desc: "具備多種球路變化與基本戰術意識，雙打能配合，可應付中等強度比賽。" },
+  { key: "球入五臟", title: "球入五臟", sub: "L13-18", base: 13, max: 18,
+    desc: "技術全面、攻守兼備，比賽經驗豐富，對戰術佈局與節奏掌控有高度理解。" },
+];
+
+const yearsOptions = [
+  { label: "不到 1 年", bonus: 0 },
+  { label: "1 - 3  年", bonus: 1 },
+  { label: "3 - 5  年", bonus: 2 },
+  { label: "5  年以上", bonus: 3 },
+];
+
 export default function RatingWizardPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [mainCategory, setMainCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<typeof categories[number] | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [formData, setFormData] = useState({ years: "", level: "" });
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const pendingStep = useRef(1);
+  const handleFinishRef = useRef<() => void>(() => {});
+
+  useEffect(() => { setVisible(true); }, []);
+
+  useEffect(() => {
+    if (!visible) {
+      const timer = setTimeout(() => {
+        setStep(pendingStep.current);
+        setVisible(true);
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
+
+  const goToStep = (next: number) => {
+    pendingStep.current = next;
+    setVisible(false);
+  };
+
+  useEffect(() => {
+    if (step !== 3) return;
+    setCountdown(5);
+    const id = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) { clearInterval(id); handleFinishRef.current(); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [step]);
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -51,6 +102,16 @@ export default function RatingWizardPage() {
   const confirmSkip = () => {
     setIsAlertOpen(false);
     router.push("/browse");
+  };
+
+  const computeLevel = (cat: typeof categories[number], bonus: number) =>
+    Math.min(cat.base + bonus, cat.max);
+
+  const handleSelectYears = (opt: typeof yearsOptions[number]) => {
+    if (!selectedCategory) return;
+    const level = computeLevel(selectedCategory, opt.bonus);
+    setFormData({ years: opt.label, level: String(level) });
+    goToStep(3);
   };
 
   const handleFinish = async () => {
@@ -70,6 +131,7 @@ export default function RatingWizardPage() {
       }
     } catch (e) { console.error(e); }
   };
+  handleFinishRef.current = handleFinish;
 
   const AIHint = () => (
     <div className="mt-10 flex flex-col items-center gap-2 animate-in fade-in zoom-in duration-1000">
@@ -83,37 +145,11 @@ export default function RatingWizardPage() {
     </div>
   );
 
-  const subLevels: Record<string, { label: string; desc: string }[]> = {
-    "初次染毒": [
-      { label: "Level 1： 寶寶階 (觀察期)", desc: "連羽球規則都還沒搞清楚，通常是路過被騙進場的。" },
-      { label: "Level 2-3：新手階 (初顯症狀)", desc: "懂規則且能穩定發球，開始產生「想買新拍」的危險念頭。" }
-    ],
-    "重度中毒": [
-      { label: "Level 4-5：初階 (球入膏肓)", desc: "具備基礎步法與握拍，長球可達後場，已經無法忍受一天沒拿拍。" },
-      { label: "Level 6-7：初中階 (反覆發作)", desc: "懂基本雙打輪轉，開始會切球殺球，非受迫時移動回球尚屬穩定。" }
-    ],
-    "病入膏肓": [
-      { label: "Level 8-9：中階 (末期球毒)", desc: "輪轉熟練，切殺長吊穩定度達九成。一看到球館燈光就會手癢。" },
-      { label: "Level 10-12：中進階 (幻聽球聲)", desc: "戰術運用自如，反拍球路流暢，步法靈敏，能在睡夢中打假動作。" }
-    ],
-    "大毒梟": [
-      { label: "Level 13-15：高階 (職業球友)", desc: "校隊、體保生等級。攻防無死角，球速快到常人肉眼難以捕捉。" },
-      { label: "Level 16-18：神人級 (羽球之神)", desc: "甲組前段或國手級。技術入化境，本人就是羽球病毒的源頭。" }
-    ]
-  };
-
-  const categories = [
-    { key: "初次染毒", title: "初次碰球", sub: "L1-3" },
-    { key: "重度中毒", title: "重度球毒", sub: "L4-7" },
-    { key: "病入膏肓", title: "球得我心", sub: "L8-12" },
-    { key: "大毒梟", title: "球入五臟", sub: "L13-18" }
-  ];
-
   return (
     <main className="min-h-screen bg-[#FDFCFB] text-stone-700 flex flex-col items-center justify-center p-6 font-serif overflow-y-auto">
-      <CustomAlert 
-        isOpen={isAlertOpen} 
-        onClose={() => setIsAlertOpen(false)} 
+      <CustomAlert
+        isOpen={isAlertOpen}
+        onClose={() => setIsAlertOpen(false)}
         onConfirm={confirmSkip}
         title="試圖逃跑？"
         message="暫緩診斷將無法精準媒合球友，確定要先進入嗎？"
@@ -124,58 +160,58 @@ export default function RatingWizardPage() {
           Escape / 暫緩診斷
         </button>
 
-        {/* 進度條 */}
+        {/* 進度條：3 步 */}
         <div className="flex gap-2 mb-20 px-2">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3].map((s) => (
             <div key={s} className={`h-[1px] flex-1 transition-all duration-1000 ${s <= step ? 'bg-[#A8B58E]' : 'bg-stone-100'}`} />
           ))}
         </div>
 
-        {/* Step 1: 癮齡 */}
+        <div className={`transition-all duration-300 ease-in-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        {/* Step 1: 病徵（大分類） */}
         {step === 1 && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div>
             <div className="mb-14 text-center">
               <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 01</span>
-              <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">球 齡</h2>
-              <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-xs text-stone-300 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
-            </div>
-            <div className="space-y-5">
-              {["不到 1 年", "1 - 3  年", "3 - 5  年", "5  年以上"].map((opt) => (
-                <button key={opt} onClick={() => { setFormData({ ...formData, years: opt }); setStep(2); }}
-                  className="w-full py-7 border border-stone-50 bg-white hover:bg-[#A8B58E] hover:text-white transition-all text-sm tracking-[0.4em] text-stone-500 rounded-2xl shadow-sm hover:shadow-lg active:scale-[0.98]">
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: 中毒階級 */}
-        {step === 2 && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="mb-14 text-center">
-              <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 02</span>
               <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">病 徵</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
               <p className="text-xs text-stone-300 tracking-[0.2em] italic">請如實告知症狀，方便醫師對症下藥</p>
             </div>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-4">
               {categories.map((cat) => {
-                // ✅ 關鍵邏輯：只有第一步選 "不到 1 年" 的人可以選 "初次染毒" (初次碰球)
-                // 如果類別是初次染毒，且年資不是 "不到 1 年"，則禁用
-                const isDisabled = cat.key === "初次染毒" && formData.years !== "不到 1 年";
-                
+                const isOpen = expandedKey === cat.key;
                 return (
-                  <button key={cat.key} disabled={isDisabled}
-                    onClick={() => { if (!isDisabled) { setMainCategory(cat.key); setStep(3); } }}
-                    className={`aspect-square border border-stone-50 bg-white flex flex-col items-center justify-center rounded-[2.5rem] group shadow-sm transition-all
-                      ${isDisabled 
-                        ? "opacity-30 grayscale cursor-not-allowed bg-stone-50" 
-                        : "hover:bg-[#A8B58E] hover:shadow-lg active:scale-[0.95]"}`}>
-                    <span className={`text-xl font-light mb-2 transition-colors ${isDisabled ? "text-stone-300" : "text-stone-600 group-hover:text-white"}`}>{cat.title}</span>
-                    <span className={`text-[9px] tracking-[0.2em] uppercase font-bold transition-colors ${isDisabled ? "text-stone-200" : "text-stone-300 group-hover:text-white/70"}`}>{cat.sub}</span>
-                  </button>
+                  <div key={cat.key}>
+                    <button
+                      onClick={() => {
+                        setExpandedKey(isOpen ? null : cat.key);
+                        setSelectedCategory(cat);
+                      }}
+                      className={`w-full flex items-center justify-between px-7 py-5 rounded-2xl shadow-sm transition-all duration-200 active:scale-[0.98] ${
+                        isOpen
+                          ? 'bg-[#A8B58E] shadow-md'
+                          : 'bg-white border border-stone-50 hover:border-[#A8B58E]/30'
+                      }`}>
+                      <span className={`text-lg font-light transition-colors ${isOpen ? 'text-white' : 'text-stone-600'}`}>{cat.title}</span>
+                      <span className={`text-[9px] tracking-[0.2em] uppercase font-bold transition-colors ${isOpen ? 'text-white/70' : 'text-stone-300'}`}>{cat.sub}</span>
+                    </button>
+                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                      <div className="overflow-hidden">
+                        <div className="pt-3 px-1">
+                          <div className="bg-white border border-stone-50 rounded-2xl p-6 shadow-sm">
+                            <p className="text-sm text-stone-400 leading-relaxed tracking-wider italic mb-6">
+                              {cat.desc}
+                            </p>
+                            <button
+                              onClick={() => goToStep(2)}
+                              className="w-full py-3.5 bg-[#A8B58E] text-white text-[10px] tracking-[0.4em] hover:bg-[#96A47C] transition-all uppercase rounded-full font-bold">
+                              確認症狀 · 下一步
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -183,31 +219,29 @@ export default function RatingWizardPage() {
           </div>
         )}
 
-        {/* Step 3: 詳細症狀 */}
-        {step === 3 && mainCategory && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Step 2: 球齡 */}
+        {step === 2 && (
+          <div>
             <div className="mb-14 text-center">
-              <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 03</span>
-              <h2 className="text-3xl tracking-[0.2em] font-light mb-3 text-stone-800">{mainCategory}診斷</h2>
-              <div className="w-16 h-[1px] bg-stone-100 mx-auto mb-6"></div>
-              <p className="text-xs text-stone-300 tracking-[0.2em] italic">勾選最符合您「發作」時的情況</p>
+              <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 02</span>
+              <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">球 齡</h2>
+              <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
+              <p className="text-xs text-stone-300 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
             </div>
             <div className="space-y-5">
-              {subLevels[mainCategory].map((sub) => (
-                <button key={sub.label} onClick={() => { setFormData({ ...formData, level: sub.label }); setStep(4); }}
-                  className="w-full p-8 border border-stone-50 bg-white hover:bg-[#A8B58E] transition-all text-left rounded-[1.5rem] group shadow-sm hover:shadow-lg active:scale-[0.98]">
-                  <div className="text-[15px] tracking-widest text-stone-800 mb-3 font-medium group-hover:text-white">{sub.label}</div>
-                  <div className="text-[12px] text-stone-300 leading-relaxed tracking-wide font-sans italic group-hover:text-white/80">{sub.desc}</div>
+              {yearsOptions.map((opt) => (
+                <button key={opt.label} onClick={() => handleSelectYears(opt)}
+                  className="w-full py-7 border border-stone-50 bg-white hover:bg-[#A8B58E] hover:text-white transition-all text-sm tracking-[0.4em] text-stone-500 rounded-2xl shadow-sm hover:shadow-lg active:scale-[0.98]">
+                  {opt.label}
                 </button>
               ))}
             </div>
-            <AIHint />
           </div>
         )}
 
-        {/* Step 4: 入院完成 */}
-        {step === 4 && (
-          <div className="text-center animate-in fade-in zoom-in-95 duration-1000 px-4">
+        {/* Step 3: 入院完成 */}
+        {step === 3 && (
+          <div className="text-center px-4">
             <div className="mb-16">
               <div className="flex flex-col items-center mb-10">
                 <div className="w-20 h-20 rounded-full bg-[#E5ECE3] text-[#A8B58E] flex items-center justify-center mb-6 shadow-inner">
@@ -223,22 +257,24 @@ export default function RatingWizardPage() {
                 系統正為您媒合球癮相近的夥伴。」
               </p>
             </div>
-            <button onClick={handleFinish} className="w-full py-5 bg-[#A8B58E] text-white tracking-[0.8em] hover:bg-[#96A47C] transition-all rounded-full shadow-xl shadow-[#A8B58E]/20 text-xs font-bold uppercase">
-              進入勒戒所
+            <button onClick={handleFinish} className="w-full py-5 bg-[#A8B58E] text-white tracking-[0.4em] hover:bg-[#96A47C] transition-all rounded-full shadow-xl shadow-[#A8B58E]/20 text-xs font-bold uppercase relative overflow-hidden">
+              <span className="absolute inset-0 bg-[#96A47C] origin-left transition-none" style={{ transform: `scaleX(${(5 - countdown) / 5})` }} />
+              <span className="relative">{countdown > 0 ? `${countdown} 秒後自動入所` : '正在進入⋯'}</span>
             </button>
           </div>
         )}
 
         {/* 返回 */}
-        {step > 1 && step <= 3 && (
+        {step === 2 && (
           <div className="mt-16 flex justify-center">
-            <button onClick={() => setStep(step - 1)} 
+            <button onClick={() => goToStep(1)}
               className="flex items-center gap-2 px-6 py-2 border border-stone-100 text-stone-400 hover:text-[#A8B58E] hover:border-[#A8B58E]/30 transition-all rounded-full text-[10px] tracking-[0.4em] uppercase bg-white/50">
               <ChevronLeft size={14} className="-ml-1" />
               BACK / 回上一步
             </button>
           </div>
         )}
+        </div>
       </div>
 
       <footer className="mt-auto py-10 text-[8px] text-stone-200 tracking-[0.8em] uppercase text-center opacity-60">
