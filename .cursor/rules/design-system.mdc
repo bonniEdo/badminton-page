@@ -1,0 +1,70 @@
+---
+description: 鼠尾草綠文青風格設計系統 — 所有 UI 元件與頁面樣式必須遵循
+alwaysApply: true
+---
+
+# 設計系統：鼠尾草綠 × 文青風格
+
+## 色彩定義（對應 globals.css @theme）
+
+| Token        | 色碼      | 用途                         |
+|-------------|-----------|------------------------------|
+| `paper`     | `#FDFCF8` | 頁面背景、卡片底色            |
+| `ink`       | `#3E3E3E` | 主要文字、標題                |
+| `sage`      | `#8A9A5B` | 主色調 — 按鈕、強調、連結     |
+| `stone`     | `#E6E2DD` | 分隔線、次要背景、disabled 態 |
+| `alert`     | `#C0564D` | 錯誤、警告、刪除操作          |
+
+Tailwind 用法：`bg-paper`、`text-ink`、`bg-sage`、`border-stone`、`text-alert`
+
+## 字體
+
+- 標題 / 強調：`font-serif`（Noto Serif TC）
+- 內文 / UI 元素：系統無襯線字體（預設）
+- 禁止使用花俏裝飾字體
+
+## 風格原則
+
+1. **留白優先** — 元素間保持充足 padding/margin，不擁擠
+2. **圓角柔和** — 卡片與按鈕使用 `rounded-xl` 或 `rounded-2xl`
+3. **陰影內斂** — 僅用 `shadow-sm` 或 `shadow-md`，避免濃重陰影
+4. **色彩節制** — 頁面以 paper + ink 為主，sage 點綴強調，不超過三色
+5. **動畫克制** — 轉場用 `transition-all duration-200`，不做花俏動畫
+
+## 元件規範
+
+### 按鈕（主要）
+```
+bg-sage text-paper rounded-xl px-6 py-3 font-serif
+hover → opacity-90
+disabled → bg-stone text-ink/40
+```
+
+### 按鈕（次要 / 輪廓）
+```
+border border-sage text-sage rounded-xl px-6 py-3
+hover → bg-sage/10
+```
+
+### 卡片
+```
+bg-paper rounded-2xl shadow-sm border border-stone p-5
+```
+
+### 輸入框
+```
+bg-paper border border-stone rounded-xl px-4 py-3
+focus → border-sage ring-1 ring-sage/30
+```
+
+### 頁面佈局
+- 最大寬度 `max-w-md mx-auto`（行動優先）
+- 頁面底色 `bg-paper min-h-screen`
+- 內容區域 `px-4 py-6`
+
+## 禁止事項
+
+- 不使用純黑 `#000` 或純白 `#FFF` 作為文字/背景
+- 不使用漸層背景
+- 不使用 neon / 螢光色
+- 不使用粗重邊框（border-2 以上）
