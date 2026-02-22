@@ -21,7 +21,7 @@ const CustomAlert = ({ isOpen, onClose, onConfirm, title, message }: any) => {
             <button onClick={onConfirm} className="w-full py-4 bg-[#A8B58E] text-white text-xs tracking-[0.4em] hover:bg-[#96A47C] transition-all uppercase rounded-full font-bold shadow-sm">
               晚點檢測
             </button>
-            <button onClick={onClose} className="w-full py-4 border border-stone-100 text-stone-300 text-xs tracking-[0.4em] hover:bg-stone-50 transition-all uppercase rounded-full font-bold">
+            <button onClick={onClose} className="w-full py-4 border border-stone-100 text-stone-500 text-xs tracking-[0.4em] hover:bg-stone-50 transition-all uppercase rounded-full font-bold">
               返回診斷
             </button>
           </div>
@@ -156,7 +156,7 @@ export default function RatingWizardPage() {
       />
 
       <div className="w-full max-w-sm relative py-12">
-        <button onClick={handleSkip} className="absolute top-0 right-0 text-[10px] tracking-[0.4em] text-stone-300 hover:text-[#A8B58E] transition-colors border-b border-stone-100 pb-1 uppercase">
+        <button onClick={handleSkip} className="absolute top-0 right-0 text-[10px] tracking-[0.4em] text-stone-500 hover:text-[#A8B58E] transition-colors border-b border-stone-100 pb-1 uppercase">
           Escape / 暫緩診斷
         </button>
 
@@ -175,7 +175,7 @@ export default function RatingWizardPage() {
               <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 01</span>
               <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">病 徵</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-xs text-stone-300 tracking-[0.2em] italic">請如實告知症狀，方便醫師對症下藥</p>
+              <p className="text-xs text-stone-500 tracking-[0.2em] italic">請如實告知症狀，方便醫師對症下藥</p>
             </div>
             <div className="space-y-4">
               {categories.map((cat) => {
@@ -193,7 +193,7 @@ export default function RatingWizardPage() {
                           : 'bg-white border border-stone-50 hover:border-[#A8B58E]/30'
                       }`}>
                       <span className={`text-lg font-light transition-colors ${isOpen ? 'text-white' : 'text-stone-600'}`}>{cat.title}</span>
-                      <span className={`text-[9px] tracking-[0.2em] uppercase font-bold transition-colors ${isOpen ? 'text-white/70' : 'text-stone-300'}`}>{cat.sub}</span>
+                      <span className={`text-[9px] tracking-[0.2em] uppercase font-bold transition-colors ${isOpen ? 'text-white/70' : 'text-stone-500'}`}>{cat.sub}</span>
                     </button>
                     <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                       <div className="overflow-hidden">
@@ -226,7 +226,7 @@ export default function RatingWizardPage() {
               <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 02</span>
               <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">球 齡</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-xs text-stone-300 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
+              <p className="text-xs text-stone-500 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
             </div>
             <div className="space-y-5">
               {yearsOptions.map((opt) => (

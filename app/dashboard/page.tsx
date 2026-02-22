@@ -554,7 +554,7 @@ export default function Dashboard() {
                       key={i} 
                       className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border 
                         ${p.Status === 'WAITLIST' 
-                          ? 'text-stone-300 border-dashed border-stone-200' 
+                          ? 'text-stone-500 border-dashed border-stone-200' 
                           : 'text-sage border-sage/20 bg-sage/5'}`}
                     >
                       <User size={10} /> 
@@ -644,7 +644,7 @@ export default function Dashboard() {
             </div>
             <div className="space-y-3">
               <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[10px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
-              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-300 text-[9px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
+              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[9px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
             </div>
           </div>
         </div>

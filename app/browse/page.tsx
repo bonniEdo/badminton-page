@@ -290,7 +290,7 @@ export default function Browse() {
             ))}
             <button 
               onClick={() => setFriendLevelModal({ ...friendLevelModal, isOpen: false })}
-              className="w-full py-2 text-stone-300 text-[9px] tracking-widest uppercase hover:text-stone-500 mt-4"
+              className="w-full py-2 text-stone-500 text-[9px] tracking-widest uppercase hover:text-stone-500 mt-4"
             >
               取消
             </button>
@@ -394,7 +394,7 @@ export default function Browse() {
                 {(userInfo?.avatarUrl || (userInfo as any)?.AvatarUrl) ? (
                   <img src={userInfo?.avatarUrl || (userInfo as any)?.AvatarUrl} alt="User" className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-700" />
                 ) : (
-                  <div className="flex items-center justify-center w-full h-full bg-stone-100 text-stone-300"><User size={18} className="text-sage opacity-70" strokeWidth={1.2} /></div>
+                  <div className="flex items-center justify-center w-full h-full bg-stone-100 text-stone-500"><User size={18} className="text-sage opacity-70" strokeWidth={1.2} /></div>
                 )}
               </div>
             </div>
@@ -537,7 +537,7 @@ export default function Browse() {
                   
                   <div className="max-h-40 overflow-y-auto custom-scrollbar">
                       {loadingParticipants ? (
-                          <div className="text-[10px] text-stone-300 italic animate-pulse">正在讀取球友名冊...</div>
+                          <div className="text-[10px] text-stone-500 italic animate-pulse">正在讀取球友名冊...</div>
                       ) : (
                           <div className="flex flex-wrap gap-2">
                               {participants.length > 0 ? (
@@ -548,7 +548,7 @@ export default function Browse() {
                                   }).map((p, i) => (
                                       <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border transition-all ${
                                           p.Status === 'WAITLIST' 
-                                          ? 'text-stone-300 border-dashed border-stone-200' 
+                                          ? 'text-stone-500 border-dashed border-stone-200' 
                                           : 'text-sage border-sage/20 bg-sage/5'
                                       }`}>
                                           <User size={10} /> 
@@ -556,7 +556,7 @@ export default function Browse() {
                                       </div>
                                   ))
                               ) : (
-                                  <div className="text-[10px] text-stone-300 italic">尚無預約紀錄</div>
+                                  <div className="text-[10px] text-stone-500 italic">尚無預約紀錄</div>
                               )}
                           </div>
                       )}

@@ -228,7 +228,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           <div className="flex flex-col items-start">
              <span className="text-xs md:text-xl font-serif italic text-sage font-bold">Lv.{Math.floor(p.level)}</span>
              {!isVerified && !p.displayName.includes("+1") && (
-               <span className="text-[7px] md:text-[10px] text-stone-300 font-normal not-italic tracking-tighter block leading-none">(診斷中)</span>
+               <span className="text-[7px] md:text-[10px] text-stone-500 font-normal not-italic tracking-tighter block leading-none">(診斷中)</span>
              )}
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                     <h2 className="text-lg tracking-widest font-bold text-stone-800 uppercase">等待池</h2>
                     <p className="text-[9px] text-sage font-bold tracking-[0.2em] opacity-50 italic">Waiting Bench</p>
                 </div>
-                <button className="md:hidden text-stone-300" onClick={() => setIsBenchOpen(false)}><X size={24} /></button>
+                <button className="md:hidden text-stone-500" onClick={() => setIsBenchOpen(false)}><X size={24} /></button>
             </div>
             <div className="overflow-y-auto space-y-2 custom-scrollbar pr-1 h-[calc(100vh-180px)] md:h-[calc(100vh-220px)]">
                 {players
@@ -300,7 +300,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                     {verified && <CheckCircle size={10} className={isSelected ? 'text-white' : 'text-blue-500'} />}
                                 </div>
                                 {!verified && !player.displayName.includes("+1") && (
-                                  <div className={`text-[7px] px-1.5 py-0.5 rounded-full border ${isSelected ? 'border-white/50 text-white' : 'border-stone-100 text-stone-300'}`}>
+                                  <div className={`text-[7px] px-1.5 py-0.5 rounded-full border ${isSelected ? 'border-white/50 text-white' : 'border-stone-100 text-stone-500'}`}>
                                     {player.verified_matches || 0}局
                                   </div>
                                 )}
@@ -332,7 +332,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                         <div key={num} className={`relative p-5 md:p-8 border-2 rounded-sm transition-all duration-500 flex flex-col justify-between ${currentMatch ? 'bg-white border-sage shadow-xl' : 'bg-white border-stone-100'}`}>
                             
                             <div className="flex justify-between items-center mb-6 md:mb-8 border-b border-stone-100 pb-3">
-                                <span className="text-[10px] md:text-xs font-bold tracking-[0.5em] text-stone-300 uppercase italic">Court {num}</span>
+                                <span className="text-[10px] md:text-xs font-bold tracking-[0.5em] text-stone-500 uppercase italic">Court {num}</span>
                                 {currentMatch && <span className="bg-sage text-white px-3 md:px-4 py-1 text-[8px] md:text-[9px] font-bold tracking-[0.3em] uppercase animate-pulse">On Stage</span>}
                             </div>
 
@@ -380,7 +380,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                                             className={`h-20 md:h-24 border-2 rounded-sm flex flex-col items-center justify-center cursor-pointer transition-all ${slots[idx] ? (isSwapping ? 'bg-orange-50 border-orange-400 shadow-inner' : 'bg-white border-sage/40 shadow-sm') : 'bg-white border-dashed border-stone-200 hover:border-sage/40'}`}>
                                                             {isSwapping && <ArrowRightLeft size={14} className="mb-1 text-orange-400 animate-pulse" />}
                                                             <div className="flex items-center gap-1">
-                                                              <span className={`text-sm md:text-base font-bold ${slots[idx] ? 'text-stone-900' : 'text-stone-300 uppercase tracking-widest'}`}>
+                                                              <span className={`text-sm md:text-base font-bold ${slots[idx] ? 'text-stone-900' : 'text-stone-500 uppercase tracking-widest'}`}>
                                                                   {player ? player.displayName : "指派"}
                                                               </span>
                                                               {isV && <CheckCircle size={10} className="text-blue-500" />}
@@ -388,7 +388,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                                             {player && (
                                                               <div className="flex flex-col items-center">
                                                                 <span className="text-[10px] text-sage font-serif italic font-bold mt-0.5 md:mt-1">Lv.{Math.floor(player.level)}</span>
-                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[7px] text-stone-300">(診斷中)</span>}
+                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[7px] text-stone-500">(診斷中)</span>}
                                                               </div>
                                                             )}
                                                         </div>
@@ -407,7 +407,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                                             className={`h-20 md:h-24 border-2 rounded-sm flex flex-col items-center justify-center cursor-pointer transition-all ${slots[idx] ? (isSwapping ? 'bg-orange-50 border-orange-400 shadow-inner' : 'bg-white border-sage/40 shadow-sm') : 'bg-white border-dashed border-stone-200 hover:border-stone-400'}`}>
                                                             {isSwapping && <ArrowRightLeft size={14} className="mr-2 text-orange-400 animate-pulse" />}
                                                             <div className="flex items-center gap-1">
-                                                              <span className={`text-sm md:text-base font-bold ${slots[idx] ? 'text-stone-900' : 'text-stone-300 uppercase tracking-widest'}`}>
+                                                              <span className={`text-sm md:text-base font-bold ${slots[idx] ? 'text-stone-900' : 'text-stone-500 uppercase tracking-widest'}`}>
                                                                   {player ? player.displayName : "指派"}
                                                               </span>
                                                               {isV && <CheckCircle size={10} className="text-blue-500" />}
@@ -415,7 +415,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                                             {player && (
                                                               <div className="flex flex-col items-center">
                                                                 <span className="text-[10px] text-stone-400 font-serif italic font-bold mt-0.5 md:mt-1">Lv.{Math.floor(player.level)}</span>
-                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[7px] text-stone-300">(診斷中)</span>}
+                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[7px] text-stone-500">(診斷中)</span>}
                                                               </div>
                                                             )}
                                                         </div>
@@ -445,7 +445,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                             {isReady ? <Check size={16} strokeWidth={3} /> : (selectedPlayerIds.length === 4 ? <Plus size={16} /> : <Zap size={14} fill="currentColor" />)}
                                             {isReady ? "確認開打" : (selectedPlayerIds.length === 4 ? "填入 4 人" : "智慧補位")}
                                         </button>
-                                        <button onClick={() => setManualSlots({...manualSlots, [num]: [null,null,null,null]})} className="px-4 md:px-5 border-2 border-stone-200 text-stone-300 hover:text-red-400 hover:border-red-100 transition-all rounded-sm"><RotateCcw size={18} /></button>
+                                        <button onClick={() => setManualSlots({...manualSlots, [num]: [null,null,null,null]})} className="px-4 md:px-5 border-2 border-stone-200 text-stone-500 hover:text-red-400 hover:border-red-100 transition-all rounded-sm"><RotateCcw size={18} /></button>
                                     </div>
                                 )}
                             </div>
@@ -455,7 +455,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 {/* ✅ 圖標語法修正：使用 w/h class 代替非法的 md:size */}
                 <button onClick={() => expandCourtsTo(courtCount + 1)} className="flex flex-col items-center justify-center p-8 md:p-12 border-4 border-dashed border-stone-200 rounded-sm hover:border-sage hover:bg-sage/5 transition-all group min-h-[200px] md:min-h-[580px]">
                     <Plus className="w-8 h-8 md:w-10 md:h-10 text-stone-200 group-hover:text-sage mb-3 md:mb-4 transition-transform group-hover:rotate-90 duration-500" />
-                    <p className="text-[10px] md:text-xs tracking-[0.3em] md:tracking-[0.4em] text-stone-300 group-hover:text-sage uppercase italic font-bold">加開場地</p>
+                    <p className="text-[10px] md:text-xs tracking-[0.3em] md:tracking-[0.4em] text-stone-500 group-hover:text-sage uppercase italic font-bold">加開場地</p>
                 </button>
             </div>
         </main>
@@ -478,7 +478,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                 <button onClick={() => msg.onConfirm('A')} className="py-4 bg-sage text-white text-[10px] tracking-[0.2em] uppercase font-bold rounded-sm shadow-md active:scale-95 transition-transform">A 隊勝</button>
                                 <button onClick={() => msg.onConfirm('B')} className="py-4 bg-stone-800 text-white text-[10px] tracking-[0.2em] uppercase font-bold rounded-sm shadow-md active:scale-95 transition-transform">B 隊勝</button>
                             </div>
-                            <button onClick={msg.onCancel} className="w-full py-3 text-stone-300 text-[10px] tracking-[0.2em] uppercase hover:text-stone-500">不計分，僅結束比賽</button>
+                            <button onClick={msg.onCancel} className="w-full py-3 text-stone-500 text-[10px] tracking-[0.2em] uppercase hover:text-stone-500">不計分，僅結束比賽</button>
                         </>
                     ) : msg.type === 'confirm' ? (
                         <>

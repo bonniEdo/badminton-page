@@ -281,7 +281,7 @@ export default function ProfilePage() {
           <ChevronLeft className="w-7 h-7" />
         </button>
         <div className="text-center">
-          <h1 className="text-[20px] tracking-[0.4em] font-black text-stone-300 uppercase italic leading-none">個人紀錄</h1>
+          <h1 className="text-[20px] tracking-[0.4em] font-black text-stone-500 uppercase italic leading-none">個人紀錄</h1>
         </div>
         <button className="text-stone-400 hover:text-sage transition-all">
         </button>
@@ -328,20 +328,20 @@ export default function ProfilePage() {
                 <button
                   onClick={() => setCoachMode("rough")}
                   className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest border-b pb-0.5 transition-all
-                    ${coachMode === "rough" ? "text-stone-600 border-stone-200" : "text-stone-300 border-transparent hover:text-sage"}`}
+                    ${coachMode === "rough" ? "text-stone-600 border-stone-200" : "text-stone-500 border-transparent hover:text-sage"}`}
                 >
                   簡單
                 </button>
                 <button
                   onClick={() => setCoachMode("detailed")}
                   className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest border-b pb-0.5 transition-all
-                    ${coachMode === "detailed" ? "text-stone-600 border-stone-200" : "text-stone-300 border-transparent hover:text-sage"}`}
+                    ${coachMode === "detailed" ? "text-stone-600 border-stone-200" : "text-stone-500 border-transparent hover:text-sage"}`}
                 >
                   詳細
                 </button>
                 <button
                   onClick={() => setShowCoach(false)}
-                  className="text-[8px] md:text-[9px] font-black text-stone-300 hover:text-sage uppercase tracking-widest border-b border-transparent hover:border-stone-100 pb-0.5 transition-all"
+                  className="text-[8px] md:text-[9px] font-black text-stone-500 hover:text-sage uppercase tracking-widest border-b border-transparent hover:border-stone-100 pb-0.5 transition-all"
                 >
                   隱藏
                 </button>
@@ -377,7 +377,7 @@ export default function ProfilePage() {
                 {/* ✅ Quick KPI：本週勝率（這週打幾場/贏幾場） */}
                 <div className="flex flex-col items-end gap-2">
                   <div className="px-3 py-2 rounded-2xl bg-sage/10 border border-white shadow-sm text-right">
-                    <p className="text-[8px] text-stone-300 font-black uppercase tracking-widest">本週紀錄</p>
+                    <p className="text-[8px] text-stone-500 font-black uppercase tracking-widest">本週紀錄</p>
                     <p className="text-xs font-black italic text-sage tracking-wider mt-1">
                       {weeklyValidMatches.length > 0 ? `${weeklyWins}/${weeklyValidMatches.length} Wins` : "No Records"}
                     </p>
@@ -391,7 +391,7 @@ export default function ProfilePage() {
                     <div className="bg-white/40 rounded-2xl border border-white p-5 shadow-sm">
                       <div className="flex items-center gap-2 mb-3">
                         <Zap size={14} className="text-sage/60" />
-                        <h4 className="text-[9px] tracking-[0.4em] text-stone-300 font-black uppercase">Key Cues</h4>
+                        <h4 className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase">Key Cues</h4>
                       </div>
                       <ul className="space-y-2">
                         {coachDetailed.cues.map((t, i) => (
@@ -406,7 +406,7 @@ export default function ProfilePage() {
                     <div className="bg-white/40 rounded-2xl border border-white p-5 shadow-sm">
                       <div className="flex items-center gap-2 mb-3">
                         <Dumbbell size={14} className="text-sage/60" />
-                        <h4 className="text-[9px] tracking-[0.4em] text-stone-300 font-black uppercase">Drills</h4>
+                        <h4 className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase">Drills</h4>
                       </div>
                       <ul className="space-y-2">
                         {coachDetailed.drills.map((t, i) => (
@@ -421,7 +421,7 @@ export default function ProfilePage() {
                     <div className="bg-white/40 rounded-2xl border border-white p-5 shadow-sm">
                       <div className="flex items-center gap-2 mb-3">
                         <History size={14} className="text-sage/60" />
-                        <h4 className="text-[9px] tracking-[0.4em] text-stone-300 font-black uppercase">Weekly Plan</h4>
+                        <h4 className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase">Weekly Plan</h4>
                       </div>
                       <ul className="space-y-2">
                         {coachDetailed.weekly.map((t, i) => (
@@ -436,7 +436,7 @@ export default function ProfilePage() {
                     <div className="bg-white/40 rounded-2xl border border-white p-5 shadow-sm">
                       <div className="flex items-center gap-2 mb-3">
                         <Swords size={14} className="text-sage/60" />
-                        <h4 className="text-[9px] tracking-[0.4em] text-stone-300 font-black uppercase">Avoid</h4>
+                        <h4 className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase">Avoid</h4>
                       </div>
                       <ul className="space-y-2">
                         {coachDetailed.avoid.map((t, i) => (
@@ -449,7 +449,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 text-[9px] md:text-[10px] text-stone-300 italic font-bold tracking-widest flex items-center gap-2">
+                  <div className="mt-5 text-[9px] md:text-[10px] text-stone-500 italic font-bold tracking-widest flex items-center gap-2">
                     <Droplets size={12} className="text-sage/40" />
                     Tip：把「今日任務」設成一個重點（例如：短發球不飄高），你會升級更快。
                   </div>
@@ -461,7 +461,7 @@ export default function ProfilePage() {
           // ✅ 隱藏狀態：一鍵顯示回來
           <section className="mb-12">
             <div className="bg-white/30 p-5 rounded-[2rem] border border-white shadow-sm flex items-center justify-between">
-              <p className="text-[9px] tracking-[0.4em] text-stone-300 font-black uppercase italic">
+              <p className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase italic">
                 AI 教練小建議
               </p>
               <button
@@ -491,7 +491,7 @@ export default function ProfilePage() {
               const isSelected = selectedDateStr === d.dateStr;
               return (
                 <div key={i} className="flex flex-col items-center gap-2 relative flex-shrink-0 md:flex-shrink">
-                  <span className={`text-[8px] font-bold ${d.isToday ? 'text-sage underline underline-offset-4 font-black' : 'text-stone-300'}`}>{d.weekday}</span>
+                  <span className={`text-[8px] font-bold ${d.isToday ? 'text-sage underline underline-offset-4 font-black' : 'text-stone-500'}`}>{d.weekday}</span>
                   <div
                     onClick={() => setSelectedDateStr(isSelected ? null : d.dateStr)}
                     className={`w-9 h-11 md:w-10 md:h-12 rounded-xl md:rounded-2xl cursor-pointer flex flex-col items-center justify-center transition-all duration-500
@@ -499,7 +499,7 @@ export default function ProfilePage() {
                       ${isSelected ? 'ring-2 ring-stone-800 scale-105' : ''}
                       ${d.hasGame
                         ? 'bg-sage text-white shadow-md shadow-sage/20'
-                        : (d.isToday || isSelected ? 'bg-white text-stone-800' : 'bg-white/40 text-stone-300')
+                        : (d.isToday || isSelected ? 'bg-white text-stone-800' : 'bg-white/40 text-stone-500')
                       }
                     `}
                   >
@@ -516,13 +516,13 @@ export default function ProfilePage() {
         <section className="mb-12">
           <div className="flex justify-between items-center mb-8 px-2 bg-white/60 p-6 rounded-[2rem] border border-white shadow-sm">
             <div className="space-y-1">
-              <h3 className="text-[9px] tracking-[0.4em] text-stone-300 font-black uppercase">Battle Statistics</h3>
+              <h3 className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase">Battle Statistics</h3>
               <p className="text-lg md:text-xl font-black italic text-stone-800 tracking-widest leading-none">
                 {selectedDateStr ? `${selectedDateStr.slice(5).replace('-', '/')} 戰報` : "對戰紀錄"}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[9px] text-stone-300 font-bold uppercase tracking-widest mb-1">Win Rate</p>
+              <p className="text-[9px] text-stone-500 font-bold uppercase tracking-widest mb-1">Win Rate</p>
               <div className="flex items-baseline gap-1 text-sage font-black italic">
                 <span className="text-3xl md:text-4xl">{winRate}</span>
                 <span className="text-xs opacity-50">%</span>
@@ -536,7 +536,7 @@ export default function ProfilePage() {
               <div key={idx} className="relative bg-white/40 p-5 rounded-2xl border border-white shadow-sm transition-all hover:bg-white hover:shadow-xl hover:-translate-y-1 group">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-colors ${m.result === 'win' ? 'bg-sage text-white shadow-md shadow-sage/20' : 'bg-stone-50 text-stone-300'
+                    <div className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-colors ${m.result === 'win' ? 'bg-sage text-white shadow-md shadow-sage/20' : 'bg-stone-50 text-stone-500'
                       }`}>
                       {m.result === 'win' ? <Trophy size={16} /> : <XCircle size={16} />}
                     </div>
@@ -562,7 +562,7 @@ export default function ProfilePage() {
               </div>
             )) : (
               <div className="py-24 text-center border-2 border-dashed border-stone-100 rounded-[2.5rem] bg-white/20">
-                <p className="text-[10px] text-stone-300 font-black uppercase tracking-[0.5em] italic">
+                <p className="text-[10px] text-stone-500 font-black uppercase tracking-[0.5em] italic">
                   這段時間沒有任何成癮紀錄
                 </p>
               </div>
