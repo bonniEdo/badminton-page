@@ -50,7 +50,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   gameInfoRef.current = gameInfo;
 
   const fetchData = useCallback(async () => {
-    if (!gameId || gameId === 'undefined') return;
+    if (!gameId || gameId === 'undefined') { router.replace('/enrolled'); return; }
     try {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
@@ -59,18 +59,26 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         fetch(`${API_URL}/api/match/live-status/${gameId}`, { headers })
       ]);
       const jsonGame = await resGame.json();
-      const jsonStatus = await resStatus.json();
-      if (jsonGame.success && !gameInfoRef.current) {
+
+      if (!jsonGame.success || !jsonGame.data) { router.replace('/enrolled'); return; }
+
+      const gameDate = (jsonGame.data.GameDateTime ?? '').slice(0, 10);
+      const today = new Date().toLocaleDateString('en-CA');
+      if (gameDate !== today) { router.replace('/enrolled'); return; }
+
+      if (!gameInfoRef.current) {
         setGameInfo(jsonGame.data);
         expandCourtsTo(jsonGame.data.CourtCount || 1);
       }
+
+      const jsonStatus = await resStatus.json();
       if (jsonStatus.success) {
         setPlayers(jsonStatus.data.players);
         setMatches(jsonStatus.data.matches);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); router.replace('/enrolled'); }
     finally { setLoading(false); }
-  }, [gameId]);
+  }, [gameId, router]);
 
   const expandCourtsTo = (targetCount: number) => {
     setCourtCount(targetCount);

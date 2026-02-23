@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   ChevronLeft, MapPin, Calendar, Clock, Users, Zap,
   CheckCircle, User, Activity, Coffee
@@ -12,6 +12,7 @@ const isBrowserProduction =
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   (isBrowserProduction ? "" : "http://localhost:3000");
+const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
 
 interface Player {
   playerId: number;
@@ -62,8 +63,11 @@ export default function LiveViewPage({
   const [myPlayerId, setMyPlayerId] = useState<number | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
 
-  const fetchData = async () => {
-    if (!gameId || gameId === "undefined") return;
+  const gameInfoRef = useRef(gameInfo);
+  gameInfoRef.current = gameInfo;
+
+  const fetchData = useCallback(async () => {
+    if (!gameId || gameId === "undefined") { router.replace('/enrolled'); return; }
     try {
       const token = localStorage.getItem("token");
       const headers: Record<string, string> = {
@@ -77,9 +81,16 @@ export default function LiveViewPage({
       ]);
 
       const jsonGame = await resGame.json();
-      const jsonStatus = await resStatus.json();
 
-      if (jsonGame.success) setGameInfo(jsonGame.data);
+      if (!jsonGame.success || !jsonGame.data) { router.replace('/enrolled'); return; }
+
+      const gameDate = (jsonGame.data.GameDateTime ?? '').slice(0, 10);
+      const today = new Date().toLocaleDateString('en-CA');
+      if (gameDate !== today) { router.replace('/enrolled'); return; }
+
+      if (!gameInfoRef.current) setGameInfo(jsonGame.data);
+
+      const jsonStatus = await resStatus.json();
       if (jsonStatus.success) {
         setPlayers(jsonStatus.data.players);
         setMatches(jsonStatus.data.matches);
@@ -89,10 +100,11 @@ export default function LiveViewPage({
       }
     } catch (e) {
       console.error(e);
+      router.replace('/enrolled');
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameId, router]);
 
   const executeCheckIn = async () => {
     const token = localStorage.getItem("token");
@@ -116,15 +128,40 @@ export default function LiveViewPage({
     }
   };
 
+  const wsRef = useRef<WebSocket | null>(null);
+
   useEffect(() => {
     fetchData();
-    const dataInterval = setInterval(fetchData, 15000);
+
+    const fallbackInterval = setInterval(fetchData, 60000);
     const tickInterval = setInterval(() => setNow(Date.now()), 1000);
+
+    let reconnectTimer: ReturnType<typeof setTimeout>;
+    function connectWs() {
+      if (wsRef.current?.readyState === WebSocket.OPEN) return;
+      try {
+        const ws = new WebSocket(WS_URL);
+        wsRef.current = ws;
+        ws.onopen = () => ws.send(JSON.stringify({ type: 'join', gameId }));
+        ws.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'refresh') fetchData();
+          } catch (_) {}
+        };
+        ws.onclose = () => { reconnectTimer = setTimeout(connectWs, 3000); };
+        ws.onerror = () => ws.close();
+      } catch (_) {}
+    }
+    connectWs();
+
     return () => {
-      clearInterval(dataInterval);
+      clearInterval(fallbackInterval);
       clearInterval(tickInterval);
+      clearTimeout(reconnectTimer);
+      wsRef.current?.close();
     };
-  }, [gameId]);
+  }, [gameId, fetchData]);
 
   const getPlayerById = (id: number) =>
     players.find((p) => p.playerId === id);
