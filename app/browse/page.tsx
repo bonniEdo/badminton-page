@@ -308,7 +308,10 @@ export default function Browse() {
                 <div className="text-xs text-gray-500 font-sans space-y-1.5">
                   <p className="flex items-center gap-2"><CalendarClock size={12}/> {s.date}</p>
                   <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
-                  <p className="flex items-center gap-2"><MapPin size={12}/> {s.location}</p>
+                  <p className="flex items-center gap-2">
+                    <MapPin size={12}/>
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors">{s.location}</a>
+                  </p>
                   <p className="flex items-center gap-2"><CircleDollarSign size={12}/> ${s.price}</p>
                 </div>
                 <div className="flex justify-end mt-6">
@@ -329,7 +332,7 @@ export default function Browse() {
             <h2 className="text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
             <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><CalendarClock size={14}/>{selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
-              <p className="flex items-center gap-3 italic"><MapPin size={14}/>{selectedSession.location}</p>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/>{selectedSession.location}</a>
               <p className="flex items-center gap-3 font-bold text-sage"><CircleDollarSign size={14}/> 費用: ${selectedSession.price}</p>
               <div className="border-t border-stone/10 pt-6 mb-8">
                 <div className="flex justify-between items-center mb-4">
