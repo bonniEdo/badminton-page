@@ -169,6 +169,9 @@ export default function EnrolledPage() {
       if (json.success) {
         setMsg({ isOpen: true, title: "已取消報名", content: "這段時光，我先不戒。", type: "success" });
         fetchData(true);
+        if (cancelType === 'friend_only') {
+          setAllSessions(prev => prev.map(s => s.id === id ? { ...s, friendCount: 0 } : s));
+        }
         if (selectedSession && selectedSession.id === id) {
           if (cancelType === 'friend_only') setSelectedSession(prev => prev ? { ...prev, friendCount: 0 } : null);
           fetchParticipants(id);
@@ -216,7 +219,11 @@ export default function EnrolledPage() {
 
   const handleAddFriendClick = () => {
     if (!selectedSession) return;
-    const hasAddedFriend = selectedSession.friendCount && selectedSession.friendCount >= 1;
+    const userStr = localStorage.getItem("user");
+    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const friendVirtualName = currentUser ? `${currentUser.username} +1` : null;
+    const hasAddedFriend = (friendVirtualName && participants.some(p => p.Username === friendVirtualName)) ||
+                           (selectedSession.friendCount && selectedSession.friendCount >= 1);
     if (hasAddedFriend) {
       setMsg({ isOpen: true, title: "提 醒", content: "每人限帶一位朋友", type: "info" });
       return;
@@ -237,6 +244,7 @@ export default function EnrolledPage() {
       if (json.success) {
         setLevelModal({ isOpen: false });
         setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
+        setAllSessions(prev => prev.map(s => s.id === selectedSession.id ? { ...s, friendCount: 1 } : s));
         fetchData(true);
         fetchParticipants(selectedSession.id);
         setMsg({ isOpen: true, title: "成功攜帶隊友", content: "已將您的朋友納入麾下。", type: "success" });
