@@ -226,15 +226,15 @@ export default function Browse() {
       <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
         <div className="bg-white w-full max-w-xs rounded-[2rem] p-8 text-center shadow-2xl border border-stone-100 animate-in zoom-in-95 duration-300">
           <div className="w-12 h-12 bg-sage/10 rounded-full flex items-center justify-center mx-auto mb-4 text-sage"><ArrowRightLeft size={20} /></div>
-          <h3 className="text-lg tracking-[0.2em] text-stone-700 font-light mb-2">朋友的程度</h3>
-          <p className="text-[10px] text-stone-400 italic mb-6">這將影響 AI 如何為您們配對</p>
+          <h3 className="text-xl tracking-[0.2em] text-stone-700 font-light mb-2">朋友的程度</h3>
+          <p className="text-[11px] text-stone-400 italic mb-6">這將影響 AI 如何為您們配對</p>
           <div className="space-y-3">
             {levels.map(l => (
               <button key={l.n} onClick={() => handleLevelSelect(l.n)}
-                className="w-full py-4 border border-stone-50 bg-[#FAF9F6] hover:bg-sage hover:text-white transition-all text-[11px] tracking-[0.2em] rounded-full uppercase italic font-bold shadow-sm">{l.label}</button>
+                className="w-full py-4 border border-stone-50 bg-[#FAF9F6] hover:bg-sage hover:text-white transition-all text-[12px] tracking-[0.2em] rounded-full uppercase italic font-bold shadow-sm">{l.label}</button>
             ))}
             <button onClick={() => setFriendLevelModal({ ...friendLevelModal, isOpen: false })}
-              className="w-full py-2 text-stone-500 text-[9px] tracking-widest uppercase mt-4">取消</button>
+              className="w-full py-2 text-stone-500 text-[10px] tracking-widest uppercase mt-4">取消</button>
           </div>
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function Browse() {
       <FriendLevelSelector />
 
       <div className="max-w-4xl mx-auto px-6 mt-6">
-        <h2 className="text-sm tracking-[0.2em] text-sage font-bold">球局看板</h2>
+        <h2 className="text-base tracking-[0.2em] text-sage font-bold">球局看板</h2>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 mt-4">
@@ -263,7 +263,7 @@ export default function Browse() {
             <button
               key={chip.value ?? "all"}
               onClick={() => setFilterDate(chip.value)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] tracking-wider transition-all ${
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-[12px] tracking-wider transition-all ${
                 filterDate === chip.value
                   ? "bg-sage text-white shadow-sm"
                   : "border border-stone text-ink/60 hover:border-sage/50"
@@ -279,7 +279,7 @@ export default function Browse() {
         {sortedSessions.length === 0 && (
           <div className="text-center py-16 text-stone-400">
             <CalendarClock size={32} className="mx-auto mb-3 opacity-40" />
-            <p className="text-sm tracking-wider">{filterDate ? "此日期尚無球局" : "目前沒有球局"}</p>
+            <p className="text-base tracking-wider">{filterDate ? "此日期尚無球局" : "目前沒有球局"}</p>
           </div>
         )}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -293,18 +293,18 @@ export default function Browse() {
                 }`}>
                 <div className="absolute top-0 right-0">
                   {s.isExpired
-                    ? <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已結束</div>
+                    ? <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已結束</div>
                     : isJoined
-                    ? <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div>
+                    ? <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div>
                     : null}
                 </div>
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <span className="text-[10px] text-gray-400 tracking-widest uppercase block mb-1">主揪：{s.hostName}</span>
-                    <h3 className={`text-lg tracking-wide pr-4 ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
+                    <span className="text-[11px] text-gray-400 tracking-widest uppercase block mb-1">主揪：{s.hostName}</span>
+                    <h3 className={`text-xl tracking-wide pr-4 ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
                   </div>
                 </div>
-                <div className="text-xs text-gray-500 font-sans space-y-1.5">
+                <div className="text-sm text-gray-500 space-y-1.5">
                   <p className="flex items-center gap-2"><CalendarClock size={12}/> {s.date}</p>
                   <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
                   <p className="flex items-center gap-2">
@@ -314,7 +314,7 @@ export default function Browse() {
                   <p className="flex items-center gap-2"><CircleDollarSign size={12}/> ${s.price}</p>
                 </div>
                 <div className="flex justify-end mt-6">
-                  <span className="text-[11px] text-gray-400 font-sans tracking-tighter">
+                  <span className="text-[12px] text-gray-400 tracking-tighter">
                     <span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人
                   </span>
                 </div>
@@ -328,19 +328,19 @@ export default function Browse() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
           <div className="bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200">
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage"><X size={24}/></button>
-            <h2 className="text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
-            <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
+            <h2 className="text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
+            <div className="space-y-4 text-sm text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><CalendarClock size={14}/>{selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/>{selectedSession.location}</a>
               <p className="flex items-center gap-3 font-bold text-sage"><CircleDollarSign size={14}/> 費用: ${selectedSession.price}</p>
               <div className="border-t border-stone/10 pt-6 mb-8">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[10px] tracking-widest text-gray-400 uppercase">名單紀錄 / Participants</h3>
-                  <span className="text-[10px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
+                  <h3 className="text-[11px] tracking-widest text-gray-400 uppercase">名單紀錄 / Participants</h3>
+                  <span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
                 </div>
                 <div className="max-h-40 overflow-y-auto">
                   {loadingParticipants ? (
-                    <div className="text-[10px] text-stone-500 italic animate-pulse">正在讀取球友名冊...</div>
+                    <div className="text-[11px] text-stone-500 italic animate-pulse">正在讀取球友名冊...</div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {participants.length > 0 ? (
@@ -349,18 +349,18 @@ export default function Browse() {
                           if (p.FriendCount > 0) list.push({ ...p, Display: `${p.Username} +1` });
                           return list;
                         }).map((p, i) => (
-                          <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border transition-all ${p.Status === 'WAITLIST' ? 'text-stone-500 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
+                          <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border transition-all ${p.Status === 'WAITLIST' ? 'text-stone-500 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
                             <User size={10} /><span>{p.Display}</span>
                           </div>
                         ))
                       ) : (
-                        <div className="text-[10px] text-stone-500 italic">尚無預約紀錄</div>
+                        <div className="text-[11px] text-stone-500 italic">尚無預約紀錄</div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
-              {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic leading-relaxed whitespace-pre-wrap">{selectedSession.notes}</div>}
+              {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-sm italic leading-relaxed whitespace-pre-wrap">{selectedSession.notes}</div>}
             </div>
 
             {(() => {
@@ -371,41 +371,41 @@ export default function Browse() {
             })() ? (
               <button
                 onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                className="w-full py-3 bg-sage text-white text-[10px] tracking-widest uppercase hover:bg-sage/90 transition-all font-serif"
+                className="w-full py-3 bg-sage text-white text-[11px] tracking-widest uppercase hover:bg-sage/90 transition-all font-serif"
               >
                 進入管理看板
               </button>
             ) : selectedSession.isExpired ? (
-              <div className="py-3 text-center text-gray-400 text-[10px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">球局已結束</div>
+              <div className="py-3 text-center text-gray-400 text-[11px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">球局已結束</div>
             ) : !isLoggedIn ? (
               <button
                 onClick={handleLineLogin}
                 className="w-full py-4 bg-[#06C755] text-white text-[12px] tracking-[0.3em] font-bold rounded-full shadow-lg shadow-[#06C755]/20 hover:shadow-xl hover:shadow-[#06C755]/30 hover:brightness-105 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
               >
-                <span className="bg-white text-[#06C755] text-[10px] px-2 py-0.5 rounded-sm font-black leading-none">LINE</span>
+                <span className="bg-white text-[#06C755] text-[11px] px-2 py-0.5 rounded-sm font-black leading-none">LINE</span>
                 登入並報名
               </button>
             ) : !joinedIds.includes(selectedSession.id) ? (
               <form onSubmit={submitJoin} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] text-stone-400 mb-1 uppercase tracking-widest">報名人數</label>
-                    <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-xs focus:outline-none rounded-sm">
+                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">報名人數</label>
+                    <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-sm focus:outline-none rounded-sm">
                       <option value={1}>1 人 (我)</option>
                       <option value={2}>2 人 (+朋友)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[9px] text-stone-400 mb-1 uppercase tracking-widest">手機號碼</label>
-                    <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-xs focus:outline-none rounded-sm" placeholder="0912..." />
+                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">手機號碼</label>
+                    <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-sm focus:outline-none rounded-sm" placeholder="0912..." />
                   </div>
                 </div>
-                <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 bg-sage text-white text-[10px] tracking-widest uppercase hover:bg-sage/90 transition-all disabled:opacity-50 font-serif">確認預約</button>
+                <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 bg-sage text-white text-[11px] tracking-widest uppercase hover:bg-sage/90 transition-all disabled:opacity-50 font-serif">確認預約</button>
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="py-3 text-center text-orange-400 text-[10px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">已成功預約</div>
-                <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[10px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
+                <div className="py-3 text-center text-orange-400 text-[11px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">已成功預約</div>
+                <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[11px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
                   + 幫朋友報名 (限一位)
                 </button>
               </div>
@@ -420,9 +420,9 @@ export default function Browse() {
             <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
               {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
             </div>
-            <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
-            <p className="text-sm text-gray-400 italic mb-10 tracking-widest">{msg.content}</p>
-            <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] uppercase hover:bg-stone/5 transition">我知道了</button>
+            <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
+            <p className="text-base text-gray-400 italic mb-10 tracking-widest">{msg.content}</p>
+            <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] uppercase hover:bg-stone/5 transition">我知道了</button>
           </div>
         </div>
       )}

@@ -374,18 +374,18 @@ export default function EnrolledPage() {
       <AppHeader />
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
-        <h2 className="text-sm tracking-[0.2em] text-sage font-bold">我的球局</h2>
+        <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的球局</h2>
         <div className="flex items-center gap-1.5">
           {viewMode === 'list' && (
             <button
               onClick={() => setShowExpired(!showExpired)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all text-[11px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
             >
               {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
               {showExpired ? "顯示過期" : "隱藏過期"}
             </button>
           )}
-          <div className="flex rounded-full border border-stone/30 overflow-hidden text-[10px] font-sans">
+          <div className="flex rounded-full border border-stone/30 overflow-hidden text-[11px]">
             <button
               onClick={() => setViewMode('list')}
               className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'list' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
@@ -409,7 +409,7 @@ export default function EnrolledPage() {
       </div>
 
       {(viewMode === 'week' || viewMode === 'calendar') && (
-        <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-3 text-[10px] font-sans text-gray-400">
+        <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-3 text-[11px] text-gray-400">
           <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-amber-400" />我發布的</span>
           <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-sage" />已報名</span>
         </div>
@@ -426,20 +426,20 @@ export default function EnrolledPage() {
                 <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} onClick={() => handleOpenDetail(session)}
                   className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${getSessionStyle(session, 'card')}`}>
                   {session.isHosted && !isCancelled && !session.isExpired && (
-                    <div className="absolute top-0 left-0 bg-amber-400 text-white text-[8px] px-2 py-0.5 font-bold tracking-wider rounded-br-lg">主揪</div>
+                    <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] px-2 py-0.5 font-bold tracking-wider rounded-br-lg">主揪</div>
                   )}
                   <div className="absolute top-0 right-0">
                     {!isCancelled && !session.isExpired && !session.isHosted && (
                       <>
-                        {session.status === 'idle' && <div className="bg-sage text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
-                        {session.status === 'playing' && <div className="bg-blue-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
-                        {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
+                        {session.status === 'idle' && <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
+                        {session.status === 'playing' && <div className="bg-blue-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
+                        {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
                       </>
                     )}
-                    {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已打完</div>}
+                    {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已打完</div>}
                   </div>
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className={`text-lg tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : session.isHosted ? "text-stone-700" : ""}`}>{session.title}</h3>
+                    <h3 className={`text-xl tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : session.isHosted ? "text-stone-700" : ""}`}>{session.title}</h3>
                     <div className="flex gap-3">
                       {session.isHosted && (
                         <button onClick={(e) => handleCopy(e, session)} className="text-gray-300 hover:text-sage transition-colors pt-1"><Copy size={16}/></button>
@@ -452,7 +452,7 @@ export default function EnrolledPage() {
                       )}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500 font-sans space-y-1.5">
+                  <div className="text-sm text-gray-500 space-y-1.5">
                     <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
                     <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
                     <p className="flex items-center gap-2">
@@ -466,7 +466,7 @@ export default function EnrolledPage() {
                     <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
                       <button
                         onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
-                        className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[10px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif">
+                        className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[11px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif">
                         我來了歐
                       </button>
                     </div>
@@ -474,15 +474,15 @@ export default function EnrolledPage() {
                   {session.isHosted && !isCancelled && !session.isExpired && (
                     <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
                       <Link href={`/dashboard/live/${session.id}`} onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[10px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
+                        className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[11px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
                         <Zap size={12} fill="currentColor" className="animate-pulse" /> 進入場蹤看板
                       </Link>
                     </div>
                   )}
                   <div className="flex justify-end mt-6">
-                    {isCancelled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">{session.isHosted ? "此局已取消" : "主揪已取消"}</span>
-                      : session.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">{session.isHosted ? "球局紀錄" : "已嘗試勒戒"}</span>
-                      : <span className={`text-[11px] font-sans tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className={session.isHosted ? "text-amber-500 font-bold" : "font-bold"}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                    {isCancelled ? <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">{session.isHosted ? "此局已取消" : "主揪已取消"}</span>
+                      : session.isExpired ? <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">{session.isHosted ? "球局紀錄" : "已嘗試勒戒"}</span>
+                      : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className={session.isHosted ? "text-amber-500 font-bold" : "font-bold"}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
                   </div>
                 </div>
               );
@@ -496,7 +496,7 @@ export default function EnrolledPage() {
               <button onClick={goToPrevWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
                 <ChevronLeft size={16} />
               </button>
-              <h3 className="text-xs md:text-sm tracking-[0.2em] text-ink/70">{weekLabel}</h3>
+              <h3 className="text-sm md:text-base tracking-[0.2em] text-ink/70">{weekLabel}</h3>
               <button onClick={goToNextWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
                 <ChevronRight size={16} />
               </button>
@@ -511,19 +511,19 @@ export default function EnrolledPage() {
                     isToday ? "border-sage/40 bg-sage/5" : "border-stone/20 bg-white"
                   }`}>
                     <div className={`text-center mb-1 md:mb-2 pb-1 md:pb-2 border-b border-stone/10 ${isToday ? "text-sage" : "text-ink/50"}`}>
-                      <div className="text-[9px] md:text-[10px] font-sans tracking-widest">{cell.weekday}</div>
-                      <div className={`text-sm md:text-lg font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
+                      <div className="text-[10px] md:text-[11px] tracking-widest">{cell.weekday}</div>
+                      <div className={`text-base md:text-xl font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
                     </div>
                     <div className="space-y-1">
                       {daySessions.map(session => (
                         <button
                           key={session.id}
                           onClick={() => handleOpenDetail(session)}
-                          className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[8px] md:text-[10px] leading-tight font-sans transition-colors ${getSessionStyle(session, 'week')}`}
+                          className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[9px] md:text-[11px] leading-tight transition-colors ${getSessionStyle(session, 'week')}`}
                         >
                           <div className="font-bold truncate">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★ ${session.time}` : session.time}</div>
                           <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
-                          <div className="truncate text-[7px] md:text-[8px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
+                          <div className="truncate text-[8px] md:text-[9px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
                         </button>
                       ))}
                     </div>
@@ -540,13 +540,13 @@ export default function EnrolledPage() {
               <button onClick={goToPrevMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
                 <ChevronLeft size={16} />
               </button>
-              <h3 className="text-xs md:text-sm tracking-[0.2em] text-ink/70">{calendarLabel}</h3>
+              <h3 className="text-sm md:text-base tracking-[0.2em] text-ink/70">{calendarLabel}</h3>
               <button onClick={goToNextMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
                 <ChevronRight size={16} />
               </button>
             </div>
 
-            <div className="grid grid-cols-7 text-center text-[9px] md:text-[10px] tracking-widest text-gray-400 uppercase mb-1 font-sans">
+            <div className="grid grid-cols-7 text-center text-[10px] md:text-[11px] tracking-widest text-gray-400 uppercase mb-1">
               {['日', '一', '二', '三', '四', '五', '六'].map(d => (
                 <div key={d} className="py-1 md:py-2">{d}</div>
               ))}
@@ -563,7 +563,7 @@ export default function EnrolledPage() {
                       cell.isCurrentMonth ? "bg-white" : "bg-stone/5"
                     } ${isToday ? "ring-1 ring-inset ring-sage/30" : ""}`}
                   >
-                    <div className={`text-[10px] md:text-[11px] font-sans mb-0.5 md:mb-1 ${
+                    <div className={`text-[11px] md:text-[12px] mb-0.5 md:mb-1 ${
                       isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/60" : "text-gray-300"
                     }`}>
                       {cell.day}
@@ -573,14 +573,14 @@ export default function EnrolledPage() {
                         <button
                           key={session.id}
                           onClick={() => handleOpenDetail(session)}
-                          className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[8px] md:text-[10px] leading-tight truncate font-sans transition-colors ${getSessionStyle(session, 'calendar')}`}
+                          className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-colors ${getSessionStyle(session, 'calendar')}`}
                         >
                           <span className="md:hidden">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★${session.time}` : session.time}</span>
                           <span className="hidden md:inline">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★ ${session.time}` : session.time} {session.title}</span>
                         </button>
                       ))}
                       {daySessions.length > 2 && (
-                        <div className="text-[8px] md:text-[9px] text-gray-400 text-center font-sans">+{daySessions.length - 2}</div>
+                        <div className="text-[9px] md:text-[10px] text-gray-400 text-center">+{daySessions.length - 2}</div>
                       )}
                     </div>
                   </div>
@@ -597,10 +597,10 @@ export default function EnrolledPage() {
           <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
             {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
-              <div className="inline-block bg-amber-400 text-white text-[9px] px-2.5 py-0.5 font-bold tracking-wider rounded-full mb-3">主揪</div>
+              <div className="inline-block bg-amber-400 text-white text-[10px] px-2.5 py-0.5 font-bold tracking-wider rounded-full mb-3">主揪</div>
             )}
-            <h2 className={`text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
-            <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
+            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
+            <div className="space-y-4 text-sm text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               {selectedSession.isHosted ? (
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/> {selectedSession.location}</a>
@@ -611,17 +611,17 @@ export default function EnrolledPage() {
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
-              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed whitespace-pre-wrap">
+              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-sm italic text-gray-500 leading-relaxed whitespace-pre-wrap">
                 <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
                 {selectedSession.notes}
               </div>
             )}
             <div className="border-t border-stone/10 pt-6 mt-4">
-              <div className="flex justify-between items-center mb-4"><h3 className="text-[10px] tracking-widest text-gray-400 uppercase">Participants</h3><span className="text-[10px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
+              <div className="flex justify-between items-center mb-4"><h3 className="text-[11px] tracking-widest text-gray-400 uppercase">Participants</h3><span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
               <div className="max-h-32 overflow-y-auto">
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
-                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border ${p.Status === 'WAITLIST' ? 'text-stone-500 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
+                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border ${p.Status === 'WAITLIST' ? 'text-stone-500 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
                       <User size={10}/><span>{p.Username}</span>
                     </div>
                   ))}
@@ -633,12 +633,12 @@ export default function EnrolledPage() {
                 {selectedSession.isHosted && (
                   <button
                     onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                    className="w-full py-4 bg-sage text-white text-[10px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                    className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
                     <Zap size={14} fill="currentColor" /> 進入場蹤看板
                   </button>
                 )}
                 <button onClick={handleAddFriendClick}
-                  className="w-full py-4 border border-sage text-sage text-[10px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
+                  className="w-full py-4 border border-sage text-sage text-[11px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
                   <PlusCircle size={14}/> ＋ 幫朋友報名 (限一位)
                 </button>
               </div>
@@ -652,15 +652,15 @@ export default function EnrolledPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white border border-stone w-full max-w-sm rounded-[3rem] p-12 shadow-2xl text-center">
             <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8"><Layout className="text-sage opacity-50" size={24}/></div>
-            <h2 className="text-2xl tracking-[0.3em] text-stone-700 font-light mb-2">朋友的程度</h2>
-            <p className="text-[10px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
+            <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">朋友的程度</h2>
+            <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
             <div className="space-y-4">
               {[{ label: "初次碰球 (L1-3)", value: 2 }, { label: "重度球毒 (L4-7)", value: 5 }, { label: "球得我心 (L8-12)", value: 10 }, { label: "球入五臟 (L13-18)", value: 15 }].map((lvl) => (
                 <button key={lvl.value} onClick={() => executeAddFriend(lvl.value)}
-                  className="w-full py-5 px-6 rounded-full border border-stone/10 bg-white text-stone-500 text-xs tracking-[0.2em] hover:bg-sage hover:text-white hover:border-sage transition-all duration-500 font-light">{lvl.label}</button>
+                  className="w-full py-5 px-6 rounded-full border border-stone/10 bg-white text-stone-500 text-sm tracking-[0.2em] hover:bg-sage hover:text-white hover:border-sage transition-all duration-500 font-light">{lvl.label}</button>
               ))}
             </div>
-            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[10px] text-gray-300 tracking-[0.4em] uppercase hover:text-stone-500">取消</button>
+            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[11px] text-gray-300 tracking-[0.4em] uppercase hover:text-stone-500">取消</button>
           </div>
         </div>
       )}
@@ -673,10 +673,10 @@ export default function EnrolledPage() {
               <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
                 {msg.type === 'success' ? <CheckCircle size={24}/> : <Info size={24}/>}
               </div>
-              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
+              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
               <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p>
-              <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button>
+              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p>
+              <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button>
             </div>
           </div>
         </div>
@@ -686,14 +686,14 @@ export default function EnrolledPage() {
       {cancelMenu.isOpen && cancelMenu.session && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-lg tracking-widest text-sage font-bold">取消報名</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
-            <p className="text-sm text-gray-500 mb-8 font-sans leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl tracking-widest text-sage font-bold">取消報名</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
+            <p className="text-base text-gray-500 mb-8 leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
             <div className="space-y-4">
               {(cancelMenu.session?.friendCount || 0) > 0 && (
-                <button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-sm tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18}/> 僅取消朋友 (保留本人)</button>
+                <button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-base tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18}/> 僅取消朋友 (保留本人)</button>
               )}
-              <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18}/> 確認取消報名</button>
-              <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-xs tracking-widest hover:text-gray-600 transition-all uppercase">返回</button>
+              <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-base tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18}/> 確認取消報名</button>
+              <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-sm tracking-widest hover:text-gray-600 transition-all uppercase">返回</button>
             </div>
           </div>
         </div>
@@ -705,12 +705,12 @@ export default function EnrolledPage() {
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24}/></div>
-              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2>
+              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2>
               <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p>
+              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p>
               <div className="w-full space-y-3">
-                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-xs tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button>
-                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button>
+                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button>
+                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button>
               </div>
             </div>
           </div>
@@ -725,13 +725,13 @@ export default function EnrolledPage() {
               <MapPin size={28} strokeWidth={1} className="text-[#A68F4C] animate-bounce" />
             </div>
             <div className="space-y-4">
-              <h2 className="text-xl tracking-[0.4em] text-stone-800 font-light">抵達現場</h2>
+              <h2 className="text-2xl tracking-[0.4em] text-stone-800 font-light">抵達現場</h2>
               <div className="w-8 h-[1px] bg-[#D6C58D]/40 mx-auto"></div>
-              <p className="text-[11px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但故事已經開始了。 」</p>
+              <p className="text-[12px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但故事已經開始了。 」</p>
             </div>
             <div className="space-y-3">
-              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[10px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
-              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[9px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
+              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[11px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
+              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[10px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
             </div>
           </div>
         </div>

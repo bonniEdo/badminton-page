@@ -75,8 +75,8 @@ function LoginSuccessContent() {
         <h1 className="text-4xl font-light tracking-[0.5em] text-sage">勒戒中心</h1>
         
         <div className="space-y-2">
-          <p className="text-xl text-ink">檢測到您的羽球成癮指數已超標。</p>
-          <p className="text-sm text-gray-400 italic">「 勒戒通道已開啟，即刻進入場地。 」</p>
+          <p className="text-2xl text-ink">檢測到您的羽球成癮指數已超標。</p>
+          <p className="text-base text-gray-400 italic">「 勒戒通道已開啟，即刻進入場地。 」</p>
         </div>
 
         {/* 簡單的加載動畫 */}
