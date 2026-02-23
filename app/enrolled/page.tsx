@@ -351,7 +351,7 @@ export default function EnrolledPage() {
       const needsCheckIn = session.status === 'waiting_checkin';
       if (needsCheckIn && isToday) return "border-l-[#D6C58D] shadow-[0_0_20px_rgba(214,197,141,0.4)] ring-1 ring-[#D6C58D]/10 bg-[#FAF9F6]";
       if (session.myStatus === 'WAITLIST') return "border-l-orange-400 shadow-sm";
-      return "border-l-blue-100 shadow-sm";
+      return "border-l-sage shadow-sm";
     }
     if (isCancelled) return "bg-red-50 text-red-300 line-through";
     if (session.isExpired) return "bg-gray-50 text-gray-400";
@@ -413,22 +413,21 @@ export default function EnrolledPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-1 text-[11px]">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-1.5 text-[11px]">
         {([
-          { key: 'all' as const, label: '全部', color: '' },
-          { key: 'hosted' as const, label: '我開立的', color: 'bg-amber-400' },
-          { key: 'enrolled' as const, label: '已掛號', color: 'bg-sage' },
+          { key: 'all' as const, label: '全部', color: 'stone-700', activeBg: 'bg-stone-700 text-white', inactiveBorder: 'border-stone-400 text-stone-500' },
+          { key: 'hosted' as const, label: '我開的', color: 'amber-400', activeBg: 'bg-amber-400 text-white', inactiveBorder: 'border-amber-400 text-amber-500' },
+          { key: 'enrolled' as const, label: '已掛號', color: 'sage', activeBg: 'bg-sage text-white', inactiveBorder: 'border-sage text-sage' },
         ]).map(tab => (
           <button
             key={tab.key}
             onClick={() => setFilterType(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+            className={`px-3.5 py-1.5 rounded-full font-bold tracking-wider transition-all border ${
               filterType === tab.key
-                ? 'bg-sage/10 text-sage font-bold border border-sage/20'
-                : 'text-gray-400 hover:text-gray-500 border border-transparent'
+                ? `${tab.activeBg} border-transparent shadow-sm`
+                : `bg-transparent ${tab.inactiveBorder} hover:opacity-80`
             }`}
           >
-            {tab.color && <span className={`inline-block w-2 h-2 rounded-sm ${tab.color}`} />}
             {tab.label}
           </button>
         ))}
@@ -444,18 +443,15 @@ export default function EnrolledPage() {
               return (
                 <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} onClick={() => handleOpenDetail(session)}
                   className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${getSessionStyle(session, 'card')}`}>
-                  {session.isHosted && !isCancelled && !session.isExpired && (
-                    <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] px-2 py-0.5 font-bold tracking-wider rounded-br-lg">主揪</div>
-                  )}
                   <div className="absolute top-0 right-0">
-                    {!isCancelled && !session.isExpired && !session.isHosted && (
-                      <>
-                        {session.status === 'idle' && <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">場邊待命</div>}
-                        {session.status === 'playing' && <div className="bg-blue-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">接受治療中</div>}
-                        {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">排隊候診</div>}
-                      </>
-                    )}
-                    {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">療程結束</div>}
+                    {isCancelled ? null
+                      : session.isExpired ? <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase rounded-bl-lg">療程結束</div>
+                      : session.isHosted ? <div className="bg-amber-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">我開的</div>
+                      : session.status === 'idle' ? <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">場邊待命</div>
+                      : session.status === 'playing' ? <div className="bg-blue-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">接受治療中</div>
+                      : session.myStatus === 'WAITLIST' ? <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">排隊候診</div>
+                      : <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已掛號</div>
+                    }
                   </div>
                   <div className="flex justify-between items-start mb-3">
                     <h3 className={`text-xl tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : session.isHosted ? "text-stone-700" : ""}`}>{session.title}</h3>
@@ -534,17 +530,24 @@ export default function EnrolledPage() {
                       <div className={`text-base md:text-xl font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
                     </div>
                     <div className="space-y-1">
-                      {daySessions.map(session => (
-                        <button
-                          key={session.id}
-                          onClick={() => handleOpenDetail(session)}
-                          className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[9px] md:text-[11px] leading-tight transition-colors ${getSessionStyle(session, 'week')}`}
-                        >
-                          <div className="font-bold truncate">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★ ${session.time}` : session.time}</div>
-                          <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
-                          <div className="truncate text-[8px] md:text-[9px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
-                        </button>
-                      ))}
+                      {daySessions.map(session => {
+                        const borderColor = session.isHostCanceled ? 'border-l-red-300'
+                          : session.isExpired ? 'border-l-gray-300'
+                          : session.isHosted ? 'border-l-amber-400'
+                          : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
+                          : 'border-l-sage';
+                        return (
+                          <button
+                            key={session.id}
+                            onClick={() => handleOpenDetail(session)}
+                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[9px] md:text-[11px] leading-tight transition-colors border-l-2 ${borderColor} ${getSessionStyle(session, 'week')}`}
+                          >
+                            <div className="font-bold truncate">{session.time}</div>
+                            <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
+                            <div className="truncate text-[8px] md:text-[9px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -588,16 +591,23 @@ export default function EnrolledPage() {
                       {cell.day}
                     </div>
                     <div className="space-y-0.5 md:space-y-1">
-                      {daySessions.slice(0, 2).map(session => (
-                        <button
-                          key={session.id}
-                          onClick={() => handleOpenDetail(session)}
-                          className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-colors ${getSessionStyle(session, 'calendar')}`}
-                        >
-                          <span className="md:hidden">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★${session.time}` : session.time}</span>
-                          <span className="hidden md:inline">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★ ${session.time}` : session.time} {session.title}</span>
-                        </button>
-                      ))}
+                      {daySessions.slice(0, 2).map(session => {
+                        const borderColor = session.isHostCanceled ? 'border-l-red-300'
+                          : session.isExpired ? 'border-l-gray-300'
+                          : session.isHosted ? 'border-l-amber-400'
+                          : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
+                          : 'border-l-sage';
+                        return (
+                          <button
+                            key={session.id}
+                            onClick={() => handleOpenDetail(session)}
+                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-colors border-l-2 ${borderColor} ${getSessionStyle(session, 'calendar')}`}
+                          >
+                            <span className="md:hidden">{session.time}</span>
+                            <span className="hidden md:inline">{session.time} {session.title}</span>
+                          </button>
+                        );
+                      })}
                       {daySessions.length > 2 && (
                         <div className="text-[9px] md:text-[10px] text-gray-400 text-center">+{daySessions.length - 2}</div>
                       )}

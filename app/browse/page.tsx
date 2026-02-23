@@ -297,7 +297,7 @@ export default function Browse() {
                 className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
                   s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
                     : isHost ? "border-l-amber-400 shadow-sm"
-                    : isJoined ? "border-l-orange-400 shadow-sm" : "border-l-sage shadow-sm"
+                    : isJoined ? "border-l-sage shadow-sm" : "border-l-stone shadow-sm"
                 }`}>
                 <div className="absolute top-0 right-0">
                   {s.isExpired
@@ -305,7 +305,7 @@ export default function Browse() {
                     : isHost
                     ? <div className="bg-amber-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">我開的</div>
                     : isJoined
-                    ? <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已掛號</div>
+                    ? <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已掛號</div>
                     : null}
                 </div>
                 <div className="flex justify-between items-start mb-3">
