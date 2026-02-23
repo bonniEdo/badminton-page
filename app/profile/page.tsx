@@ -146,8 +146,10 @@ export default function ProfilePage() {
   const winRate = validMatchesCount > 0 ? Math.round((winCount / validMatchesCount) * 100) : 0;
 
   const filteredMatches = selectedDateStr
-    ? matches.filter(m => m.date?.startsWith(selectedDateStr))
-    : matches;
+    ? matches
+        .filter(m => m.date?.startsWith(selectedDateStr))
+        .slice(0, 30) // 日期篩選後，最多只取該日期的前 30 場
+    : matches.slice(0, 30);
 
   // 再根據 visibleCount 決定切出多少場
   const displayedMatches = filteredMatches.slice(0, visibleCount);
