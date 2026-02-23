@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { UserCheck, ChevronLeft, Sparkles, Syringe } from "lucide-react";
+import { UserCheck, ChevronLeft, Sparkles } from "lucide-react";
+import ShuttlecockIcon from "../components/ShuttlecockIcon";
 
 const CustomAlert = ({ isOpen, onClose, onConfirm, title, message }: any) => {
   if (!isOpen) return null;
@@ -10,7 +11,7 @@ const CustomAlert = ({ isOpen, onClose, onConfirm, title, message }: any) => {
       <div className="bg-white w-full max-w-md rounded-t-[2.5rem] md:rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center border border-stone-100">
         <div className="flex flex-col items-center">
           <div className="w-12 h-12 rounded-full bg-[#E5ECE3] text-[#A8B58E] flex items-center justify-center mb-6">
-            <Syringe size={24} />
+            <ShuttlecockIcon size={24} />
           </div>
           <h2 className="text-xl tracking-[0.3em] text-stone-700 font-light mb-4">{title}</h2>
           <div className="w-8 h-[1px] bg-stone-200 mb-6"></div>

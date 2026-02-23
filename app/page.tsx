@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Syringe } from "lucide-react";
+import ShuttlecockIcon from "./components/ShuttlecockIcon";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
 
@@ -27,7 +27,7 @@ export default function LoginPage() {
 
           {/* Icon */}
           <div className="w-14 h-14 rounded-full bg-[#E5ECE3] text-[#A8B58E] flex items-center justify-center mb-8 shadow-inner">
-            <Syringe size={24} />
+            <ShuttlecockIcon size={24} />
           </div>
 
           {/* Title block */}

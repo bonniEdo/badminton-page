@@ -1,7 +1,8 @@
 "use client";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, CalendarCheck, ClipboardList, User, CheckCircle, Syringe } from "lucide-react";
+import { Search, CalendarCheck, ClipboardList, User, CheckCircle } from "lucide-react";
+import ShuttlecockIcon from "./ShuttlecockIcon";
 import { useEffect, useState } from "react";
 
 const navItems = [
@@ -31,7 +32,7 @@ export default function AppHeader() {
         <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
             <Link href="/browse" className="flex items-center gap-1.5 mr-1">
-              <Syringe size={18} className="text-sage" />
+              <ShuttlecockIcon size={18} className="text-sage" />
               <span className="text-sm tracking-[0.1em] text-sage font-bold">羽球勒戒所</span>
             </Link>
             <div className="h-5 w-[1px] bg-stone/30" />
