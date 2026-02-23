@@ -43,7 +43,7 @@ interface GameInfo {
   GameDateTime: string;
   EndTime: string;
   CourtCount: number;
-  Courts?: string;
+  CourtNumber?: string;
 }
 
 export default function LiveViewPage({
@@ -191,8 +191,8 @@ export default function LiveViewPage({
     : null;
 
   const getCourtLabel = (courtNum: string) => {
-    if (!gameInfo?.Courts) return courtNum;
-    const names = gameInfo.Courts.split(",");
+    if (!gameInfo?.CourtNumber) return courtNum;
+    const names = gameInfo.CourtNumber.split(",");
     const idx = parseInt(courtNum) - 1;
     return names[idx]?.trim() || courtNum;
   };

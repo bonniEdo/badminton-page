@@ -248,18 +248,12 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     const playerIds = manualSlots[courtNum];
     const token = localStorage.getItem("token");
 
-    // --- 新增這幾行：轉換真實場地名稱 ---
-    // 假設你的資料庫欄位叫做 Courts，內容格式如 "A,B,C" 或 "5,6,7"
-    const courtNames = gameInfo?.Courts ? gameInfo.Courts.split(',') : [];
-    const realCourtName = courtNames[parseInt(courtNum) - 1]?.trim() || courtNum;
-    // --------------------------------
-
     const res = await fetch(`${API_URL}/api/match/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ 
         gameId, 
-        courtNumber: realCourtName, // 修改這裡：把原本的 courtNum 改成 realCourtName
+        courtNumber: courtNum,
         players: { a1: playerIds[0], a2: playerIds[1], b1: playerIds[2], b2: playerIds[3] } 
       })
     });
@@ -510,7 +504,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             {courtCount > 1 && (
               <div className="max-w-5xl mx-auto flex md:hidden overflow-x-auto gap-1.5 pb-1 mb-3">
                 {Array.from({ length: courtCount }, (_, i) => (i + 1).toString()).map(num => {
-                  const courtNames = gameInfo?.Courts ? gameInfo.Courts.split(',') : [];
+                  const courtNames = gameInfo?.CourtNumber ? gameInfo.CourtNumber.split(',') : [];
                   const label = courtNames[parseInt(num) - 1]?.trim() || num;
                   const hasMatch = matches.some(m => m.court_number === num);
                   return (
@@ -542,7 +536,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                     const strategy = courtStrategies[num];
                     const isReady = slots.every(s => s !== null);
 
-                    const courtNames = gameInfo?.Courts ? gameInfo.Courts.split(',') : [];
+                    const courtNames = gameInfo?.CourtNumber ? gameInfo.CourtNumber.split(',') : [];
                     const displayCourtName = courtNames[parseInt(num) - 1]?.trim() || num;
 
                     const isMobileHidden = courtCount > 1 && activeCourt !== num;
