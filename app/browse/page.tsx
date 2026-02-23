@@ -361,7 +361,7 @@ export default function Browse() {
                   )}
                 </div>
               </div>
-              {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic leading-relaxed">{selectedSession.notes}</div>}
+              {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic leading-relaxed whitespace-pre-wrap">{selectedSession.notes}</div>}
             </div>
 
             {selectedSession.isExpired ? (
