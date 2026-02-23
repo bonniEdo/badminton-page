@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Eye, EyeOff, UserMinus, CheckCircle, Clock, X, MapPin, User, Banknote,
-  Info, Calendar, PlusCircle, FileText, UserCheck, Layout, Trash2
+  Info, Calendar, PlusCircle, FileText, UserCheck, Layout, Trash2,
+  CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -25,6 +26,19 @@ export default function EnrolledPage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('list');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [weekStart, setWeekStart] = useState(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const start = new Date(now);
+    start.setDate(now.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  });
   const [joinedSessions, setJoinedSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -181,6 +195,72 @@ export default function EnrolledPage() {
       });
   }, [joinedSessions, showExpired]);
 
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const days: { date: string; day: number; isCurrentMonth: boolean }[] = [];
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const d = prevMonthDays - i;
+      const m = month === 0 ? 12 : month;
+      const y = month === 0 ? year - 1 : year;
+      days.push({ date: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: false });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push({ date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: true });
+    }
+    const remaining = 7 - (days.length % 7);
+    if (remaining < 7) {
+      for (let d = 1; d <= remaining; d++) {
+        const m = month + 2 > 12 ? 1 : month + 2;
+        const y = month + 2 > 12 ? year + 1 : year;
+        days.push({ date: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: false });
+      }
+    }
+    return days;
+  }, [calendarMonth]);
+
+  const sessionsByDate = useMemo(() => {
+    const map: Record<string, Session[]> = {};
+    sortedJoined.forEach(s => {
+      if (!map[s.date]) map[s.date] = [];
+      map[s.date].push(s);
+    });
+    return map;
+  }, [sortedJoined]);
+
+  const calendarLabel = `${calendarMonth.getFullYear()} 年 ${calendarMonth.getMonth() + 1} 月`;
+  const goToPrevMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const goToNextMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+
+  const weekDays = useMemo(() => {
+    const days: { date: string; day: number; weekday: string; month: number }[] = [];
+    const weekdayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      days.push({
+        date: d.toLocaleDateString('en-CA'),
+        day: d.getDate(),
+        weekday: weekdayNames[d.getDay()],
+        month: d.getMonth() + 1
+      });
+    }
+    return days;
+  }, [weekStart]);
+
+  const weekLabel = (() => {
+    const end = new Date(weekStart);
+    end.setDate(weekStart.getDate() + 6);
+    const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+    return `${fmt(weekStart)} — ${fmt(end)}`;
+  })();
+  const goToPrevWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 7); return d; });
+  const goToNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; });
+
   if (loading) return (
     <div className="min-h-dvh bg-paper font-serif pb-24">
       <AppHeader />
@@ -199,70 +279,212 @@ export default function EnrolledPage() {
     <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
       <AppHeader />
 
-      <div className="max-w-4xl mx-auto px-6 mt-6 flex justify-between items-center">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
         <h2 className="text-sm tracking-[0.2em] text-sage font-bold">我報名的</h2>
-        <button
-          onClick={() => setShowExpired(!showExpired)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
-        >
-          {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
-          {showExpired ? "顯示過期" : "隱藏過期"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {viewMode === 'list' && (
+            <button
+              onClick={() => setShowExpired(!showExpired)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
+            >
+              {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
+              {showExpired ? "顯示過期" : "隱藏過期"}
+            </button>
+          )}
+          <div className="flex rounded-full border border-stone/30 overflow-hidden text-[10px] font-sans">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'list' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+            >
+              <List size={12} />列表
+            </button>
+            <button
+              onClick={() => setViewMode('week')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all border-x border-stone/20 ${viewMode === 'week' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+            >
+              <CalendarRange size={12} />週
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'calendar' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+            >
+              <CalendarDays size={12} />月
+            </button>
+          </div>
+        </div>
       </div>
 
-      <main className="max-w-4xl mx-auto p-6 mt-4">
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {sortedJoined.map((session) => {
-            const isCancelled = session.isHostCanceled;
-            const isToday = session.date === todayStr;
-            const needsCheckIn = session.status === 'waiting_checkin';
-            return (
-              <div key={`${session.id}-${session.myStatus}`} onClick={() => handleOpenDetail(session)}
-                className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
-                  isCancelled ? "border-l-red-200 bg-gray-50 opacity-60 grayscale"
-                    : session.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
-                    : needsCheckIn && isToday ? "border-l-[#D6C58D] shadow-[0_0_20px_rgba(214,197,141,0.4)] ring-1 ring-[#D6C58D]/10 bg-[#FAF9F6]"
-                    : session.myStatus === 'WAITLIST' ? "border-l-orange-400 shadow-sm" : "border-l-blue-100 shadow-sm"
-                }`}>
-                <div className="absolute top-0 right-0">
-                  {!isCancelled && !session.isExpired && (
-                    <>
-                      {session.status === 'idle' && <div className="bg-sage text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
-                      {session.status === 'playing' && <div className="bg-blue-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
-                      {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
-                    </>
-                  )}
-                  {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已打完</div>}
-                </div>
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className={`text-lg tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : ""}`}>{session.title}</h3>
-                  {!isCancelled && !session.isExpired && session.status === 'waiting_checkin' && (
-                    <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1"><UserMinus size={18} /></button>
-                  )}
-                </div>
-                <div className="text-xs text-gray-500 font-sans space-y-1.5">
-                  <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
-                  <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
-                  <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
-                </div>
-                {!isCancelled && !session.isExpired && isToday && needsCheckIn && (
-                  <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
-                      className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[10px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif">
-                      我來了歐
-                    </button>
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 mt-2 md:mt-4">
+        {viewMode === 'list' && (
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {sortedJoined.map((session) => {
+              const isCancelled = session.isHostCanceled;
+              const isToday = session.date === todayStr;
+              const needsCheckIn = session.status === 'waiting_checkin';
+              return (
+                <div key={`${session.id}-${session.myStatus}`} onClick={() => handleOpenDetail(session)}
+                  className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+                    isCancelled ? "border-l-red-200 bg-gray-50 opacity-60 grayscale"
+                      : session.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
+                      : needsCheckIn && isToday ? "border-l-[#D6C58D] shadow-[0_0_20px_rgba(214,197,141,0.4)] ring-1 ring-[#D6C58D]/10 bg-[#FAF9F6]"
+                      : session.myStatus === 'WAITLIST' ? "border-l-orange-400 shadow-sm" : "border-l-blue-100 shadow-sm"
+                  }`}>
+                  <div className="absolute top-0 right-0">
+                    {!isCancelled && !session.isExpired && (
+                      <>
+                        {session.status === 'idle' && <div className="bg-sage text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
+                        {session.status === 'playing' && <div className="bg-blue-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
+                        {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
+                      </>
+                    )}
+                    {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已打完</div>}
                   </div>
-                )}
-                <div className="flex justify-end mt-6">
-                  {isCancelled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">主揪已取消</span>
-                    : session.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">已嘗試勒戒</span>
-                    : <span className={`text-[11px] font-sans tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className="font-bold">{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className={`text-lg tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : ""}`}>{session.title}</h3>
+                    {!isCancelled && !session.isExpired && session.status === 'waiting_checkin' && (
+                      <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1"><UserMinus size={18} /></button>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 font-sans space-y-1.5">
+                    <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
+                    <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
+                    <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
+                  </div>
+                  {!isCancelled && !session.isExpired && isToday && needsCheckIn && (
+                    <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
+                        className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[10px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif">
+                        我來了歐
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex justify-end mt-6">
+                    {isCancelled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">主揪已取消</span>
+                      : session.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">已嘗試勒戒</span>
+                      : <span className={`text-[11px] font-sans tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className="font-bold">{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </section>
+              );
+            })}
+          </section>
+        )}
+
+        {viewMode === 'week' && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={goToPrevWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <h3 className="text-xs md:text-sm tracking-[0.2em] text-ink/70">{weekLabel}</h3>
+              <button onClick={goToNextWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 md:gap-2">
+              {weekDays.map(cell => {
+                const daySessions = sessionsByDate[cell.date] || [];
+                const isToday = cell.date === todayStr;
+                return (
+                  <div key={cell.date} className={`rounded-lg md:rounded-xl border p-1 md:p-2 min-h-[140px] md:min-h-[240px] transition-colors ${
+                    isToday ? "border-sage/40 bg-sage/5" : "border-stone/20 bg-white"
+                  }`}>
+                    <div className={`text-center mb-1 md:mb-2 pb-1 md:pb-2 border-b border-stone/10 ${isToday ? "text-sage" : "text-ink/50"}`}>
+                      <div className="text-[9px] md:text-[10px] font-sans tracking-widest">{cell.weekday}</div>
+                      <div className={`text-sm md:text-lg font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
+                    </div>
+                    <div className="space-y-1">
+                      {daySessions.map(session => {
+                        const isCancelled = session.isHostCanceled;
+                        return (
+                          <button
+                            key={session.id}
+                            onClick={() => handleOpenDetail(session)}
+                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[8px] md:text-[10px] leading-tight font-sans transition-colors ${
+                              isCancelled ? "bg-red-50 text-red-300 line-through"
+                                : session.isExpired ? "bg-gray-50 text-gray-400"
+                                : session.myStatus === 'WAITLIST' ? "bg-orange-50 text-orange-600 hover:bg-orange-100/60"
+                                : "bg-sage/10 text-sage hover:bg-sage/20"
+                            }`}
+                          >
+                            <div className="font-bold truncate">{session.time}</div>
+                            <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
+                            <div className="truncate text-[7px] md:text-[8px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {viewMode === 'calendar' && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={goToPrevMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <h3 className="text-xs md:text-sm tracking-[0.2em] text-ink/70">{calendarLabel}</h3>
+              <button onClick={goToNextMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 text-center text-[9px] md:text-[10px] tracking-widest text-gray-400 uppercase mb-1 font-sans">
+              {['日', '一', '二', '三', '四', '五', '六'].map(d => (
+                <div key={d} className="py-1 md:py-2">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 border-t border-l border-stone/20">
+              {calendarDays.map((cell, idx) => {
+                const daySessions = sessionsByDate[cell.date] || [];
+                const isToday = cell.date === todayStr;
+                return (
+                  <div
+                    key={idx}
+                    className={`border-r border-b border-stone/20 min-h-[70px] md:min-h-[110px] p-1 md:p-1.5 transition-colors ${
+                      cell.isCurrentMonth ? "bg-white" : "bg-stone/5"
+                    } ${isToday ? "ring-1 ring-inset ring-sage/30" : ""}`}
+                  >
+                    <div className={`text-[10px] md:text-[11px] font-sans mb-0.5 md:mb-1 ${
+                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/60" : "text-gray-300"
+                    }`}>
+                      {cell.day}
+                    </div>
+                    <div className="space-y-0.5 md:space-y-1">
+                      {daySessions.slice(0, 2).map(session => {
+                        const isCancelled = session.isHostCanceled;
+                        return (
+                          <button
+                            key={session.id}
+                            onClick={() => handleOpenDetail(session)}
+                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[8px] md:text-[10px] leading-tight truncate font-sans transition-colors ${
+                              isCancelled ? "bg-red-50 text-red-300 line-through"
+                                : session.isExpired ? "bg-gray-50 text-gray-400"
+                                : session.myStatus === 'WAITLIST' ? "bg-orange-50 text-orange-600"
+                                : "bg-sage/10 text-sage hover:bg-sage/20"
+                            }`}
+                          >
+                            <span className="md:hidden">{session.time}</span>
+                            <span className="hidden md:inline">{session.time} {session.title}</span>
+                          </button>
+                        );
+                      })}
+                      {daySessions.length > 2 && (
+                        <div className="text-[8px] md:text-[9px] text-gray-400 text-center font-sans">+{daySessions.length - 2}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Detail Modal */}
