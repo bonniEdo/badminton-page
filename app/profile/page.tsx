@@ -95,6 +95,11 @@ export default function ProfilePage() {
   const getWeekDays = () => {
     const days = [];
     const startOfWeek = new Date(baseDate);
+    
+    // ✅ 新增這兩行：將 startOfWeek 強制推回該週的「星期日」 (0)
+    const currentDayOfWeek = startOfWeek.getDay(); 
+    startOfWeek.setDate(startOfWeek.getDate() - currentDayOfWeek);
+
     const todayStr = getLocalDateString(new Date());
 
     for (let i = 0; i < 7; i++) {
@@ -516,11 +521,10 @@ export default function ProfilePage() {
           </section>
         )}
 
-        {/* ✅ 成癮紀錄日誌 - 修正文字顏色優先權 */}
-        <section className="mb-10">
+          <section className="mb-10">
           <div className="flex justify-between items-center mb-6 px-1">
             <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2">
-              <Calendar className="w-3 h-3 text-sage/60" /> 成癮紀錄日誌
+              <Calendar className="w-3 h-3 text-sage/60" /> 戒球日誌紀錄
             </h3>
             <div className="flex items-center gap-3 md:gap-4">
               <button onClick={() => shiftWeek(-1)} className="p-1 hover:text-sage text-stone-200 transition-colors"><ChevronLeft size={18} /></button>
@@ -533,20 +537,29 @@ export default function ProfilePage() {
               const isSelected = selectedDateStr === d.dateStr;
               return (
                 <div key={i} className="flex flex-col items-center gap-2 relative flex-shrink-0 md:flex-shrink">
-                  <span className={`text-[8px] font-bold ${d.isToday ? 'text-sage underline underline-offset-4 font-black' : 'text-stone-500'}`}>{d.weekday}</span>
+                  <span className={`text-[8px] font-bold ${d.isToday ? 'text-sage font-black' : 'text-stone-500'}`}>{d.weekday}</span>
                   <div
                     onClick={() => setSelectedDateStr(isSelected ? null : d.dateStr)}
-                    className={`w-9 h-11 md:w-10 md:h-12 rounded-xl md:rounded-2xl cursor-pointer flex flex-col items-center justify-center transition-all duration-500
-                      ${d.isToday ? 'animate-float shadow-xl shadow-sage/10 ring-2 ring-sage/30' : ''}
-                      ${isSelected ? 'ring-2 ring-stone-800 scale-105' : ''}
-                      ${d.hasGame
-                        ? 'bg-sage text-white shadow-md shadow-sage/20'
-                        : (d.isToday || isSelected ? 'bg-white text-stone-800' : 'bg-white/40 text-stone-500')
+                    className={`w-9 h-11 md:w-10 md:h-12 rounded-xl md:rounded-2xl cursor-pointer flex flex-col items-center justify-center transition-all duration-300
+                      ${isSelected ? 'ring-2 ring-stone-800 scale-105 z-10' : ''}
+                      ${d.isToday
+                        ? 'bg-sage text-white shadow-md shadow-sage/20 font-bold' /* ✅ 今天 (23)：綠底、白字 */
+                        : d.hasGame
+                          ? 'bg-white border-2 border-sage/50 text-stone-800' /* ✅ 有報名的天數 (24, 25)：白底、淡綠色外框、黑字 */
+                          : isSelected
+                            ? 'bg-white text-stone-800' /* 沒報名但被選中的天：白底黑字 */
+                            : 'bg-white/40 text-stone-500' /* 一般日：半透明白底灰字 */
                       }
                     `}
                   >
                     <span className="text-[11px] md:text-xs font-black">{d.day}</span>
-                    {d.hasGame && <div className="w-1 h-1 bg-white rounded-full mt-1 animate-pulse"></div>}
+                    
+                    {/* ✅ 點點邏輯對調：今天是白點點，其他有報名天數是黑點點 */}
+                    {d.hasGame && (
+                      <div className={`w-1 h-1 rounded-full mt-1 animate-pulse 
+                        ${d.isToday ? 'bg-white' : 'bg-stone-800'}
+                      `}></div>
+                    )}
                   </div>
                 </div>
               );
