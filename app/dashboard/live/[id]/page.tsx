@@ -254,7 +254,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       body: JSON.stringify({ 
         gameId, 
         courtNumber: courtNum,
-        players: { a1: playerIds[0], a2: playerIds[1], b1: playerIds[2], b2: playerIds[3] } 
+        players: { a1: playerIds[0] || null, a2: playerIds[1] || null, b1: playerIds[2] || null, b2: playerIds[3] || null } 
       })
     });
 
@@ -319,7 +319,8 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     return `L${level} 高階`;
   };
 
-  const PlayerDisplay = ({ playerId }: { playerId: number }) => {
+  const PlayerDisplay = ({ playerId }: { playerId: number | null }) => {
+    if (!playerId) return null;
     const p = players.find(player => player.playerId === playerId);
     if (!p) return null;
     const isVerified = (p.verified_matches || 0) >= 3 && !p.displayName.includes("+1");
@@ -534,7 +535,9 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                     const currentMatch = matches.find(m => m.court_number === num);
                     const slots = manualSlots[num] || [null,null,null,null];
                     const strategy = courtStrategies[num];
-                    const isReady = slots.every(s => s !== null);
+                    const hasTeamA = slots[0] !== null || slots[1] !== null;
+                    const hasTeamB = slots[2] !== null || slots[3] !== null;
+                    const isReady = hasTeamA && hasTeamB;
 
                     const courtNames = gameInfo?.CourtNumber ? gameInfo.CourtNumber.split(',') : [];
                     const displayCourtName = courtNames[parseInt(num) - 1]?.trim() || num;
