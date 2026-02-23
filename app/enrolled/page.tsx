@@ -656,6 +656,13 @@ export default function EnrolledPage() {
                     <Zap size={14} fill="currentColor" /> 進入場蹤看板
                   </button>
                 )}
+                {!selectedSession.isHosted && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
+                  <button
+                    onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })}
+                    className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                    <MapPin size={14} /> 我到了，報到
+                  </button>
+                )}
                 {!selectedSession.isHosted && selectedSession.date === todayStr && (
                   <button
                     onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
