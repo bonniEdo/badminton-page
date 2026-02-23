@@ -241,8 +241,7 @@ export default function Dashboard() {
 
   const handleAddFriendClick = () => {
     if (!selectedSession) return;
-    const hasAddedFriend = (selectedSession.friendCount && selectedSession.friendCount >= 1) || 
-                           participants.some(p => p.Username.includes("+1"));
+    const hasAddedFriend = selectedSession.friendCount && selectedSession.friendCount >= 1;
     if (hasAddedFriend) {
       setMsg({
         isOpen: true,

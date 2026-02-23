@@ -145,8 +145,7 @@ export default function ManagePage() {
 
   const handleAddFriendClick = () => {
     if (!selectedSession) return;
-    const hasAddedFriend = (selectedSession.friendCount && selectedSession.friendCount >= 1) ||
-      participants.some(p => p.Username.includes("+1"));
+    const hasAddedFriend = selectedSession.friendCount && selectedSession.friendCount >= 1;
     if (hasAddedFriend) {
       setMsg({ isOpen: true, title: "提 醒", content: "每人限帶一位朋友", type: "info" });
       return;
