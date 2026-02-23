@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Eye, EyeOff, Trash2, CheckCircle, Clock, X, MapPin, User, Banknote,
-  Info, Calendar, PlusCircle, FileText, UserCheck, Zap, Layout, Copy
+  Info, Calendar, PlusCircle, FileText, UserCheck, Zap, Layout, Copy,
+  CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -21,9 +22,23 @@ interface Session {
 interface Participant { Username: string; Status: string; FriendCount?: number; }
 
 export default function ManagePage() {
+  const todayStr = new Date().toLocaleDateString('en-CA');
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('list');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [weekStart, setWeekStart] = useState(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const start = new Date(now);
+    start.setDate(now.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  });
   const [hostedSessions, setHostedSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -169,6 +184,72 @@ export default function ManagePage() {
       });
   }, [hostedSessions, showExpired]);
 
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const days: { date: string; day: number; isCurrentMonth: boolean }[] = [];
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const d = prevMonthDays - i;
+      const m = month === 0 ? 12 : month;
+      const y = month === 0 ? year - 1 : year;
+      days.push({ date: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: false });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push({ date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: true });
+    }
+    const remaining = 7 - (days.length % 7);
+    if (remaining < 7) {
+      for (let d = 1; d <= remaining; d++) {
+        const m = month + 2 > 12 ? 1 : month + 2;
+        const y = month + 2 > 12 ? year + 1 : year;
+        days.push({ date: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: false });
+      }
+    }
+    return days;
+  }, [calendarMonth]);
+
+  const sessionsByDate = useMemo(() => {
+    const map: Record<string, Session[]> = {};
+    sortedHosted.forEach(s => {
+      if (!map[s.date]) map[s.date] = [];
+      map[s.date].push(s);
+    });
+    return map;
+  }, [sortedHosted]);
+
+  const calendarLabel = `${calendarMonth.getFullYear()} 年 ${calendarMonth.getMonth() + 1} 月`;
+  const goToPrevMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const goToNextMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+
+  const weekDays = useMemo(() => {
+    const days: { date: string; day: number; weekday: string; month: number }[] = [];
+    const weekdayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      days.push({
+        date: d.toLocaleDateString('en-CA'),
+        day: d.getDate(),
+        weekday: weekdayNames[d.getDay()],
+        month: d.getMonth() + 1
+      });
+    }
+    return days;
+  }, [weekStart]);
+
+  const weekLabel = (() => {
+    const end = new Date(weekStart);
+    end.setDate(weekStart.getDate() + 6);
+    const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+    return `${fmt(weekStart)} — ${fmt(end)}`;
+  })();
+  const goToPrevWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 7); return d; });
+  const goToNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; });
+
   if (loading) return (
     <div className="min-h-dvh bg-paper font-serif pb-24">
       <AppHeader />
@@ -187,55 +268,195 @@ export default function ManagePage() {
     <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
       <AppHeader />
 
-      <div className="max-w-4xl mx-auto px-6 mt-6 flex justify-between items-center">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
         <h2 className="text-sm tracking-[0.2em] text-sage font-bold">我發布的</h2>
-        <button
-          onClick={() => setShowExpired(!showExpired)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
-        >
-          {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
-          {showExpired ? "顯示過期" : "隱藏過期"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {viewMode === 'list' && (
+            <button
+              onClick={() => setShowExpired(!showExpired)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
+            >
+              {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
+              {showExpired ? "顯示過期" : "隱藏過期"}
+            </button>
+          )}
+          <div className="flex rounded-full border border-stone/30 overflow-hidden text-[10px] font-sans">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'list' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+            >
+              <List size={12} />列表
+            </button>
+            <button
+              onClick={() => setViewMode('week')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all border-x border-stone/20 ${viewMode === 'week' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+            >
+              <CalendarRange size={12} />週
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'calendar' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+            >
+              <CalendarDays size={12} />月
+            </button>
+          </div>
+        </div>
       </div>
 
-      <main className="max-w-4xl mx-auto p-6 mt-4">
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {sortedHosted.map((s) => (
-            <div key={s.id} onClick={() => handleOpenDetail(s)}
-              className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
-                s.isHostCanceled ? "border-l-red-200 bg-gray-50 opacity-40 grayscale"
-                  : s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70" : "border-l-sage shadow-sm"
-              }`}>
-              <div className="flex justify-between items-start mb-3">
-                <h3 className={`text-lg tracking-wide pr-4 ${s.isHostCanceled ? "text-stone-500" : s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
-                <div className="flex gap-3">
-                  <button onClick={(e) => handleCopy(e, s)} className="text-gray-300 hover:text-sage transition-colors pt-1"><Copy size={16}/></button>
-                  {!s.isHostCanceled && !s.isExpired && (
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: s.id }); }} className="text-gray-300 hover:text-red-400 transition-colors pt-1"><Trash2 size={16}/></button>
-                  )}
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 mt-2 md:mt-4">
+        {viewMode === 'list' && (
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {sortedHosted.map((s) => (
+              <div key={s.id} onClick={() => handleOpenDetail(s)}
+                className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+                  s.isHostCanceled ? "border-l-red-200 bg-gray-50 opacity-40 grayscale"
+                    : s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70" : "border-l-sage shadow-sm"
+                }`}>
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className={`text-lg tracking-wide pr-4 ${s.isHostCanceled ? "text-stone-500" : s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
+                  <div className="flex gap-3">
+                    <button onClick={(e) => handleCopy(e, s)} className="text-gray-300 hover:text-sage transition-colors pt-1"><Copy size={16}/></button>
+                    {!s.isHostCanceled && !s.isExpired && (
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: s.id }); }} className="text-gray-300 hover:text-red-400 transition-colors pt-1"><Trash2 size={16}/></button>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="text-xs text-gray-500 font-sans space-y-1.5">
-                <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
-                <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
-                <p className="flex items-center gap-2"><MapPin size={12}/> {s.location}</p>
-              </div>
-              <div className="flex justify-end mt-6">
-                {s.isHostCanceled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
-                  : s.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">球局紀錄</span>
-                  : <span className="text-[11px] text-gray-400 font-sans tracking-tighter"><span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人</span>}
-              </div>
-              {!s.isHostCanceled && !s.isExpired && (
-                <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
-                  <Link href={`/dashboard/live/${s.id}`} onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[10px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
-                    <Zap size={12} fill="currentColor" className="animate-pulse" /> 進入場蹤看板
-                  </Link>
+                <div className="text-xs text-gray-500 font-sans space-y-1.5">
+                  <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
+                  <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
+                  <p className="flex items-center gap-2"><MapPin size={12}/> {s.location}</p>
                 </div>
-              )}
+                <div className="flex justify-end mt-6">
+                  {s.isHostCanceled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
+                    : s.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">球局紀錄</span>
+                    : <span className="text-[11px] text-gray-400 font-sans tracking-tighter"><span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人</span>}
+                </div>
+                {!s.isHostCanceled && !s.isExpired && (
+                  <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
+                    <Link href={`/dashboard/live/${s.id}`} onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[10px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
+                      <Zap size={12} fill="currentColor" className="animate-pulse" /> 進入場蹤看板
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {viewMode === 'week' && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={goToPrevWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <h3 className="text-xs md:text-sm tracking-[0.2em] text-ink/70">{weekLabel}</h3>
+              <button onClick={goToNextWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronRight size={16} />
+              </button>
             </div>
-          ))}
-        </section>
+
+            <div className="grid grid-cols-7 gap-1 md:gap-2">
+              {weekDays.map(cell => {
+                const daySessions = sessionsByDate[cell.date] || [];
+                const isToday = cell.date === todayStr;
+                return (
+                  <div key={cell.date} className={`rounded-lg md:rounded-xl border p-1 md:p-2 min-h-[140px] md:min-h-[240px] transition-colors ${
+                    isToday ? "border-sage/40 bg-sage/5" : "border-stone/20 bg-white"
+                  }`}>
+                    <div className={`text-center mb-1 md:mb-2 pb-1 md:pb-2 border-b border-stone/10 ${isToday ? "text-sage" : "text-ink/50"}`}>
+                      <div className="text-[9px] md:text-[10px] font-sans tracking-widest">{cell.weekday}</div>
+                      <div className={`text-sm md:text-lg font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
+                    </div>
+                    <div className="space-y-1">
+                      {daySessions.map(session => {
+                        const isCancelled = session.isHostCanceled;
+                        return (
+                          <button
+                            key={session.id}
+                            onClick={() => handleOpenDetail(session)}
+                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[8px] md:text-[10px] leading-tight font-sans transition-colors ${
+                              isCancelled ? "bg-red-50 text-red-300 line-through"
+                                : session.isExpired ? "bg-gray-50 text-gray-400"
+                                : "bg-sage/10 text-sage hover:bg-sage/20"
+                            }`}
+                          >
+                            <div className="font-bold truncate">{session.time}</div>
+                            <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
+                            <div className="truncate text-[7px] md:text-[8px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {viewMode === 'calendar' && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={goToPrevMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <h3 className="text-xs md:text-sm tracking-[0.2em] text-ink/70">{calendarLabel}</h3>
+              <button onClick={goToNextMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 text-center text-[9px] md:text-[10px] tracking-widest text-gray-400 uppercase mb-1 font-sans">
+              {['日', '一', '二', '三', '四', '五', '六'].map(d => (
+                <div key={d} className="py-1 md:py-2">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 border-t border-l border-stone/20">
+              {calendarDays.map((cell, idx) => {
+                const daySessions = sessionsByDate[cell.date] || [];
+                const isToday = cell.date === todayStr;
+                return (
+                  <div
+                    key={idx}
+                    className={`border-r border-b border-stone/20 min-h-[70px] md:min-h-[110px] p-1 md:p-1.5 transition-colors ${
+                      cell.isCurrentMonth ? "bg-white" : "bg-stone/5"
+                    } ${isToday ? "ring-1 ring-inset ring-sage/30" : ""}`}
+                  >
+                    <div className={`text-[10px] md:text-[11px] font-sans mb-0.5 md:mb-1 ${
+                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/60" : "text-gray-300"
+                    }`}>
+                      {cell.day}
+                    </div>
+                    <div className="space-y-0.5 md:space-y-1">
+                      {daySessions.slice(0, 2).map(session => {
+                        const isCancelled = session.isHostCanceled;
+                        return (
+                          <button
+                            key={session.id}
+                            onClick={() => handleOpenDetail(session)}
+                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[8px] md:text-[10px] leading-tight truncate font-sans transition-colors ${
+                              isCancelled ? "bg-red-50 text-red-300 line-through"
+                                : session.isExpired ? "bg-gray-50 text-gray-400"
+                                : "bg-sage/10 text-sage hover:bg-sage/20"
+                            }`}
+                          >
+                            <span className="md:hidden">{session.time}</span>
+                            <span className="hidden md:inline">{session.time} {session.title}</span>
+                          </button>
+                        );
+                      })}
+                      {daySessions.length > 2 && (
+                        <div className="text-[8px] md:text-[9px] text-gray-400 text-center font-sans">+{daySessions.length - 2}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Detail Modal */}
