@@ -240,6 +240,23 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     setSelectedPlayerIds([]);
   };
 
+  const handleHostCheckin = async (playerId: number) => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API_URL}/api/match/host-checkin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ gameId, playerId })
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchData();
+      } else {
+        setMsg({ isOpen: true, title: "報到失敗", content: json.message, type: "info", onConfirm: null, onCancel: null, teamANames: "", teamBNames: "" });
+      }
+    } catch (err) { console.error(err); }
+  };
+
   const handleMarkPaid = async (playerId: number) => {
     const token = localStorage.getItem("token");
     try {
@@ -406,19 +423,30 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                         )}
                                     </div>
                                 </div>
-                                {!player.isHost && !isWaitlist && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleMarkPaid(player.playerId); }}
-                                        className={`shrink-0 p-2 md:p-1.5 rounded-lg transition-all ${
-                                            isPaid
-                                              ? "bg-amber-50 text-amber-600 border border-amber-200"
-                                              : "bg-stone-50 text-stone-300 border border-stone-100 hover:text-sage hover:border-sage/30"
-                                        }`}
-                                        title={isPaid ? "已付款 (點擊取消)" : "標記已付款"}
-                                    >
-                                        <CircleDollarSign size={18} className="md:w-3.5 md:h-3.5" />
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    {!isCheckedIn && !isWaitlist && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleHostCheckin(player.playerId); }}
+                                            className="p-2 md:p-1.5 rounded-lg transition-all bg-sage/10 text-sage border border-sage/20 hover:bg-sage hover:text-white"
+                                            title="幫忙報到"
+                                        >
+                                            <MapPin size={18} className="md:w-3.5 md:h-3.5" />
+                                        </button>
+                                    )}
+                                    {!player.isHost && !isWaitlist && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleMarkPaid(player.playerId); }}
+                                            className={`p-2 md:p-1.5 rounded-lg transition-all ${
+                                                isPaid
+                                                  ? "bg-amber-50 text-amber-600 border border-amber-200"
+                                                  : "bg-stone-50 text-stone-300 border border-stone-100 hover:text-sage hover:border-sage/30"
+                                            }`}
+                                            title={isPaid ? "已付款 (點擊取消)" : "標記已付款"}
+                                        >
+                                            <CircleDollarSign size={18} className="md:w-3.5 md:h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );
