@@ -36,16 +36,20 @@ function LoginSuccessContent() {
 
             const waitTime = speed === 'fast' ? 500 : 2000;
             const nextParam = searchParams.get("next");
+            const returnPath = localStorage.getItem("loginReturnPath");
             
-            // 3. 決定跳轉目標 (優先看 URL 參數，再看資料庫回傳)
             let targetPath = "/browse"; 
             const isFinished = isProfileCompletedParam === "true" || data.user.is_profile_completed === true;
 
             if (nextParam) {
               targetPath = nextParam;
+            } else if (returnPath) {
+              targetPath = returnPath;
             } else if (!isFinished) {
               targetPath = "/rating"; 
             }
+
+            localStorage.removeItem("loginReturnPath");
 
             console.log("勒戒通道同步成功，目標：", targetPath);
             

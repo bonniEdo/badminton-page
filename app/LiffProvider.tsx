@@ -67,7 +67,9 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
               if (data.success) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
-                const target = data.user.is_profile_completed ? '/browse' : '/rating';
+                const returnPath = localStorage.getItem('loginReturnPath');
+                localStorage.removeItem('loginReturnPath');
+                const target = returnPath || (data.user.is_profile_completed ? '/browse' : '/rating');
                 router.replace(target);
                 return;
               }

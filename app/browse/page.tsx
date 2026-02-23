@@ -117,6 +117,7 @@ export default function Browse() {
   };
 
   const handleLineLogin = async () => {
+    localStorage.setItem("loginReturnPath", "/browse");
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
     if (isLineBrowser) {
       router.push('/login');
