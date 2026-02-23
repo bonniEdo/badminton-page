@@ -1,14 +1,13 @@
 "use client";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, CalendarCheck, ClipboardList, User, CheckCircle } from "lucide-react";
+import { Search, CalendarCheck, User, CheckCircle } from "lucide-react";
 import ShuttlecockIcon from "./ShuttlecockIcon";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/browse", label: "搜尋球局", icon: Search },
   { href: "/enrolled", label: "已報名", icon: CalendarCheck },
-  { href: "/manage", label: "管理球局", icon: ClipboardList },
 ];
 
 const bottomBarItems = [

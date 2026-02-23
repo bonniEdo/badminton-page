@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Eye, EyeOff, UserMinus, CheckCircle, Clock, X, MapPin, User, Banknote,
-  Info, Calendar, PlusCircle, FileText, UserCheck, Layout, Trash2,
+  Info, Calendar, PlusCircle, FileText, UserCheck, Layout, Trash2, Zap, Copy,
   CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ interface Session {
   maxPlayers?: number | string; price?: number; myStatus?: string; currentPlayers?: number;
   phone?: string; notes?: string; friendCount?: number; isExpired: boolean; isHostCanceled: boolean;
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
+  isHosted?: boolean;
 }
 interface Participant { Username: string; Status: string; FriendCount?: number; }
 
@@ -39,7 +40,7 @@ export default function EnrolledPage() {
     start.setHours(0, 0, 0, 0);
     return start;
   });
-  const [joinedSessions, setJoinedSessions] = useState<Session[]>([]);
+  const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -47,6 +48,7 @@ export default function EnrolledPage() {
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
   const [checkInModal, setCheckInModal] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
   const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [levelModal, setLevelModal] = useState({ isOpen: false });
 
   useEffect(() => {
@@ -73,6 +75,19 @@ export default function EnrolledPage() {
     finally { setLoadingParticipants(false); }
   }, []);
 
+  const mapSession = (g: any, isHosted: boolean): Session => ({
+    id: g.GameId, title: g.Title ?? "未命名球局",
+    date: (g.GameDateTime ?? "").slice(0, 10),
+    time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
+    endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定地點",
+    maxPlayers: g.MaxPlayers, price: g.Price, myStatus: g.MyStatus,
+    currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
+    friendCount: Number(g.FriendCount || 0), phone: g.Phone || g.HostContact, notes: g.Notes,
+    isExpired: !!g.isExpired, isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
+    status: g.status || 'waiting_checkin', check_in_at: g.check_in_at || null,
+    isHosted,
+  });
+
   const fetchData = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -80,26 +95,35 @@ export default function EnrolledPage() {
       if (!token) return;
       const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
 
-      const [resUser, resJoined] = await Promise.all([
+      const [resUser, resJoined, resHosted] = await Promise.all([
         fetch(`${API_URL}/api/user/me`, { headers }).then(r => r.json()),
-        fetch(`${API_URL}/api/games/joined`, { headers })
+        fetch(`${API_URL}/api/games/joined`, { headers }),
+        fetch(`${API_URL}/api/games/mygame`, { headers }),
       ]);
       if (resUser.success && resUser.user) localStorage.setItem("user", JSON.stringify(resUser.user));
 
       const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
-      if (jsonJoined.success) {
-        setJoinedSessions((jsonJoined.data || []).map((g: any) => ({
-          id: g.GameId, title: g.Title ?? "未命名球局",
-          date: (g.GameDateTime ?? "").slice(0, 10),
-          time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
-          endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定地點",
-          maxPlayers: g.MaxPlayers, price: g.Price, myStatus: g.MyStatus,
-          currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
-          friendCount: Number(g.FriendCount || 0), phone: g.Phone || g.HostContact, notes: g.Notes,
-          isExpired: !!g.isExpired, isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
-          status: g.status || 'waiting_checkin', check_in_at: g.check_in_at || null
-        })));
+      const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
+
+      const hostedIds = new Set<number>();
+      const hostedList: Session[] = [];
+      if (jsonHosted.success) {
+        (jsonHosted.data || []).forEach((g: any) => {
+          hostedIds.add(g.GameId);
+          hostedList.push(mapSession(g, true));
+        });
       }
+
+      const joinedList: Session[] = [];
+      if (jsonJoined.success) {
+        (jsonJoined.data || []).forEach((g: any) => {
+          if (!hostedIds.has(g.GameId)) {
+            joinedList.push(mapSession(g, false));
+          }
+        });
+      }
+
+      setAllSessions([...hostedList, ...joinedList]);
     } catch (e: any) { console.error(e.message); }
     finally { setLoading(false); }
   };
@@ -154,6 +178,42 @@ export default function EnrolledPage() {
     } catch (error) { console.error("Cancel error:", error); }
   };
 
+  const executeDelete = async () => {
+    if (!deleteConfirm.id) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setDeleteConfirm({ isOpen: false, id: null });
+      if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
+      fetchData(true);
+      setMsg({ isOpen: true, title: "聚會終止", content: "這場相遇，我們留在回憶裡就好了。", type: "success" });
+    }
+  };
+
+  const handleCopy = (e: React.MouseEvent, s: Session) => {
+    e.stopPropagation();
+    let locName = s.location;
+    let cNum = "";
+    let cCount = "1";
+    if (s.location.includes(" (")) {
+      const [base, extra] = s.location.split(" (");
+      locName = base;
+      const content = extra.replace(")", "");
+      if (content.includes(" / ")) { const [numPart, countPart] = content.split(" / "); cNum = numPart; cCount = countPart.replace("面場", ""); }
+      else if (content.includes("面場")) { cCount = content.replace("面場", ""); }
+      else { cNum = content; }
+    }
+    sessionStorage.setItem("copySessionData", JSON.stringify({
+      title: s.title, gameTime: s.time, endTime: s.endTime, location: locName, courtNumber: cNum,
+      courtCount: cCount, maxPlayers: s.maxPlayers?.toString() || "", price: s.price?.toString() || "",
+      phone: s.phone || "", notes: s.notes || ""
+    }));
+    router.push("/create");
+  };
+
   const handleAddFriendClick = () => {
     if (!selectedSession) return;
     const hasAddedFriend = selectedSession.friendCount && selectedSession.friendCount >= 1;
@@ -184,15 +244,16 @@ export default function EnrolledPage() {
     } catch (err) { console.error(err); }
   };
 
-  const sortedJoined = useMemo(() => {
-    return joinedSessions
+  const sortedSessions = useMemo(() => {
+    return allSessions
       .filter(s => showExpired ? true : !s.isExpired)
       .sort((a, b) => {
         if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
         if (a.isHostCanceled !== b.isHostCanceled) return a.isHostCanceled ? 1 : -1;
+        if (a.isHosted !== b.isHosted) return a.isHosted ? -1 : 1;
         return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
       });
-  }, [joinedSessions, showExpired]);
+  }, [allSessions, showExpired]);
 
   const calendarDays = useMemo(() => {
     const year = calendarMonth.getFullYear();
@@ -224,12 +285,19 @@ export default function EnrolledPage() {
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, Session[]> = {};
-    sortedJoined.forEach(s => {
+    sortedSessions.forEach(s => {
       if (!map[s.date]) map[s.date] = [];
       map[s.date].push(s);
     });
+    Object.values(map).forEach(arr => {
+      arr.sort((a, b) => {
+        if (a.isHosted && !b.isHosted) return -1;
+        if (!a.isHosted && b.isHosted) return 1;
+        return a.time.localeCompare(b.time);
+      });
+    });
     return map;
-  }, [sortedJoined]);
+  }, [sortedSessions]);
 
   const calendarLabel = `${calendarMonth.getFullYear()} 年 ${calendarMonth.getMonth() + 1} 月`;
   const goToPrevMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -260,6 +328,25 @@ export default function EnrolledPage() {
   const goToPrevWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 7); return d; });
   const goToNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; });
 
+  const getSessionStyle = (session: Session, variant: 'card' | 'week' | 'calendar') => {
+    const isCancelled = session.isHostCanceled;
+    if (variant === 'card') {
+      if (isCancelled) return "border-l-red-200 bg-gray-50 opacity-60 grayscale";
+      if (session.isExpired) return "border-l-gray-300 bg-gray-50/80 grayscale opacity-70";
+      if (session.isHosted) return "border-l-amber-400 shadow-sm";
+      const isToday = session.date === todayStr;
+      const needsCheckIn = session.status === 'waiting_checkin';
+      if (needsCheckIn && isToday) return "border-l-[#D6C58D] shadow-[0_0_20px_rgba(214,197,141,0.4)] ring-1 ring-[#D6C58D]/10 bg-[#FAF9F6]";
+      if (session.myStatus === 'WAITLIST') return "border-l-orange-400 shadow-sm";
+      return "border-l-blue-100 shadow-sm";
+    }
+    if (isCancelled) return "bg-red-50 text-red-300 line-through";
+    if (session.isExpired) return "bg-gray-50 text-gray-400";
+    if (session.isHosted) return "bg-amber-50 text-amber-700 hover:bg-amber-100/60";
+    if (session.myStatus === 'WAITLIST') return "bg-orange-50 text-orange-600 hover:bg-orange-100/60";
+    return "bg-sage/10 text-sage hover:bg-sage/20";
+  };
+
   if (loading) return (
     <div className="min-h-dvh bg-paper font-serif pb-24">
       <AppHeader />
@@ -279,7 +366,7 @@ export default function EnrolledPage() {
       <AppHeader />
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
-        <h2 className="text-sm tracking-[0.2em] text-sage font-bold">我報名的</h2>
+        <h2 className="text-sm tracking-[0.2em] text-sage font-bold">我的球局</h2>
         <div className="flex items-center gap-1.5">
           {viewMode === 'list' && (
             <button
@@ -313,23 +400,28 @@ export default function EnrolledPage() {
         </div>
       </div>
 
+      {(viewMode === 'week' || viewMode === 'calendar') && (
+        <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-3 text-[10px] font-sans text-gray-400">
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-amber-400" />我發布的</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-sage" />已報名</span>
+        </div>
+      )}
+
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 mt-2 md:mt-4">
         {viewMode === 'list' && (
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {sortedJoined.map((session) => {
+            {sortedSessions.map((session) => {
               const isCancelled = session.isHostCanceled;
               const isToday = session.date === todayStr;
               const needsCheckIn = session.status === 'waiting_checkin';
               return (
-                <div key={`${session.id}-${session.myStatus}`} onClick={() => handleOpenDetail(session)}
-                  className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
-                    isCancelled ? "border-l-red-200 bg-gray-50 opacity-60 grayscale"
-                      : session.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
-                      : needsCheckIn && isToday ? "border-l-[#D6C58D] shadow-[0_0_20px_rgba(214,197,141,0.4)] ring-1 ring-[#D6C58D]/10 bg-[#FAF9F6]"
-                      : session.myStatus === 'WAITLIST' ? "border-l-orange-400 shadow-sm" : "border-l-blue-100 shadow-sm"
-                  }`}>
+                <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} onClick={() => handleOpenDetail(session)}
+                  className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${getSessionStyle(session, 'card')}`}>
+                  {session.isHosted && !isCancelled && !session.isExpired && (
+                    <div className="absolute top-0 left-0 bg-amber-400 text-white text-[8px] px-2 py-0.5 font-bold tracking-wider rounded-br-lg">主揪</div>
+                  )}
                   <div className="absolute top-0 right-0">
-                    {!isCancelled && !session.isExpired && (
+                    {!isCancelled && !session.isExpired && !session.isHosted && (
                       <>
                         {session.status === 'idle' && <div className="bg-sage text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
                         {session.status === 'playing' && <div className="bg-blue-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
@@ -339,17 +431,30 @@ export default function EnrolledPage() {
                     {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已打完</div>}
                   </div>
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className={`text-lg tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : ""}`}>{session.title}</h3>
-                    {!isCancelled && !session.isExpired && session.status === 'waiting_checkin' && (
-                      <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1"><UserMinus size={18} /></button>
-                    )}
+                    <h3 className={`text-lg tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : session.isHosted ? "text-stone-700" : ""}`}>{session.title}</h3>
+                    <div className="flex gap-3">
+                      {session.isHosted && (
+                        <button onClick={(e) => handleCopy(e, session)} className="text-gray-300 hover:text-sage transition-colors pt-1"><Copy size={16}/></button>
+                      )}
+                      {session.isHosted && !isCancelled && !session.isExpired && (
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="text-gray-300 hover:text-red-400 transition-colors pt-1"><Trash2 size={16}/></button>
+                      )}
+                      {!session.isHosted && !isCancelled && !session.isExpired && session.status === 'waiting_checkin' && (
+                        <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1"><UserMinus size={18} /></button>
+                      )}
+                    </div>
                   </div>
                   <div className="text-xs text-gray-500 font-sans space-y-1.5">
                     <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
                     <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
-                    <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
+                    <p className="flex items-center gap-2">
+                      <MapPin size={12}/>
+                      {session.isHosted ? (
+                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(session.location)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors">{session.location}</a>
+                      ) : session.location}
+                    </p>
                   </div>
-                  {!isCancelled && !session.isExpired && isToday && needsCheckIn && (
+                  {!isCancelled && !session.isExpired && isToday && needsCheckIn && !session.isHosted && (
                     <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
                       <button
                         onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
@@ -358,10 +463,18 @@ export default function EnrolledPage() {
                       </button>
                     </div>
                   )}
+                  {session.isHosted && !isCancelled && !session.isExpired && (
+                    <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
+                      <Link href={`/dashboard/live/${session.id}`} onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[10px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
+                        <Zap size={12} fill="currentColor" className="animate-pulse" /> 進入場蹤看板
+                      </Link>
+                    </div>
+                  )}
                   <div className="flex justify-end mt-6">
-                    {isCancelled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">主揪已取消</span>
-                      : session.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">已嘗試勒戒</span>
-                      : <span className={`text-[11px] font-sans tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className="font-bold">{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                    {isCancelled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">{session.isHosted ? "此局已取消" : "主揪已取消"}</span>
+                      : session.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">{session.isHosted ? "球局紀錄" : "已嘗試勒戒"}</span>
+                      : <span className={`text-[11px] font-sans tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className={session.isHosted ? "text-amber-500 font-bold" : "font-bold"}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
                   </div>
                 </div>
               );
@@ -394,25 +507,17 @@ export default function EnrolledPage() {
                       <div className={`text-sm md:text-lg font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
                     </div>
                     <div className="space-y-1">
-                      {daySessions.map(session => {
-                        const isCancelled = session.isHostCanceled;
-                        return (
-                          <button
-                            key={session.id}
-                            onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[8px] md:text-[10px] leading-tight font-sans transition-colors ${
-                              isCancelled ? "bg-red-50 text-red-300 line-through"
-                                : session.isExpired ? "bg-gray-50 text-gray-400"
-                                : session.myStatus === 'WAITLIST' ? "bg-orange-50 text-orange-600 hover:bg-orange-100/60"
-                                : "bg-sage/10 text-sage hover:bg-sage/20"
-                            }`}
-                          >
-                            <div className="font-bold truncate">{session.time}</div>
-                            <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
-                            <div className="truncate text-[7px] md:text-[8px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
-                          </button>
-                        );
-                      })}
+                      {daySessions.map(session => (
+                        <button
+                          key={session.id}
+                          onClick={() => handleOpenDetail(session)}
+                          className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[8px] md:text-[10px] leading-tight font-sans transition-colors ${getSessionStyle(session, 'week')}`}
+                        >
+                          <div className="font-bold truncate">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★ ${session.time}` : session.time}</div>
+                          <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
+                          <div className="truncate text-[7px] md:text-[8px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 );
@@ -456,24 +561,16 @@ export default function EnrolledPage() {
                       {cell.day}
                     </div>
                     <div className="space-y-0.5 md:space-y-1">
-                      {daySessions.slice(0, 2).map(session => {
-                        const isCancelled = session.isHostCanceled;
-                        return (
-                          <button
-                            key={session.id}
-                            onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[8px] md:text-[10px] leading-tight truncate font-sans transition-colors ${
-                              isCancelled ? "bg-red-50 text-red-300 line-through"
-                                : session.isExpired ? "bg-gray-50 text-gray-400"
-                                : session.myStatus === 'WAITLIST' ? "bg-orange-50 text-orange-600"
-                                : "bg-sage/10 text-sage hover:bg-sage/20"
-                            }`}
-                          >
-                            <span className="md:hidden">{session.time}</span>
-                            <span className="hidden md:inline">{session.time} {session.title}</span>
-                          </button>
-                        );
-                      })}
+                      {daySessions.slice(0, 2).map(session => (
+                        <button
+                          key={session.id}
+                          onClick={() => handleOpenDetail(session)}
+                          className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[8px] md:text-[10px] leading-tight truncate font-sans transition-colors ${getSessionStyle(session, 'calendar')}`}
+                        >
+                          <span className="md:hidden">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★${session.time}` : session.time}</span>
+                          <span className="hidden md:inline">{session.isHosted && !session.isHostCanceled && !session.isExpired ? `★ ${session.time}` : session.time} {session.title}</span>
+                        </button>
+                      ))}
                       {daySessions.length > 2 && (
                         <div className="text-[8px] md:text-[9px] text-gray-400 text-center font-sans">+{daySessions.length - 2}</div>
                       )}
@@ -491,15 +588,22 @@ export default function EnrolledPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
           <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
+            {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
+              <div className="inline-block bg-amber-400 text-white text-[9px] px-2.5 py-0.5 font-bold tracking-wider rounded-full mb-3">主揪</div>
+            )}
             <h2 className={`text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
-              <p className="flex items-center gap-3 italic"><MapPin size={14}/> {selectedSession.location}</p>
+              {selectedSession.isHosted ? (
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/> {selectedSession.location}</a>
+              ) : (
+                <p className="flex items-center gap-3 italic"><MapPin size={14}/> {selectedSession.location}</p>
+              )}
               <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主揪"}</p>
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
-              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed">
+              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed whitespace-pre-wrap">
                 <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
                 {selectedSession.notes}
               </div>
@@ -517,7 +621,14 @@ export default function EnrolledPage() {
               </div>
             </div>
             {!selectedSession.isExpired && !selectedSession.isHostCanceled && (
-              <div className="mt-8">
+              <div className="mt-8 space-y-3">
+                {selectedSession.isHosted && (
+                  <button
+                    onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
+                    className="w-full py-4 bg-sage text-white text-[10px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                    <Zap size={14} fill="currentColor" /> 進入場蹤看板
+                  </button>
+                )}
                 <button onClick={handleAddFriendClick}
                   className="w-full py-4 border border-sage text-sage text-[10px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
                   <PlusCircle size={14}/> ＋ 幫朋友報名 (限一位)
@@ -575,6 +686,24 @@ export default function EnrolledPage() {
               )}
               <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18}/> 確認取消報名</button>
               <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-xs tracking-widest hover:text-gray-600 transition-all uppercase">返回</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24}/></div>
+              <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2>
+              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
+              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p>
+              <div className="w-full space-y-3">
+                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-xs tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button>
+                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button>
+              </div>
             </div>
           </div>
         </div>
