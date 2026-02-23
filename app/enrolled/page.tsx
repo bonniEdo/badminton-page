@@ -27,7 +27,7 @@ export default function EnrolledPage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('week');
+  const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('list');
   const [filterType, setFilterType] = useState<'all' | 'hosted' | 'enrolled'>('all');
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
@@ -624,7 +624,15 @@ export default function EnrolledPage() {
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
           <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
-            <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {selectedSession.isHosted && (
+                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-gray-300 hover:text-sage transition-colors" title="複製療程"><Copy size={18}/></button>
+              )}
+              {selectedSession.isHosted && !selectedSession.isHostCanceled && !selectedSession.isExpired && (
+                <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="text-gray-300 hover:text-red-400 transition-colors" title="刪除療程"><Trash2 size={18}/></button>
+              )}
+              <button onClick={() => setSelectedSession(null)} className="text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
+            </div>
             {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
               <div className="inline-block bg-amber-400 text-white text-[10px] px-2.5 py-0.5 font-bold tracking-wider rounded-full mb-3">主揪</div>
             )}
