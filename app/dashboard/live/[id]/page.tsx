@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { 
   Users, Clock, RotateCcw, Zap, User, X, Check, Plus, 
   MapPin, Calendar, LayoutGrid, ChevronLeft, HelpCircle, CheckCircle, Info, ArrowRightLeft,
@@ -10,6 +10,7 @@ import AppHeader from "../../../components/AppHeader";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
+const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
 
 type Strategy = "fairness" | "balanced" | "peak";
 
@@ -45,7 +46,10 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     teamBNames: "" as string 
   });
 
-  const fetchData = async () => {
+  const gameInfoRef = useRef(gameInfo);
+  gameInfoRef.current = gameInfo;
+
+  const fetchData = useCallback(async () => {
     if (!gameId || gameId === 'undefined') return;
     try {
       const token = localStorage.getItem("token");
@@ -56,7 +60,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       ]);
       const jsonGame = await resGame.json();
       const jsonStatus = await resStatus.json();
-      if (jsonGame.success && !gameInfo) {
+      if (jsonGame.success && !gameInfoRef.current) {
         setGameInfo(jsonGame.data);
         expandCourtsTo(jsonGame.data.CourtCount || 1);
       }
@@ -66,7 +70,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, [gameId]);
 
   const expandCourtsTo = (targetCount: number) => {
     setCourtCount(targetCount);
@@ -86,11 +90,38 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     });
   };
 
+  const wsRef = useRef<WebSocket | null>(null);
+
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 20000);
-    return () => clearInterval(interval);
-  }, [gameId]);
+
+    const fallbackInterval = setInterval(fetchData, 60000);
+
+    let reconnectTimer: ReturnType<typeof setTimeout>;
+    function connectWs() {
+      if (wsRef.current?.readyState === WebSocket.OPEN) return;
+      try {
+        const ws = new WebSocket(WS_URL);
+        wsRef.current = ws;
+        ws.onopen = () => ws.send(JSON.stringify({ type: 'join', gameId }));
+        ws.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'refresh') fetchData();
+          } catch (_) {}
+        };
+        ws.onclose = () => { reconnectTimer = setTimeout(connectWs, 3000); };
+        ws.onerror = () => ws.close();
+      } catch (_) {}
+    }
+    connectWs();
+
+    return () => {
+      clearInterval(fallbackInterval);
+      clearTimeout(reconnectTimer);
+      wsRef.current?.close();
+    };
+  }, [gameId, fetchData]);
 
   const executeFinishMatch = async (matchId: number, winner: 'A' | 'B' | 'none') => {
     const token = localStorage.getItem("token");
@@ -267,9 +298,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       });
       const json = await res.json();
       if (json.success) {
-        setPlayers(prev => prev.map(p =>
-          p.playerId === playerId ? { ...p, paid_at: json.paid ? new Date().toISOString() : null } : p
-        ));
+        if (json.checkedIn) {
+          fetchData();
+        } else {
+          setPlayers(prev => prev.map(p =>
+            p.playerId === playerId ? { ...p, paid_at: json.paid ? new Date().toISOString() : null } : p
+          ));
+        }
       }
     } catch (err) { console.error(err); }
   };
