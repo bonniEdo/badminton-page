@@ -46,7 +46,7 @@ export default function InstallPrompt() {
     <button
       onClick={handleInstall}
       aria-label="加到主畫面"
-      className="fixed bottom-6 right-4 z-50 flex h-12 w-12 items-center justify-center
+      className="fixed bottom-20 right-4 z-50 flex h-12 w-12 items-center justify-center
                  rounded-full bg-sage text-paper shadow-md
                  transition-all duration-200 hover:opacity-90
                  active:scale-95 md:hidden"
