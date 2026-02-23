@@ -60,6 +60,7 @@ export default function LiveViewPage({
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [myPlayerId, setMyPlayerId] = useState<number | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
 
   const fetchData = async () => {
     if (!gameId || gameId === "undefined") return;
@@ -90,6 +91,28 @@ export default function LiveViewPage({
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const executeCheckIn = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setCheckingIn(true);
+    try {
+      const res = await fetch(`${API_URL}/api/match/checkin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ gameId }),
+      });
+      const json = await res.json();
+      if (json.success) await fetchData();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCheckingIn(false);
     }
   };
 
@@ -193,10 +216,15 @@ export default function LiveViewPage({
               : gameInfo?.GameDateTime?.slice(11, 16)}{" "}
             - {gameInfo?.EndTime?.slice(0, 5)}
           </span>
-          <span className="flex items-center gap-1.5 truncate">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gameInfo?.Location || "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 truncate underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"
+          >
             <MapPin size={12} className="text-sage" />
             {gameInfo?.Location}
-          </span>
+          </a>
         </div>
 
         {/* My Status */}
@@ -243,6 +271,16 @@ export default function LiveViewPage({
                 </p>
               </div>
             </div>
+            {myPlayer.status === "waiting_checkin" && (
+              <button
+                onClick={executeCheckIn}
+                disabled={checkingIn}
+                className="mt-3 w-full py-3 bg-sage text-white text-[11px] tracking-[0.3em] uppercase font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-sage/90 transition-all disabled:opacity-50"
+              >
+                <MapPin size={14} />
+                {checkingIn ? "報到中..." : "我到了，報到"}
+              </button>
+            )}
           </div>
         )}
 
