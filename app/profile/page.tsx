@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [matches, setMatches] = useState<any[]>([]);
   const [signups, setSignups] = useState<any[]>([]);
+  const [myGames, setMyGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ✅ 修正：取得本地 YYYY-MM-DD 字串（解決時差偏移）
@@ -50,15 +51,17 @@ export default function ProfilePage() {
       if (!token) return router.push("/");
       const headers = { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
 
-      const [resUser, resMatches, resSignups] = await Promise.all([
+      const [resUser, resMatches, resSignups, resMyGames] = await Promise.all([
         fetch(`${API_URL}/api/user/me`, { headers }).then(res => res.json()),
         fetch(`${API_URL}/api/match/my-history`, { headers }).then(res => res.json()),
-        fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json())
+        fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json()),
+        fetch(`${API_URL}/api/games/mygame`, { headers }).then(res => res.json())
       ]);
 
       if (resUser.success) setUserInfo(resUser.user);
       if (resMatches.success) setMatches(resMatches.data);
       if (resSignups.success) setSignups(resSignups.data);
+      if (resMyGames.success) setMyGames(resMyGames.data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -264,6 +267,13 @@ export default function ProfilePage() {
   const coachDetailed = getCoachAdviceDetailed(levelInt);
   const coachRough = getCoachAdviceRough(levelInt);
 
+  const pastSignups = signups.filter((s: any) => {
+    if (!s.GameDateTime) return false;
+    return new Date(s.GameDateTime) < new Date();
+  });
+  const attendedCount = pastSignups.filter((s: any) => !!s.check_in_at).length;
+  const attendanceRate = pastSignups.length > 0 ? Math.round((attendedCount / pastSignups.length) * 100) : 0;
+
   // ✅ 新增：Quick KPI（本週勝率：本週打幾場/贏幾場）
   const thisWeekMonday = getMonday(new Date());
   const weekStartStr = getLocalDateString(thisWeekMonday);
@@ -282,11 +292,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#FAF9F6] text-stone-800 font-serif pb-24 overflow-x-hidden selection:bg-sage/10">
       <AppHeader />
 
-      <div className="max-w-2xl mx-auto px-4 pt-6">
-        <h1 className="text-center text-[20px] tracking-[0.4em] font-black text-stone-500 uppercase italic leading-none">個人紀錄</h1>
-      </div>
-
-      <main className="max-w-2xl mx-auto px-4 md:px-8 animate-in fade-in duration-1000">
+      <main className="max-w-2xl mx-auto px-4 md:px-8 pt-6 animate-in fade-in duration-1000">
 
         {/* 個人主視覺 */}
         <section className="flex flex-col items-center mb-12">
@@ -315,7 +321,27 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* ✅ AI 教練建議（可切換：詳細/粗略/隱藏） */}
+        {/* 個人資訊 */}
+        <section className="mb-12">
+          <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2 mb-6 px-1">
+            <Activity className="w-3 h-3 text-sage/60" /> 個人資訊
+          </h3>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { label: "對戰勝率", value: `${winRate}%` },
+              { label: "建立場次", value: `${myGames.length}` },
+              { label: "報名場次", value: `${signups.length}` },
+              { label: "出席率", value: pastSignups.length > 0 ? `${attendanceRate}%` : "—" },
+            ].map((item, i) => (
+              <div key={i} className="bg-white/60 rounded-2xl border border-white shadow-sm p-4 flex flex-col items-center gap-2">
+                <p className="text-xl md:text-2xl font-black italic text-sage tracking-tight">{item.value}</p>
+                <p className="text-[8px] md:text-[9px] text-stone-400 font-bold tracking-widest uppercase">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* AI 教練建議（可切換：詳細/粗略/隱藏） */}
         {showCoach ? (
           <section className="mb-12">
             <div className="flex justify-between items-center mb-6 px-1">
@@ -513,19 +539,12 @@ export default function ProfilePage() {
 
         {/* 戰報儀表板：文青淺色 */}
         <section className="mb-12">
-          <div className="flex justify-between items-center mb-8 px-2 bg-white/60 p-6 rounded-[2rem] border border-white shadow-sm">
+          <div className="mb-8 px-2 bg-white/60 p-6 rounded-[2rem] border border-white shadow-sm">
             <div className="space-y-1">
               <h3 className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase">Battle Statistics</h3>
               <p className="text-lg md:text-xl font-black italic text-stone-800 tracking-widest leading-none">
                 {selectedDateStr ? `${selectedDateStr.slice(5).replace('-', '/')} 戰報` : "對戰紀錄"}
               </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] text-stone-500 font-bold uppercase tracking-widest mb-1">Win Rate</p>
-              <div className="flex items-baseline gap-1 text-sage font-black italic">
-                <span className="text-3xl md:text-4xl">{winRate}</span>
-                <span className="text-xs opacity-50">%</span>
-              </div>
             </div>
           </div>
 
