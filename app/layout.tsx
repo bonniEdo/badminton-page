@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Serif_TC } from "next/font/google";
 import "./globals.css";
 import AuthWatcher from "./AuthWatcher";
 import LiffProvider from './LiffProvider';
+import ServiceWorkerRegister from './components/ServiceWorkerRegister';
 
 const notoSerifTC = Noto_Serif_TC({
   subsets: ["latin"],
@@ -10,11 +11,22 @@ const notoSerifTC = Noto_Serif_TC({
   variable: "--font-serif",
 });
 
-// Metadata 保留在 Server Side，這對 SEO 很好
+export const viewport: Viewport = {
+  themeColor: "#8A9A5B",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://badminton-rehab.vercel.app"), 
+  metadataBase: new URL("https://badminton-rehab.vercel.app"),
   title: "Badminton-Rehab",
   description: "戒球日誌 · 在這裡，膩了，就是唯一的解藥。",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "戒球日誌",
+  },
   openGraph: {
     title: "Badminton-Rehab",
     description: "救命啊 好想打球",
@@ -45,8 +57,12 @@ export default function RootLayout({  children,
     children: React.ReactNode;
   }>) {
   return (
-    <html lang="en">
+    <html lang="zh-Hant">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body className={`${notoSerifTC.variable} antialiased`}>
+        <ServiceWorkerRegister />
         <LiffProvider>
           <AuthWatcher>
             {children}
