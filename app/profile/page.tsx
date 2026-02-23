@@ -342,8 +342,8 @@ export default function ProfilePage() {
           </div>
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-stone-900 uppercase">{userInfo?.username}</h2>
-              <span className="text-sm font-serif italic text-sage font-bold pt-1">Lv.{Math.floor(level)}</span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-stone-900 uppercase">{userInfo?.username}</h2>
+              <span className="text-base font-serif italic text-sage font-bold pt-1">Lv.{Math.floor(level)}</span>
             </div>
           </div>
         </section>
@@ -361,7 +361,7 @@ export default function ProfilePage() {
               { label: "出席率", value: pastSignups.length > 0 ? `${attendanceRate}%` : "—" },
             ].map((item, i) => (
               <div key={i} className="bg-white/60 rounded-2xl border border-white shadow-sm p-4 flex flex-col items-center gap-2">
-                <p className="text-xl md:text-2xl font-black italic text-sage tracking-tight">{item.value}</p>
+                <p className="text-2xl md:text-3xl font-black italic text-sage tracking-tight">{item.value}</p>
                 <p className="text-[8px] md:text-[9px] text-stone-400 font-bold tracking-widest uppercase">{item.label}</p>
               </div>
             ))}
@@ -406,7 +406,7 @@ export default function ProfilePage() {
 
                   {coachMode === "detailed" ? (
                     <>
-                      <p className="text-lg md:text-xl font-black italic text-stone-800 tracking-widest leading-snug">
+                      <p className="text-xl md:text-2xl font-black italic text-stone-800 tracking-widest leading-snug">
                         {coachDetailed.title}
                       </p>
                       <p className="text-[10px] md:text-[11px] text-stone-400 font-medium italic mt-2 flex items-center gap-2">
@@ -416,7 +416,7 @@ export default function ProfilePage() {
                     </>
                   ) : (
                     <>
-                      <p className="text-lg md:text-xl font-black italic text-stone-800 tracking-widest leading-snug">
+                      <p className="text-xl md:text-2xl font-black italic text-stone-800 tracking-widest leading-snug">
                         {coachRough.title}
                       </p>
                       <p className="text-[11px] md:text-[12px] text-stone-600 font-medium italic mt-3 leading-relaxed">
@@ -430,7 +430,7 @@ export default function ProfilePage() {
                 <div className="flex flex-col items-end gap-2">
                   <div className="px-3 py-2 rounded-2xl bg-sage/10 border border-white shadow-sm text-right">
                     <p className="text-[8px] text-stone-500 font-black uppercase tracking-widest">本週紀錄</p>
-                    <p className="text-xs font-black italic text-sage tracking-wider mt-1">
+                    <p className="text-sm font-black italic text-sage tracking-wider mt-1">
                       {weeklyValidMatches.length > 0 ? `${weeklyWins}/${weeklyValidMatches.length} Wins` : "No Records"}
                     </p>
                   </div>
@@ -557,7 +557,7 @@ export default function ProfilePage() {
                       }
                     `}
                   >
-                    <span className="text-[11px] md:text-xs font-black">{d.day}</span>
+                    <span className="text-[11px] md:text-sm font-black">{d.day}</span>
                     
                     {/* ✅ 點點邏輯對調：今天是白點點，其他有報名天數是黑點點 */}
                     {d.hasGame && (
@@ -580,7 +580,7 @@ export default function ProfilePage() {
               <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2">
                 <Trophy className="w-3 h-3 text-sage/60" /> Battle Statistics
               </h3>
-              <p className="text-xl md:text-2xl font-serif italic font-black text-stone-800 tracking-wider leading-none">
+              <p className="text-2xl md:text-3xl font-serif italic font-black text-stone-800 tracking-[0.15em] leading-none">
                 {selectedDateStr ? `${selectedDateStr.slice(5).replace('-', '/')} 戰報` : "對戰紀錄"}
               </p>
             </div>
@@ -590,110 +590,69 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* ✅ 玻璃感容器：bg-white/50 + border-white + rounded */}
-          <div className="bg-white/50 backdrop-blur-sm rounded-[2.5rem] border border-white shadow-sm overflow-hidden">
-            
-            <div className="flex flex-col">
-              {displayedMatches.length > 0 ? (
-                <>
-                  {displayedMatches.map((m, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`group relative px-6 md:px-10 py-6 md:py-8 transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0
-                        ${idx !== displayedMatches.length - 1 ? 'border-b border-white/40' : ''} 
-                        hover:bg-white/40`}
-                    >
-                      {/* 左側勝負索引邊條 (隱藏式設計) */}
-                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all duration-500 opacity-0 group-hover:opacity-100 ${
-                        m.result === 'win' ? 'bg-sage' : 'bg-stone-200'
-                      }`}></div>
-
-                      {/* 左側核心內容 */}
-                      <div className="flex items-center gap-5 md:gap-6">
-                        {/* 勝負圖示：圓形背景 */}
-                        <div className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center border transition-all duration-500 ${
-                          m.result === 'win' 
-                            ? 'border-sage/20 bg-sage text-white shadow-lg shadow-sage/20' 
-                            : 'border-white bg-white/40 text-stone-300 group-hover:bg-white'
-                        }`}>
-                          {m.result === 'win' ? <Trophy size={20} strokeWidth={1.5} /> : <XCircle size={20} strokeWidth={1.5} />}
-                        </div>
-                        
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-3">
-                            <h4 className="text-base md:text-lg font-bold text-stone-800 font-serif tracking-wider">
-                              Court {m.court_number}
-                            </h4>
-                            <span className={`text-[8px] md:text-[9px] uppercase tracking-[0.2em] font-black px-2.5 py-1 rounded-full ${
-                              m.result === 'win' ? 'bg-sage/10 text-sage' : 'bg-stone-200/50 text-stone-400'
-                            }`}>
-                              {m.result === 'win' ? 'Victory' : 'Defeat'}
-                            </span>
-                          </div>
-                          <p className="text-[10px] md:text-[12px] text-stone-400 font-medium tracking-wide flex items-center gap-1.5 mt-0.5">
-                            <MapPin size={13} className="text-sage/40" /> 
-                            {m.location}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 右側資訊 (日期與標籤) */}
-                      <div className="flex items-center justify-between md:justify-end md:gap-8 px-2 md:px-0">
-                        <div className="md:text-right">
-                          <p className="text-sm font-serif font-bold text-stone-300 group-hover:text-stone-800 transition-colors tracking-widest">
-                            {m.date ? m.date.slice(5, 10).replace('-', '/') : '--/--'}
-                          </p>
-                          <p className="text-[8px] uppercase tracking-widest text-stone-200 font-black mt-0.5">Recorded</p>
-                        </div>
-                        <ChevronRight size={18} className="text-stone-200 group-hover:text-sage group-hover:translate-x-1 transition-all" />
-                      </div>
+          {/* ✅ 對戰清單 - 簡約日誌風格 */}
+          <div className="space-y-3">
+            {displayedMatches.length > 0 ? displayedMatches.map((m, idx) => (
+              <div 
+                key={idx} 
+                className="group relative bg-white/50 hover:bg-white p-5 md:p-6 rounded-[2rem] border border-stone-100 hover:border-sage/30 shadow-sm transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0"
+              >
+                {/* 左側：狀態圖示與細節 */}
+                <div className="flex items-center gap-4 md:gap-5">
+                  {/* 勝負圖示：改成細緻的外框風格 */}
+                  <div className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-500 ${
+                    m.result === 'win' 
+                      ? 'border-sage/40 bg-sage/5 text-sage group-hover:bg-sage group-hover:text-white group-hover:border-sage' 
+                      : 'border-stone-200 bg-stone-50 text-stone-400 group-hover:bg-stone-100'
+                  }`}>
+                    {m.result === 'win' ? <Trophy size={18} strokeWidth={1.5} /> : <XCircle size={18} strokeWidth={1.5} />}
+                  </div>
+                  
+                  {/* 內文資訊 */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-3">
+                      <h4 className="text-base md:text-lg font-bold text-stone-800 font-serif tracking-wider">
+                        Court {m.court_number}
+                      </h4>
+                      {/* 勝負標籤 */}
+                      <span className={`text-[8px] md:text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded-full ${
+                        m.result === 'win' ? 'bg-sage/10 text-sage' : 'bg-stone-100 text-stone-400'
+                      }`}>
+                        {m.result === 'win' ? 'Victory' : 'Defeat'}
+                      </span>
                     </div>
-                  ))}
+                    <p className="text-[10px] md:text-[11px] text-stone-400 font-medium tracking-wide flex items-center gap-1 mt-0.5">
+                      <MapPin size={12} className="text-sage/40" strokeWidth={2} /> 
+                      {m.location}
+                    </p>
+                  </div>
+                </div>
 
-                  {/* ✅ 底部控制按鈕：展開與縮小 */}
-                  {filteredMatches.length > 5 && (
-                    <div className="flex border-t border-white/50 divide-x divide-white/50 bg-white/10">
-                      
-                      {/* 按鈕：顯示更多 (只有還有資料時才顯示) */}
-                      {filteredMatches.length > visibleCount && (
-                        <button 
-                          onClick={() => setVisibleCount(prev => prev + 10)}
-                          className="flex-1 py-6 hover:bg-white/30 text-[10px] tracking-[0.4em] font-black text-stone-400 hover:text-sage transition-all uppercase flex items-center justify-center gap-2"
-                        >
-                          View More
-                          <ChevronRight size={14} className="rotate-90" />
-                        </button>
-                      )}
-
-                      {/* 按鈕：收起紀錄 (只要展開過就顯示) */}
-                      {visibleCount > 5 && (
-                        <button 
-                          onClick={() => {
-                            setVisibleCount(5);
-                            // 收起時自動捲動回紀錄頂部，避免畫面跑掉
-                            document.getElementById('match-history-section')?.scrollIntoView({ behavior: 'smooth' });
-                          }}
-                          className="flex-1 py-6 hover:bg-white/30 text-[10px] tracking-[0.4em] font-black text-stone-400 hover:text-stone-600 transition-all uppercase flex items-center justify-center gap-2"
-                        >
-                          Show Less
-                          <ChevronRight size={14} className="-rotate-90" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                /* ✅ 空白狀態 */
-                <div className="py-24 flex flex-col items-center justify-center text-center">
-                  <span className="text-[10px] md:text-xs text-stone-300 font-bold uppercase tracking-[0.5em] font-serif mb-2">
-                    No Records
-                  </span>
-                  <p className="text-xs text-stone-400 tracking-[0.2em] italic">
-                    這段時間沒有任何成癮紀錄
+                {/* 右側：日期 (加入左側邊線產生票根感) */}
+                <div className="hidden md:block text-right pl-6 border-l border-stone-100 group-hover:border-sage/20 transition-colors">
+                  <p className="text-sm font-serif font-bold text-stone-300 group-hover:text-stone-500 transition-colors tracking-widest">
+                    {m.date ? m.date.slice(5, 10).replace('-', '/') : '--/--'}
                   </p>
                 </div>
-              )}
-            </div>
+                
+                {/* 手機版日期顯示 (位於右上角) */}
+                <div className="absolute top-5 right-5 md:hidden">
+                   <p className="text-[10px] font-serif font-bold text-stone-300 tracking-widest">
+                    {m.date ? m.date.slice(5, 10).replace('-', '/') : '--/--'}
+                  </p>
+                </div>
+              </div>
+            )) : (
+              /* ✅ 空白狀態 - 變得更優雅 */
+              <div className="py-20 flex flex-col items-center justify-center text-center border border-dashed border-stone-200 rounded-[2.5rem] bg-white/40 backdrop-blur-sm">
+                <span className="text-[10px] md:text-sm text-stone-400 font-bold uppercase tracking-[0.5em] font-serif mb-2">
+                  No Records
+                </span>
+                <p className="text-sm text-stone-400 tracking-[0.2em]">
+                  這段時間沒有任何成癮紀錄
+                </p>
+              </div>
+            )}
           </div>
         </section>
 

@@ -13,16 +13,16 @@ const CustomAlert = ({ isOpen, onClose, onConfirm, title, message }: any) => {
           <div className="w-12 h-12 rounded-full bg-[#E5ECE3] text-[#A8B58E] flex items-center justify-center mb-6">
             <ShuttlecockIcon size={24} />
           </div>
-          <h2 className="text-xl tracking-[0.3em] text-stone-700 font-light mb-4">{title}</h2>
+          <h2 className="text-2xl tracking-[0.3em] text-stone-700 font-light mb-4">{title}</h2>
           <div className="w-8 h-[1px] bg-stone-200 mb-6"></div>
-          <p className="text-sm text-stone-400 italic font-serif leading-relaxed mb-10 tracking-widest px-4">
+          <p className="text-base text-stone-400 italic font-serif leading-relaxed mb-10 tracking-widest px-4">
             {message}
           </p>
           <div className="w-full space-y-3">
-            <button onClick={onConfirm} className="w-full py-4 bg-[#A8B58E] text-white text-xs tracking-[0.4em] hover:bg-[#96A47C] transition-all uppercase rounded-full font-bold shadow-sm">
+            <button onClick={onConfirm} className="w-full py-4 bg-[#A8B58E] text-white text-sm tracking-[0.4em] hover:bg-[#96A47C] transition-all uppercase rounded-full font-bold shadow-sm">
               晚點檢測
             </button>
-            <button onClick={onClose} className="w-full py-4 border border-stone-100 text-stone-500 text-xs tracking-[0.4em] hover:bg-stone-50 transition-all uppercase rounded-full font-bold">
+            <button onClick={onClose} className="w-full py-4 border border-stone-100 text-stone-500 text-sm tracking-[0.4em] hover:bg-stone-50 transition-all uppercase rounded-full font-bold">
               返回診斷
             </button>
           </div>
@@ -138,9 +138,9 @@ export default function RatingWizardPage() {
     <div className="mt-10 flex flex-col items-center gap-2 animate-in fade-in zoom-in duration-1000">
       <div className="flex items-center gap-2 text-[#A8B58E] opacity-80">
         <Sparkles size={12} className="animate-pulse" />
-        <span className="text-[10px] tracking-[0.3em] uppercase font-bold">Automated Calibration</span>
+        <span className="text-[11px] tracking-[0.3em] uppercase font-bold">Automated Calibration</span>
       </div>
-      <p className="text-[10px] text-stone-400 italic tracking-[0.15em] font-serif text-center px-6">
+      <p className="text-[11px] text-stone-400 italic tracking-[0.15em] font-serif text-center px-6">
         「 別擔心，本所 AI 醫師會根據您的後續表現動態調整藥方強度。 」
       </p>
     </div>
@@ -157,7 +157,7 @@ export default function RatingWizardPage() {
       />
 
       <div className="w-full max-w-sm relative py-12">
-        <button onClick={handleSkip} className="absolute top-0 right-0 text-[10px] tracking-[0.4em] text-stone-500 hover:text-[#A8B58E] transition-colors border-b border-stone-100 pb-1 uppercase">
+        <button onClick={handleSkip} className="absolute top-0 right-0 text-[11px] tracking-[0.4em] text-stone-500 hover:text-[#A8B58E] transition-colors border-b border-stone-100 pb-1 uppercase">
           Escape / 暫緩診斷
         </button>
 
@@ -173,10 +173,10 @@ export default function RatingWizardPage() {
         {step === 1 && (
           <div>
             <div className="mb-14 text-center">
-              <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 01</span>
+              <span className="text-[11px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 01</span>
               <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">病 徵</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-xs text-stone-500 tracking-[0.2em] italic">請如實告知症狀，方便醫師對症下藥</p>
+              <p className="text-sm text-stone-500 tracking-[0.2em] italic">請如實告知症狀，方便醫師對症下藥</p>
             </div>
             <div className="space-y-4">
               {categories.map((cat) => {
@@ -193,19 +193,19 @@ export default function RatingWizardPage() {
                           ? 'bg-[#A8B58E] shadow-md'
                           : 'bg-white border border-stone-50 hover:border-[#A8B58E]/30'
                       }`}>
-                      <span className={`text-lg font-light transition-colors ${isOpen ? 'text-white' : 'text-stone-600'}`}>{cat.title}</span>
-                      <span className={`text-[9px] tracking-[0.2em] uppercase font-bold transition-colors ${isOpen ? 'text-white/70' : 'text-stone-500'}`}>{cat.sub}</span>
+                      <span className={`text-xl font-light transition-colors ${isOpen ? 'text-white' : 'text-stone-600'}`}>{cat.title}</span>
+                      <span className={`text-[10px] tracking-[0.2em] uppercase font-bold transition-colors ${isOpen ? 'text-white/70' : 'text-stone-500'}`}>{cat.sub}</span>
                     </button>
                     <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                       <div className="overflow-hidden">
                         <div className="pt-3 px-1">
                           <div className="bg-white border border-stone-50 rounded-2xl p-6 shadow-sm">
-                            <p className="text-sm text-stone-400 leading-relaxed tracking-wider italic mb-6">
+                            <p className="text-base text-stone-400 leading-relaxed tracking-wider italic mb-6">
                               {cat.desc}
                             </p>
                             <button
                               onClick={() => goToStep(2)}
-                              className="w-full py-3.5 bg-[#A8B58E] text-white text-[10px] tracking-[0.4em] hover:bg-[#96A47C] transition-all uppercase rounded-full font-bold">
+                              className="w-full py-3.5 bg-[#A8B58E] text-white text-[11px] tracking-[0.4em] hover:bg-[#96A47C] transition-all uppercase rounded-full font-bold">
                               確認症狀 · 下一步
                             </button>
                           </div>
@@ -224,15 +224,15 @@ export default function RatingWizardPage() {
         {step === 2 && (
           <div>
             <div className="mb-14 text-center">
-              <span className="text-[10px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 02</span>
+              <span className="text-[11px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 02</span>
               <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">球 齡</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-xs text-stone-500 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
+              <p className="text-sm text-stone-500 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
             </div>
             <div className="space-y-5">
               {yearsOptions.map((opt) => (
                 <button key={opt.label} onClick={() => handleSelectYears(opt)}
-                  className="w-full py-7 border border-stone-50 bg-white hover:bg-[#A8B58E] hover:text-white transition-all text-sm tracking-[0.4em] text-stone-500 rounded-2xl shadow-sm hover:shadow-lg active:scale-[0.98]">
+                  className="w-full py-7 border border-stone-50 bg-white hover:bg-[#A8B58E] hover:text-white transition-all text-base tracking-[0.4em] text-stone-500 rounded-2xl shadow-sm hover:shadow-lg active:scale-[0.98]">
                   {opt.label}
                 </button>
               ))}
@@ -248,17 +248,17 @@ export default function RatingWizardPage() {
                 <div className="w-20 h-20 rounded-full bg-[#E5ECE3] text-[#A8B58E] flex items-center justify-center mb-6 shadow-inner">
                   <UserCheck size={40} />
                 </div>
-                <span className="text-[10px] tracking-[0.6em] text-[#A8B58E] font-bold uppercase block">Diagnosis Complete</span>
+                <span className="text-[11px] tracking-[0.6em] text-[#A8B58E] font-bold uppercase block">Diagnosis Complete</span>
               </div>
               <h2 className="text-4xl tracking-[0.3em] font-light mb-8 text-stone-800">入所手續完成</h2>
               <div className="w-16 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-xs text-gray-400 leading-loose tracking-[0.15em] px-4 font-sans italic">
+              <p className="text-sm text-gray-400 leading-loose tracking-[0.15em] px-4 italic">
                 「紀錄已入冊。<br/>
                 專屬你的『擊球日常』已準備就緒，<br/>
                 系統正為您媒合球癮相近的夥伴。」
               </p>
             </div>
-            <button onClick={handleFinish} className="w-full py-5 bg-[#A8B58E] text-white tracking-[0.4em] hover:bg-[#96A47C] transition-all rounded-full shadow-xl shadow-[#A8B58E]/20 text-xs font-bold uppercase relative overflow-hidden">
+            <button onClick={handleFinish} className="w-full py-5 bg-[#A8B58E] text-white tracking-[0.4em] hover:bg-[#96A47C] transition-all rounded-full shadow-xl shadow-[#A8B58E]/20 text-sm font-bold uppercase relative overflow-hidden">
               <span className="absolute inset-0 bg-[#96A47C] origin-left transition-none" style={{ transform: `scaleX(${(5 - countdown) / 5})` }} />
               <span className="relative">{countdown > 0 ? `${countdown} 秒後自動入所` : '正在進入⋯'}</span>
             </button>
@@ -269,7 +269,7 @@ export default function RatingWizardPage() {
         {step === 2 && (
           <div className="mt-16 flex justify-center">
             <button onClick={() => goToStep(1)}
-              className="flex items-center gap-2 px-6 py-2 border border-stone-100 text-stone-400 hover:text-[#A8B58E] hover:border-[#A8B58E]/30 transition-all rounded-full text-[10px] tracking-[0.4em] uppercase bg-white/50">
+              className="flex items-center gap-2 px-6 py-2 border border-stone-100 text-stone-400 hover:text-[#A8B58E] hover:border-[#A8B58E]/30 transition-all rounded-full text-[11px] tracking-[0.4em] uppercase bg-white/50">
               <ChevronLeft size={14} className="-ml-1" />
               BACK / 回上一步
             </button>
@@ -278,7 +278,7 @@ export default function RatingWizardPage() {
         </div>
       </div>
 
-      <footer className="mt-auto py-10 text-[8px] text-stone-200 tracking-[0.8em] uppercase text-center opacity-60">
+      <footer className="mt-auto py-10 text-[9px] text-stone-200 tracking-[0.8em] uppercase text-center opacity-60">
         Badminton Addiction Rehab Center &copy; 2025
       </footer>
     </main>

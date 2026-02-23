@@ -77,7 +77,7 @@ export default function CreatePage() {
       <AppHeader />
 
       <main className="max-w-xl mx-auto p-6 mt-8">
-        <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink font-sans">
+        <form onSubmit={handleCreate} className="bg-white border border-stone p-8 space-y-6 shadow-sm text-ink">
           <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">發起新的球局</p></div>
 
           <div>
@@ -135,7 +135,7 @@ export default function CreatePage() {
             <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
               {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
             </div>
-            <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
+            <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
             <p className="text-sm text-gray-400 italic mb-10 tracking-widest">{msg.content}</p>
             <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] uppercase hover:bg-stone/5 transition">我知道了</button>
           </div>

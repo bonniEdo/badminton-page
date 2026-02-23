@@ -102,8 +102,8 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
         <div className="animate-in fade-in duration-700 space-y-6">
           <h1 className="text-4xl font-light tracking-[0.5em] text-sage">勒戒中心</h1>
           <div className="space-y-2">
-            <p className="text-xl text-ink">身分識別中 ...</p>
-            <p className="text-sm text-gray-400 italic">「 勒戒通道即將開啟。 」</p>
+            <p className="text-2xl text-ink">身分識別中 ...</p>
+            <p className="text-base text-gray-400 italic">「 勒戒通道即將開啟。 」</p>
           </div>
           <div className="flex justify-center mt-8">
             <div className="w-12 h-[1px] bg-sage animate-pulse"></div>

@@ -58,19 +58,19 @@ export default function AuthWatcher({ children }: { children: React.ReactNode })
                 <Clock size={28} strokeWidth={1.5} />
               </div>
               
-              <h2 className="text-xl tracking-[0.4em] text-sage font-light mb-4">
+              <h2 className="text-2xl tracking-[0.4em] text-sage font-light mb-4">
                 勒戒告一段落
               </h2>
               
               <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
               
-              <p className="text-xs text-gray-400 italic font-serif leading-relaxed mb-10 tracking-[0.15em]">
+              <p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-[0.15em]">
                 「 時光悄然流逝，您的通行證已失效。<br/>為了更好的回歸，請重新啟動。 」
               </p>
 
               <button
                 onClick={handleConfirm}
-                className="w-full py-4 border border-stone text-stone-400 text-[10px] tracking-[0.5em] hover:bg-stone/5 transition-all uppercase font-light"
+                className="w-full py-4 border border-stone text-stone-400 text-[11px] tracking-[0.5em] hover:bg-stone/5 transition-all uppercase font-light"
               >
                 回到起點
               </button>

@@ -32,7 +32,7 @@ export default function AppHeader() {
           <div className="flex items-center gap-3">
             <Link href="/browse" className="flex items-center gap-1.5 mr-1">
               <ShuttlecockIcon size={18} className="text-sage" />
-              <span className="text-sm tracking-[0.1em] text-sage font-bold">羽球勒戒所</span>
+              <span className="text-base tracking-[0.1em] text-sage font-bold">羽球勒戒所</span>
             </Link>
             <div className="h-5 w-[1px] bg-stone/30" />
             <div className="flex items-center gap-1">
@@ -40,7 +40,7 @@ export default function AppHeader() {
                 const active = pathname === href || pathname.startsWith(href + "/");
                 return (
                   <Link key={href} href={href}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs tracking-[0.05em] transition-all duration-200 ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm tracking-[0.05em] transition-all duration-200 ${
                       active ? "bg-sage/10 text-sage font-bold" : "text-stone-400 hover:text-sage"
                     }`}>
                     <Icon size={16} strokeWidth={active ? 2.2 : 1.5} />
@@ -53,7 +53,7 @@ export default function AppHeader() {
           <Link href="/profile" className="flex items-center gap-2.5 group">
             <div className="flex flex-col items-end leading-none">
               <div className="flex items-center gap-0.5">
-                <span className="text-xs text-stone-700 font-bold">{userInfo?.username || "—"}</span>
+                <span className="text-sm text-stone-700 font-bold">{userInfo?.username || "—"}</span>
                 {(userInfo?.verified_matches || 0) >= 3 && <CheckCircle size={12} className="text-blue-500 fill-blue-50" />}
               </div>
               <span className="text-[9px] tracking-[0.08em] text-sage font-bold mt-0.5">

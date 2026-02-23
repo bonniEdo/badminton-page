@@ -358,16 +358,16 @@ export default function Dashboard() {
     <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
       <nav className="flex justify-between items-center px-4 py-3 md:px-8 md:py-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-30">
         <div className="flex flex-col items-start">
-          <h1 className="text-lg md:text-xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">戒球日誌</h1>
+          <h1 className="text-xl md:text-2xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">戒球日誌</h1>
           <div className="hidden md:block w-12 h-[1px] bg-sage/30 my-2"></div>
-          <p className="hidden md:block text-[10px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
+          <p className="hidden md:block text-[11px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
         </div>
         <Link href="/browse" className="group flex items-center gap-3 md:gap-4 transition-all">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">尋找球局</span>             
+            <span className="text-[11px] md:text-sm tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">尋找球局</span>             
             <div className="flex items-center gap-1 md:gap-2">
               <div className="w-1 h-1 rounded-full bg-sage/40"></div>
-              <span className="text-[8px] md:text-[9px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">Search</span>
+              <span className="text-[9px] md:text-[10px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">Search</span>
             </div>
           </div>
           <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-sage/[0.03] border border-sage/[0.08] flex items-center justify-center transition-all duration-500 group-hover:bg-sage/[0.06] group-hover:scale-105 group-hover:rotate-3 shadow-sm">
@@ -378,7 +378,7 @@ export default function Dashboard() {
 
       <div className="max-w-4xl mx-auto px-6 mt-10">
         <div className="flex justify-between items-center border-b border-stone/30">
-          <div className="flex gap-12 text-sm tracking-[0.2em]">
+          <div className="flex gap-12 text-base tracking-[0.2em]">
             {[{ id: "joined", label: "我報名的" }, { id: "hosted", label: "我發布的" }].map((tab) => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`pb-4 transition-all relative ${activeTab === tab.id ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>
                 {tab.label}
@@ -390,7 +390,7 @@ export default function Dashboard() {
           {/* ✅ 過期顯示開關 */}
           <button 
             onClick={() => setShowExpired(!showExpired)}
-            className={`flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
+            className={`flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full border transition-all text-[11px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
           >
             {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
             {showExpired ? "顯示過期" : "隱藏過期"}
@@ -421,16 +421,16 @@ export default function Dashboard() {
                     <div className="absolute top-0 right-0">
                       {!isCancelled && !session.isExpired && (
                         <>
-                          {session.status === 'idle' && <div className="bg-sage text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
-                          {session.status === 'playing' && <div className="bg-blue-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
-                          {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
+                          {session.status === 'idle' && <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
+                          {session.status === 'playing' && <div className="bg-blue-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
+                          {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
                         </>
                       )}
-                      {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已打完</div>}
+                      {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已打完</div>}
                     </div>
 
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className={`text-lg tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : ""}`}>{session.title}</h3>
+                      <h3 className={`text-xl tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : ""}`}>{session.title}</h3>
                         {!isCancelled && !session.isExpired && session.status === 'waiting_checkin' && (
                           <button 
                             onClick={(e) => handleLeave(e, session)} 
@@ -441,7 +441,7 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    <div className="text-xs text-gray-500 font-sans space-y-1.5">
+                    <div className="text-sm text-gray-500 space-y-1.5">
                       <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
                       <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
                       <p className="flex items-center gap-2"><MapPin size={12}/> {session.location}</p>
@@ -451,7 +451,7 @@ export default function Dashboard() {
                       <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
                         <button 
                           onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
-                          className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[10px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif"
+                          className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[11px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif"
                         >
                           我來了歐
                         </button>
@@ -459,7 +459,7 @@ export default function Dashboard() {
                     )}
 
                     <div className="flex justify-end mt-6">
-                      {isCancelled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">主揪已取消</span> : session.isExpired ? <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">已嘗試勒戒</span> : <span className={`text-[11px] font-sans tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className={`font-bold`}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                      {isCancelled ? <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">主揪已取消</span> : session.isExpired ? <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">已嘗試勒戒</span> : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className={`font-bold`}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
                     </div>
                   </div>
                 );
@@ -482,7 +482,7 @@ export default function Dashboard() {
               }`}
             >
               <div className="flex justify-between items-start mb-3">
-                <h3 className={`text-lg tracking-wide pr-4 ${s.isHostCanceled ? "text-stone-500" : s.isExpired ? "text-gray-400" : ""}`}>
+                <h3 className={`text-xl tracking-wide pr-4 ${s.isHostCanceled ? "text-stone-500" : s.isExpired ? "text-gray-400" : ""}`}>
                   {s.title}
                 </h3>
                 <div className="flex gap-3">
@@ -503,7 +503,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="text-xs text-gray-500 font-sans space-y-1.5">
+              <div className="text-sm text-gray-500 space-y-1.5">
                 <p className="flex items-center gap-2"><Calendar size={12} /> {s.date}</p>
                 <p className="flex items-center gap-2"><Clock size={12} /> {s.time} - {s.endTime}</p>
                 <p className="flex items-center gap-2"><MapPin size={12} /> {s.location}</p>
@@ -511,11 +511,11 @@ export default function Dashboard() {
 
               <div className="flex justify-end mt-6">
                 {s.isHostCanceled ? (
-                  <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
+                  <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
                 ) : s.isExpired ? (
-                  <span className="text-[11px] text-gray-400 italic tracking-widest uppercase">球局紀錄</span>
+                  <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">球局紀錄</span>
                 ) : (
-                  <span className="text-[11px] text-gray-400 font-sans tracking-tighter">
+                  <span className="text-[12px] text-gray-400 tracking-tighter">
                     <span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人
                   </span>
                 )}
@@ -526,7 +526,7 @@ export default function Dashboard() {
                   <Link
                     href={`/dashboard/live/${s.id}`}
                     onClick={(e) => e.stopPropagation()} 
-                    className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[10px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[11px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm"
                   >
                     <Zap size={12} fill="currentColor" className="animate-pulse" />
                     進入場蹤看板
@@ -544,27 +544,27 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
           <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
-            <h2 className={`text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
-            <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
+            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
+            <div className="space-y-4 text-sm text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14} /> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <p className="flex items-center gap-3 italic"><MapPin size={14} /> {selectedSession.location}</p>
               <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage" /> {selectedSession.phone ? selectedSession.phone : "現場找主揪"}</p>
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14} /> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
-                <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed">
+                <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-sm italic text-gray-500 leading-relaxed">
                   <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter"><FileText size={12} /> Notes</div>
                   {selectedSession.notes}
                 </div>
             )}
             <div className="border-t border-stone/10 pt-6">
-              <div className="flex justify-between items-center mb-4"><h3 className="text-[10px] tracking-widest text-gray-400 uppercase">Participants</h3><span className="text-[10px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
+              <div className="flex justify-between items-center mb-4"><h3 className="text-[11px] tracking-widest text-gray-400 uppercase">Participants</h3><span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
               <div className="max-h-32 overflow-y-auto custom-scrollbar">
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
                     <div 
                       key={i} 
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] border 
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border 
                         ${p.Status === 'WAITLIST' 
                           ? 'text-stone-500 border-dashed border-stone-200' 
                           : 'text-sage border-sage/20 bg-sage/5'}`}
@@ -581,7 +581,7 @@ export default function Dashboard() {
               <div className="mt-8">
                 <button 
                   onClick={handleAddFriendClick}
-                  className="w-full py-4 border border-sage text-sage text-[10px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2"
+                  className="w-full py-4 border border-sage text-sage text-[11px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2"
                 >
                   <PlusCircle size={14} /> ＋ 幫朋友報名 (限一位)
                 </button>
@@ -598,8 +598,8 @@ export default function Dashboard() {
               <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8">
                  <Layout className="text-sage opacity-50" size={24} />
               </div>
-              <h2 className="text-2xl tracking-[0.3em] text-stone-700 font-light mb-2">朋友的程度</h2>
-              <p className="text-[10px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
+              <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">朋友的程度</h2>
+              <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
               
               <div className="space-y-4">
                  {[
@@ -611,7 +611,7 @@ export default function Dashboard() {
                    <button 
                     key={lvl.value}
                     onClick={() => executeAddFriend(lvl.value)}
-                    className="w-full py-5 px-6 rounded-full border border-stone/10 bg-white text-stone-500 text-xs tracking-[0.2em] hover:bg-sage hover:text-white hover:border-sage transition-all duration-500 font-light"
+                    className="w-full py-5 px-6 rounded-full border border-stone/10 bg-white text-stone-500 text-sm tracking-[0.2em] hover:bg-sage hover:text-white hover:border-sage transition-all duration-500 font-light"
                    >
                      {lvl.label}
                    </button>
@@ -620,7 +620,7 @@ export default function Dashboard() {
 
               <button 
                 onClick={() => setLevelModal({ isOpen: false })}
-                className="mt-10 text-[10px] text-gray-300 tracking-[0.4em] uppercase hover:text-stone-500"
+                className="mt-10 text-[11px] text-gray-300 tracking-[0.4em] uppercase hover:text-stone-500"
               >
                 取消
               </button>
@@ -629,19 +629,19 @@ export default function Dashboard() {
       )}
 
       {msg.isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center"><div className="flex flex-col items-center"><div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>{msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}</div><h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2><div className="w-8 h-[1px] bg-stone/30 mb-6"></div><p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p><button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button></div></div></div>
+        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center"><div className="flex flex-col items-center"><div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>{msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}</div><h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2><div className="w-8 h-[1px] bg-stone/30 mb-6"></div><p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p><button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button></div></div></div>
       )}
       {cancelMenu.isOpen && cancelMenu.session && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-lg tracking-widest text-sage font-bold">取消報名</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
-            <p className="text-sm text-gray-500 mb-8 font-sans leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
-            <div className="space-y-4">{(cancelMenu.session?.friendCount || 0) > 0 && (<button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-sm tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18} /> 僅取消朋友 (保留本人)</button>)}<button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-sm tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18} /> 確認取消報名</button><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-xs tracking-widest hover:text-gray-600 transition-all uppercase">回到我的日誌</button></div>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl tracking-widest text-sage font-bold">取消報名</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
+            <p className="text-base text-gray-500 mb-8 leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
+            <div className="space-y-4">{(cancelMenu.session?.friendCount || 0) > 0 && (<button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-base tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18} /> 僅取消朋友 (保留本人)</button>)}<button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-base tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18} /> 確認取消報名</button><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-sm tracking-widest hover:text-gray-600 transition-all uppercase">回到我的日誌</button></div>
           </div>
         </div>
       )}
       {deleteConfirm.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center"><div className="flex flex-col items-center"><div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24} /></div><h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2><div className="w-8 h-[1px] bg-stone/30 mb-6"></div><p className="text-sm text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p><div className="w-full space-y-3"><button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-xs tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button><button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-xs tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button></div></div></div></div>
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center"><div className="flex flex-col items-center"><div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24} /></div><h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2><div className="w-8 h-[1px] bg-stone/30 mb-6"></div><p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p><div className="w-full space-y-3"><button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button><button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button></div></div></div></div>
       )}
       {checkInModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-paper/95 backdrop-blur-md animate-in fade-in duration-700">
@@ -650,19 +650,19 @@ export default function Dashboard() {
                <MapPin size={28} strokeWidth={1} className="text-[#A68F4C] animate-bounce" />
             </div>
             <div className="space-y-4">
-              <h2 className="text-xl tracking-[0.4em] text-stone-800 font-light">抵達現場</h2>
+              <h2 className="text-2xl tracking-[0.4em] text-stone-800 font-light">抵達現場</h2>
               <div className="w-8 h-[1px] bg-[#D6C58D]/40 mx-auto"></div>
-              <p className="text-[11px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但故事已經開始了。 」</p>
+              <p className="text-[12px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但故事已經開始了。 」</p>
             </div>
             <div className="space-y-3">
-              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[10px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
-              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[9px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
+              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[11px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
+              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[10px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
             </div>
           </div>
         </div>
       )}
 
-      <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone text-gray-400 hover:text-red-400 hover:border-red-400 transition-all text-[10px] tracking-widest z-50 uppercase"><LogOut size={12} /> Sign Out</button>
+      <button onClick={handleLogout} className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone text-gray-400 hover:text-red-400 hover:border-red-400 transition-all text-[11px] tracking-widest z-50 uppercase"><LogOut size={12} /> Sign Out</button>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
