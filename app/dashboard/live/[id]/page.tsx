@@ -185,7 +185,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     const idlePlayers = players.filter(p => p.status === 'idle' && !assignedIds.includes(p.playerId));
     
     if (idlePlayers.length < 4) {
-        setMsg({ isOpen: true, title: "球員不足", content: "待命池至少需要 4 位球員才能進行智慧配對。", type: "info", onConfirm: null, onCancel: null, teamANames:"",teamBNames:"" });
+        setMsg({ isOpen: true, title: "病友不足", content: "待命區至少需要 4 位病友才能進行智慧配對。", type: "info", onConfirm: null, onCancel: null, teamANames:"",teamBNames:"" });
         return;
     }
 
@@ -286,7 +286,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           <div className="flex flex-col items-start">
              <span className="text-sm md:text-2xl font-serif italic text-sage font-bold">Lv.{Math.floor(p.level)}</span>
              {!isVerified && !p.displayName.includes("+1") && (
-               <span className="text-[8px] md:text-[11px] text-stone-500 font-normal not-italic tracking-tighter block leading-none">(診斷中)</span>
+               <span className="text-[8px] md:text-[11px] text-stone-500 font-normal not-italic tracking-tighter block leading-none">(待認證)</span>
              )}
           </div>
         </div>
@@ -312,7 +312,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         </button>
         <h1 className="text-[11px] md:text-base font-bold tracking-[0.2em] md:tracking-[0.3em] text-stone-800 uppercase truncate max-w-[120px] sm:max-w-[200px] md:max-w-none">{gameInfo?.Title}</h1>
         <button onClick={() => setIsBenchOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-sage text-white text-[10px] md:text-[11px] tracking-widest uppercase rounded-full shadow-md md:hidden">
-            <Users size={12} /> 待命池
+            <Users size={12} /> 待命區
         </button>
         <div className="hidden md:block w-24"></div>
       </div>
@@ -321,9 +321,9 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         <aside className={`fixed inset-y-0 left-0 z-[60] w-[85vw] max-w-[360px] md:w-80 bg-white border-r border-stone-200 p-4 md:p-5 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 shadow-2xl md:shadow-none"}`}>
             <div className="flex justify-between items-center mb-4 md:mb-5 border-l-4 border-sage pl-3">
                 <div>
-                    <h2 className="text-xl md:text-lg tracking-widest font-bold text-stone-800 uppercase">{pendingSlot ? '選擇球員' : '報名名單'}</h2>
+                    <h2 className="text-xl md:text-lg tracking-widest font-bold text-stone-800 uppercase">{pendingSlot ? '選擇病友' : '掛號名冊'}</h2>
                     <p className="text-[11px] md:text-[10px] text-sage font-bold tracking-[0.2em] opacity-50 italic">
-                        {pendingSlot ? `指派至場地 ${pendingSlot.courtNum} 位置 ${pendingSlot.slotIndex + 1}` : `${players.length} 人報名 · ${players.filter(p => p.status !== 'waiting_checkin').length} 人已到`}
+                        {pendingSlot ? `指派至場地 ${pendingSlot.courtNum} 位置 ${pendingSlot.slotIndex + 1}` : `${players.length} 人掛號 · ${players.filter(p => p.status !== 'waiting_checkin').length} 人已到`}
                     </p>
                 </div>
                 <button className="md:hidden text-stone-500 p-1" onClick={() => { setIsBenchOpen(false); setPendingSlot(null); }}><X size={28} /></button>
@@ -542,7 +542,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                                             {player && (
                                                               <div className="flex flex-col items-center">
                                                                 <span className="text-[11px] text-sage font-serif italic font-bold mt-0.5 md:mt-1">Lv.{Math.floor(player.level)}</span>
-                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[8px] text-stone-500">(診斷中)</span>}
+                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[8px] text-stone-500">(待認證)</span>}
                                                               </div>
                                                             )}
                                                         </div>
@@ -569,7 +569,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                                                             {player && (
                                                               <div className="flex flex-col items-center">
                                                                 <span className="text-[11px] text-stone-400 font-serif italic font-bold mt-0.5 md:mt-1">Lv.{Math.floor(player.level)}</span>
-                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[8px] text-stone-500">(診斷中)</span>}
+                                                                {!isV && !player.displayName.includes("+1") && <span className="text-[8px] text-stone-500">(待認證)</span>}
                                                               </div>
                                                             )}
                                                         </div>
@@ -621,7 +621,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 })}
                 <button onClick={() => { expandCourtsTo(courtCount + 1); setActiveCourt((courtCount + 1).toString()); }} className="hidden md:flex flex-col items-center justify-center p-8 md:p-12 border-4 border-dashed border-stone-200 rounded-sm hover:border-sage hover:bg-sage/5 transition-all group min-h-[200px] md:min-h-[580px]">
                     <Plus className="w-8 h-8 md:w-10 md:h-10 text-stone-200 group-hover:text-sage mb-3 md:mb-4 transition-transform group-hover:rotate-90 duration-500" />
-                    <p className="text-[11px] md:text-sm tracking-[0.3em] md:tracking-[0.4em] text-stone-500 group-hover:text-sage uppercase italic font-bold">加開場地</p>
+                    <p className="text-[11px] md:text-sm tracking-[0.3em] md:tracking-[0.4em] text-stone-500 group-hover:text-sage uppercase italic font-bold">加開診間</p>
                 </button>
             </div>
         </main>
@@ -688,7 +688,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         <div className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-stone-900/90 backdrop-blur-md text-white px-6 md:px-8 py-4 md:py-5 rounded-full shadow-2xl flex items-center gap-4 md:gap-6 animate-in slide-in-from-bottom-10 border border-sage/30">
            <div className="flex items-center gap-2.5 md:gap-3">
              <div className="w-2 h-2 bg-sage rounded-full animate-pulse shadow-[0_0_8px_rgba(135,141,121,0.8)]"></div>
-             <span className="text-[11px] md:text-[12px] tracking-[0.2em] md:tracking-[0.3em] uppercase italic font-bold">已選擇 {selectedPlayerIds.length} 位球員</span>
+             <span className="text-[11px] md:text-[12px] tracking-[0.2em] md:tracking-[0.3em] uppercase italic font-bold">已選擇 {selectedPlayerIds.length} 位病友</span>
            </div>
            <button onClick={() => setSelectedPlayerIds([])} className="ml-1 text-stone-400 hover:text-white p-1"><X size={18}/></button>
         </div>

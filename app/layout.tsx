@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Badminton-Rehab",
-    description: "救命啊 好想打球",
+    description: "承認吧，你已經回不去了。一起來勒戒。",
     url: "https://badminton-rehab.vercel.app/",
     siteName: "Badminton-Rehab-Center",
     images: [
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Badminton-Rehab",
-    description: "救命啊 好想打球",
+    description: "承認吧，你已經回不去了。一起來勒戒。",
     images: ["https://badminton-rehab.vercel.app/og.png"],
   },
 };

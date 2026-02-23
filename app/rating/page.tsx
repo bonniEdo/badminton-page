@@ -153,7 +153,7 @@ export default function RatingWizardPage() {
         onClose={() => setIsAlertOpen(false)}
         onConfirm={confirmSkip}
         title="試圖逃跑？"
-        message="暫緩診斷將無法精準媒合球友，確定要先進入嗎？"
+        message="暫緩診斷將無法精準媒合病友，確定要先進入嗎？"
       />
 
       <div className="w-full max-w-sm relative py-12">
@@ -279,7 +279,7 @@ export default function RatingWizardPage() {
       </div>
 
       <footer className="mt-auto py-10 text-[9px] text-stone-200 tracking-[0.8em] uppercase text-center opacity-60">
-        Badminton Addiction Rehab Center &copy; 2025
+        Badminton Addiction Rehab Center &copy; 2025 · No Cure Yet
       </footer>
     </main>
   );

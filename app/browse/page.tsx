@@ -165,7 +165,7 @@ export default function Browse() {
     if (!selectedSession) return;
     const hasAddedFriend = selectedSession.friendCount && selectedSession.friendCount >= 1;
     if (hasAddedFriend) {
-      setMsg({ isOpen: true, title: "提 醒", content: "每人限帶一位朋友", type: "info" });
+      setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
       return;
     }
     setFriendLevelModal({ isOpen: true, type: "add" });
@@ -181,7 +181,7 @@ export default function Browse() {
     });
     const json = await res.json();
     if (json.success) {
-      setMsg({ isOpen: true, title: "預約成功", content: "期待在球場與你相遇。", type: "success" });
+      setMsg({ isOpen: true, title: "掛號成功", content: "期待在場上與你相遇。", type: "success" });
       fetchData(true);
       setJoinedIds(prev => [...prev, selectedSession.id]);
       fetchParticipants(selectedSession.id);
@@ -205,7 +205,7 @@ export default function Browse() {
       setSelectedSession(prev => prev ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : null);
       fetchData(true);
       fetchParticipants(selectedSession.id);
-      setMsg({ isOpen: true, title: "成功 +1", content: "已為朋友保留位置與程度紀錄。", type: "success" });
+      setMsg({ isOpen: true, title: "攜友入所", content: "已為同伴辦理入所手續。", type: "success" });
     } else {
       setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
     }
@@ -219,15 +219,15 @@ export default function Browse() {
   const FriendLevelSelector = () => {
     if (!friendLevelModal.isOpen) return null;
     const levels = [
-      { n: 2, label: "初次染球 (L1-3)" }, { n: 5, label: "中度球癮 (L4-7)" },
-      { n: 9, label: "球得我心 (L8-12)" }, { n: 14, label: "球毒五臟 (L13-18)" },
+      { n: 2, label: "初次碰球 (L1-3)" }, { n: 5, label: "重度球毒 (L4-7)" },
+      { n: 9, label: "球得我心 (L8-12)" }, { n: 14, label: "球入五臟 (L13-18)" },
     ];
     return (
       <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
         <div className="bg-white w-full max-w-xs rounded-[2rem] p-8 text-center shadow-2xl border border-stone-100 animate-in zoom-in-95 duration-300">
           <div className="w-12 h-12 bg-sage/10 rounded-full flex items-center justify-center mx-auto mb-4 text-sage"><ArrowRightLeft size={20} /></div>
-          <h3 className="text-xl tracking-[0.2em] text-stone-700 font-light mb-2">朋友的程度</h3>
-          <p className="text-[11px] text-stone-400 italic mb-6">這將影響 AI 如何為您們配對</p>
+          <h3 className="text-xl tracking-[0.2em] text-stone-700 font-light mb-2">同伴的症狀</h3>
+          <p className="text-[11px] text-stone-400 italic mb-6">這將影響所內 AI 醫師如何為您們配對</p>
           <div className="space-y-3">
             {levels.map(l => (
               <button key={l.n} onClick={() => handleLevelSelect(l.n)}
@@ -254,7 +254,7 @@ export default function Browse() {
       <FriendLevelSelector />
 
       <div className="max-w-4xl mx-auto px-6 mt-6">
-        <h2 className="text-base tracking-[0.2em] text-sage font-bold">球局看板</h2>
+        <h2 className="text-base tracking-[0.2em] text-sage font-bold">勒戒看板</h2>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 mt-4">
@@ -279,7 +279,7 @@ export default function Browse() {
         {sortedSessions.length === 0 && (
           <div className="text-center py-16 text-stone-400">
             <CalendarClock size={32} className="mx-auto mb-3 opacity-40" />
-            <p className="text-base tracking-wider">{filterDate ? "此日期尚無球局" : "目前沒有球局"}</p>
+            <p className="text-base tracking-wider">{filterDate ? "此日期尚無療程" : "目前沒有進行中的療程"}</p>
           </div>
         )}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -293,9 +293,9 @@ export default function Browse() {
                 }`}>
                 <div className="absolute top-0 right-0">
                   {s.isExpired
-                    ? <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已結束</div>
+                    ? <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已散場</div>
                     : isJoined
-                    ? <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div>
+                    ? <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已掛號</div>
                     : null}
                 </div>
                 <div className="flex justify-between items-start mb-3">
@@ -335,12 +335,12 @@ export default function Browse() {
               <p className="flex items-center gap-3 font-bold text-sage"><CircleDollarSign size={14}/> 費用: ${selectedSession.price}</p>
               <div className="border-t border-stone/10 pt-6 mb-8">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[11px] tracking-widest text-gray-400 uppercase">名單紀錄 / Participants</h3>
+                  <h3 className="text-[11px] tracking-widest text-gray-400 uppercase">掛號名冊 / Participants</h3>
                   <span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span>
                 </div>
                 <div className="max-h-40 overflow-y-auto">
                   {loadingParticipants ? (
-                    <div className="text-[11px] text-stone-500 italic animate-pulse">正在讀取球友名冊...</div>
+                    <div className="text-[11px] text-stone-500 italic animate-pulse">正在讀取病友名冊...</div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {participants.length > 0 ? (
@@ -354,7 +354,7 @@ export default function Browse() {
                           </div>
                         ))
                       ) : (
-                        <div className="text-[11px] text-stone-500 italic">尚無預約紀錄</div>
+                        <div className="text-[11px] text-stone-500 italic">尚無掛號紀錄</div>
                       )}
                     </div>
                   )}
@@ -373,40 +373,40 @@ export default function Browse() {
                 onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
                 className="w-full py-3 bg-sage text-white text-[11px] tracking-widest uppercase hover:bg-sage/90 transition-all font-serif"
               >
-                進入管理看板
+                進入主控室
               </button>
             ) : selectedSession.isExpired ? (
-              <div className="py-3 text-center text-gray-400 text-[11px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">球局已結束</div>
+              <div className="py-3 text-center text-gray-400 text-[11px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">療程已結束</div>
             ) : !isLoggedIn ? (
               <button
                 onClick={handleLineLogin}
                 className="w-full py-4 bg-[#06C755] text-white text-[12px] tracking-[0.3em] font-bold rounded-full shadow-lg shadow-[#06C755]/20 hover:shadow-xl hover:shadow-[#06C755]/30 hover:brightness-105 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
               >
                 <span className="bg-white text-[#06C755] text-[11px] px-2 py-0.5 rounded-sm font-black leading-none">LINE</span>
-                登入並報名
+                入所掛號
               </button>
             ) : !joinedIds.includes(selectedSession.id) ? (
               <form onSubmit={submitJoin} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">報名人數</label>
+                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">掛號人數</label>
                     <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-sm focus:outline-none rounded-sm">
                       <option value={1}>1 人 (我)</option>
                       <option value={2}>2 人 (+朋友)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">手機號碼</label>
+                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">聯絡電話</label>
                     <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-sm focus:outline-none rounded-sm" placeholder="0912..." />
                   </div>
                 </div>
-                <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 bg-sage text-white text-[11px] tracking-widest uppercase hover:bg-sage/90 transition-all disabled:opacity-50 font-serif">確認預約</button>
+                <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 bg-sage text-white text-[11px] tracking-widest uppercase hover:bg-sage/90 transition-all disabled:opacity-50 font-serif">確認掛號</button>
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="py-3 text-center text-orange-400 text-[11px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">已成功預約</div>
+                <div className="py-3 text-center text-orange-400 text-[11px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">掛號成功</div>
                 <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[11px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
-                  + 幫朋友報名 (限一位)
+                  + 攜友入所 (限一位)
                 </button>
               </div>
             )}

@@ -61,7 +61,7 @@ export default function LoginPage() {
           ))}
         </div>
         <p className="text-[10px] tracking-[0.4em] text-stone-400 uppercase">
-          Est. 2025 · No Cure Found
+          Est. 2025 · No Cure Yet
         </p>
       </footer>
     </main>

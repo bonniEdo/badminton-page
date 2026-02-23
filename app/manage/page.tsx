@@ -88,10 +88,10 @@ export default function ManagePage() {
       const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
       if (jsonHosted.success) {
         setHostedSessions((jsonHosted.data || []).map((g: any) => ({
-          id: g.GameId, title: g.Title ?? "未命名球局",
+          id: g.GameId, title: g.Title ?? "未命名療程",
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
-          endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定地點",
+          endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定場所",
           maxPlayers: g.MaxPlayers, price: g.Price, myStatus: g.MyStatus,
           currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
           friendCount: Number(g.FriendCount || 0), phone: g.Phone || g.HostContact, notes: g.Notes,
@@ -118,7 +118,7 @@ export default function ManagePage() {
     if (res.ok) {
       setDeleteConfirm({ isOpen: false, id: null });
       fetchData(true);
-      setMsg({ isOpen: true, title: "聚會終止", content: "這場相遇，我們留在回憶裡就好了。", type: "success" });
+      setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在病歷裡就好了。", type: "success" });
     }
   };
 
@@ -147,7 +147,7 @@ export default function ManagePage() {
     if (!selectedSession) return;
     const hasAddedFriend = selectedSession.friendCount && selectedSession.friendCount >= 1;
     if (hasAddedFriend) {
-      setMsg({ isOpen: true, title: "提 醒", content: "每人限帶一位朋友", type: "info" });
+      setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
       return;
     }
     setLevelModal({ isOpen: true });
@@ -168,7 +168,7 @@ export default function ManagePage() {
         setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
         fetchData(true);
         fetchParticipants(selectedSession.id);
-        setMsg({ isOpen: true, title: "成功攜帶隊友", content: "已將您的朋友納入麾下。", type: "success" });
+        setMsg({ isOpen: true, title: "攜友入所", content: "已為同伴辦理入所手續。", type: "success" });
       } else { alert(json.message); }
     } catch (err) { console.error(err); }
   };
@@ -268,7 +268,7 @@ export default function ManagePage() {
       <AppHeader />
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
-        <h2 className="text-base tracking-[0.2em] text-sage font-bold">我發布的</h2>
+        <h2 className="text-base tracking-[0.2em] text-sage font-bold">我開立的</h2>
         <div className="flex items-center gap-1.5">
           {viewMode === 'list' && (
             <button
@@ -329,15 +329,15 @@ export default function ManagePage() {
                   </p>
                 </div>
                 <div className="flex justify-end mt-6">
-                  {s.isHostCanceled ? <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
-                    : s.isExpired ? <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">球局紀錄</span>
+                  {s.isHostCanceled ? <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">此療程已取消</span>
+                    : s.isExpired ? <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">療程紀錄</span>
                     : <span className="text-[12px] text-gray-400 tracking-tighter"><span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人</span>}
                 </div>
                 {!s.isHostCanceled && !s.isExpired && (
                   <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
                     <Link href={`/dashboard/live/${s.id}`} onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[11px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
-                      <Zap size={12} fill="currentColor" className="animate-pulse" /> 進入場蹤看板
+                      <Zap size={12} fill="currentColor" className="animate-pulse" /> 進入實況看板
                     </Link>
                   </div>
                 )}
@@ -466,11 +466,11 @@ export default function ManagePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
           <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
-            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
+            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/> {selectedSession.location}</a>
-              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主揪"}</p>
+              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主治"}</p>
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
@@ -500,7 +500,7 @@ export default function ManagePage() {
                 </button>
                 <button onClick={handleAddFriendClick}
                   className="w-full py-4 border border-sage text-sage text-[11px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
-                  <PlusCircle size={14}/> ＋ 幫朋友報名 (限一位)
+                  <PlusCircle size={14}/> ＋ 攜友入所 (限一位)
                 </button>
               </div>
             )}
@@ -513,8 +513,8 @@ export default function ManagePage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white border border-stone w-full max-w-sm rounded-[3rem] p-12 shadow-2xl text-center">
             <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8"><Layout className="text-sage opacity-50" size={24}/></div>
-            <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">朋友的程度</h2>
-            <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
+            <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">同伴的症狀</h2>
+            <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響所內 AI 醫師如何為您們配對</p>
             <div className="space-y-4">
               {[{ label: "初次碰球 (L1-3)", value: 2 }, { label: "重度球毒 (L4-7)", value: 5 }, { label: "球得我心 (L8-12)", value: 10 }, { label: "球入五臟 (L13-18)", value: 15 }].map((lvl) => (
                 <button key={lvl.value} onClick={() => executeAddFriend(lvl.value)}
@@ -532,11 +532,11 @@ export default function ManagePage() {
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24}/></div>
-              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2>
+              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止此療程？</h2>
               <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p>
+              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
               <div className="w-full space-y-3">
-                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button>
+                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認終止療程</button>
                 <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button>
               </div>
             </div>

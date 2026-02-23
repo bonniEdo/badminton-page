@@ -77,10 +77,10 @@ export default function EnrolledPage() {
   }, []);
 
   const mapSession = (g: any, isHosted: boolean): Session => ({
-    id: g.GameId, title: g.Title ?? "未命名球局",
+    id: g.GameId, title: g.Title ?? "未命名療程",
     date: (g.GameDateTime ?? "").slice(0, 10),
     time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
-    endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定地點",
+    endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定場所",
     maxPlayers: g.MaxPlayers, price: g.Price, myStatus: g.MyStatus,
     currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
     friendCount: Number(g.FriendCount || 0), phone: g.Phone || g.HostContact, notes: g.Notes,
@@ -141,10 +141,10 @@ export default function EnrolledPage() {
       const json = await res.json();
       if (json.success) {
         setCheckInModal({ isOpen: false, session: null });
-        setMsg({ isOpen: true, title: "已通知主揪", content: "今日的汗水，已被記錄在冊。請靜候主揪安排上場。", type: "success" });
+        setMsg({ isOpen: true, title: "已通知主治", content: "今日的汗水，已被記錄在冊。請靜候主治安排上場。", type: "success" });
         fetchData(true);
         fetchParticipants(checkInModal.session.id);
-      } else { alert(json.message || "簽到失敗"); }
+      } else { alert(json.message || "報到失敗"); }
     } catch (error) { console.error("Check-in error:", error); }
   };
 
@@ -168,7 +168,7 @@ export default function EnrolledPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setMsg({ isOpen: true, title: "已取消報名", content: "這段時光，我先不戒。", type: "success" });
+        setMsg({ isOpen: true, title: "已取消掛號", content: "這段時光，我先不戒了。", type: "success" });
         fetchData(true);
         if (cancelType === 'friend_only') {
           setAllSessions(prev => prev.map(s => s.id === id ? { ...s, friendCount: 0 } : s));
@@ -193,7 +193,7 @@ export default function EnrolledPage() {
       setDeleteConfirm({ isOpen: false, id: null });
       if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
       fetchData(true);
-      setMsg({ isOpen: true, title: "聚會終止", content: "這場相遇，我們留在回憶裡就好了。", type: "success" });
+      setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在病歷裡就好了。", type: "success" });
     }
   };
 
@@ -226,7 +226,7 @@ export default function EnrolledPage() {
     const hasAddedFriend = (friendVirtualName && participants.some(p => p.Username === friendVirtualName)) ||
                            (selectedSession.friendCount && selectedSession.friendCount >= 1);
     if (hasAddedFriend) {
-      setMsg({ isOpen: true, title: "提 醒", content: "每人限帶一位朋友", type: "info" });
+      setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
       return;
     }
     setLevelModal({ isOpen: true });
@@ -248,7 +248,7 @@ export default function EnrolledPage() {
         setAllSessions(prev => prev.map(s => s.id === selectedSession.id ? { ...s, friendCount: 1 } : s));
         fetchData(true);
         fetchParticipants(selectedSession.id);
-        setMsg({ isOpen: true, title: "成功攜帶隊友", content: "已將您的朋友納入麾下。", type: "success" });
+        setMsg({ isOpen: true, title: "攜友入所", content: "已為同伴辦理入所手續。", type: "success" });
       } else { alert(json.message); }
     } catch (err) { console.error(err); }
   };
@@ -379,7 +379,7 @@ export default function EnrolledPage() {
       <AppHeader />
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
-        <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的球局</h2>
+        <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的療程</h2>
         <div className="flex items-center gap-1.5">
           {viewMode === 'list' && (
             <button
@@ -416,8 +416,8 @@ export default function EnrolledPage() {
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-1 text-[11px]">
         {([
           { key: 'all' as const, label: '全部', color: '' },
-          { key: 'hosted' as const, label: '我發布的', color: 'bg-amber-400' },
-          { key: 'enrolled' as const, label: '已報名', color: 'bg-sage' },
+          { key: 'hosted' as const, label: '我開立的', color: 'bg-amber-400' },
+          { key: 'enrolled' as const, label: '已掛號', color: 'bg-sage' },
         ]).map(tab => (
           <button
             key={tab.key}
@@ -450,12 +450,12 @@ export default function EnrolledPage() {
                   <div className="absolute top-0 right-0">
                     {!isCancelled && !session.isExpired && !session.isHosted && (
                       <>
-                        {session.status === 'idle' && <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已在場邊休息</div>}
-                        {session.status === 'playing' && <div className="bg-blue-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">對戰中</div>}
-                        {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
+                        {session.status === 'idle' && <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">場邊待命</div>}
+                        {session.status === 'playing' && <div className="bg-blue-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">接受治療中</div>}
+                        {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">排隊候診</div>}
                       </>
                     )}
-                    {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已打完</div>}
+                    {session.isExpired && !isCancelled && <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">療程結束</div>}
                   </div>
                   <div className="flex justify-between items-start mb-3">
                     <h3 className={`text-xl tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : session.isHosted ? "text-stone-700" : ""}`}>{session.title}</h3>
@@ -486,7 +486,7 @@ export default function EnrolledPage() {
                       <button
                         onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
                         className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[11px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif">
-                        我來了歐
+                        我到了
                       </button>
                     </div>
                   )}
@@ -499,8 +499,8 @@ export default function EnrolledPage() {
                     </div>
                   )}
                   <div className="flex justify-end mt-6">
-                    {isCancelled ? <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">{session.isHosted ? "此局已取消" : "主揪已取消"}</span>
-                      : session.isExpired ? <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">{session.isHosted ? "球局紀錄" : "已嘗試勒戒"}</span>
+                    {isCancelled ? <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">{session.isHosted ? "此療程已取消" : "主治已取消"}</span>
+                      : session.isExpired ? <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">{session.isHosted ? "療程紀錄" : "已嘗試勒戒"}</span>
                       : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className={session.isHosted ? "text-amber-500 font-bold" : "font-bold"}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
                   </div>
                 </div>
@@ -618,7 +618,7 @@ export default function EnrolledPage() {
             {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
               <div className="inline-block bg-amber-400 text-white text-[10px] px-2.5 py-0.5 font-bold tracking-wider rounded-full mb-3">主揪</div>
             )}
-            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
+            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               {selectedSession.isHosted ? (
@@ -626,7 +626,7 @@ export default function EnrolledPage() {
               ) : (
                 <p className="flex items-center gap-3 italic"><MapPin size={14}/> {selectedSession.location}</p>
               )}
-              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主揪"}</p>
+              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主治"}</p>
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
@@ -653,7 +653,7 @@ export default function EnrolledPage() {
                   <button
                     onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
                     className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
-                    <Zap size={14} fill="currentColor" /> 進入場蹤看板
+                    <Zap size={14} fill="currentColor" /> 進入實況看板
                   </button>
                 )}
                 {!selectedSession.isHosted && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
@@ -667,12 +667,12 @@ export default function EnrolledPage() {
                   <button
                     onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
                     className="w-full py-4 bg-stone-800 text-white text-[11px] tracking-[0.3em] uppercase hover:bg-stone-700 transition-all font-bold flex items-center justify-center gap-2 font-serif">
-                    <Activity size={14} /> 交戰實況
+                    <Activity size={14} /> 對戰實況
                   </button>
                 )}
                 <button onClick={handleAddFriendClick}
                   className="w-full py-4 border border-sage text-sage text-[11px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
-                  <PlusCircle size={14}/> ＋ 幫朋友報名 (限一位)
+                  <PlusCircle size={14}/> ＋ 攜友入所 (限一位)
                 </button>
               </div>
             )}
@@ -685,8 +685,8 @@ export default function EnrolledPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white border border-stone w-full max-w-sm rounded-[3rem] p-12 shadow-2xl text-center">
             <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8"><Layout className="text-sage opacity-50" size={24}/></div>
-            <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">朋友的程度</h2>
-            <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
+            <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">同伴的症狀</h2>
+            <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響所內 AI 醫師如何為您們配對</p>
             <div className="space-y-4">
               {[{ label: "初次碰球 (L1-3)", value: 2 }, { label: "重度球毒 (L4-7)", value: 5 }, { label: "球得我心 (L8-12)", value: 10 }, { label: "球入五臟 (L13-18)", value: 15 }].map((lvl) => (
                 <button key={lvl.value} onClick={() => executeAddFriend(lvl.value)}
@@ -719,13 +719,13 @@ export default function EnrolledPage() {
       {cancelMenu.isOpen && cancelMenu.session && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl tracking-widest text-sage font-bold">取消報名</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
-            <p className="text-base text-gray-500 mb-8 leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前報名了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl tracking-widest text-sage font-bold">取消掛號</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
+            <p className="text-base text-gray-500 mb-8 leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前掛號了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
             <div className="space-y-4">
               {(cancelMenu.session?.friendCount || 0) > 0 && (
-                <button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-base tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18}/> 僅取消朋友 (保留本人)</button>
+                <button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-base tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18}/> 僅取消同伴 (保留本人)</button>
               )}
-              <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-base tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18}/> 確認取消報名</button>
+              <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-base tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18}/> 確認取消掛號</button>
               <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-sm tracking-widest hover:text-gray-600 transition-all uppercase">返回</button>
             </div>
           </div>
@@ -738,11 +738,11 @@ export default function EnrolledPage() {
           <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24}/></div>
-              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止這段時光？</h2>
+              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止此療程？</h2>
               <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的預約與期待都將隨風而去。<br/>確定要抹去這場球局嗎？</p>
+              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
               <div className="w-full space-y-3">
-                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認取消球局</button>
+                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認終止療程</button>
                 <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button>
               </div>
             </div>
@@ -758,12 +758,12 @@ export default function EnrolledPage() {
               <MapPin size={28} strokeWidth={1} className="text-[#A68F4C] animate-bounce" />
             </div>
             <div className="space-y-4">
-              <h2 className="text-2xl tracking-[0.4em] text-stone-800 font-light">抵達現場</h2>
+              <h2 className="text-2xl tracking-[0.4em] text-stone-800 font-light">抵達勒戒所</h2>
               <div className="w-8 h-[1px] bg-[#D6C58D]/40 mx-auto"></div>
-              <p className="text-[12px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但故事已經開始了。 」</p>
+              <p className="text-[12px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但勒戒已經開始了。 」</p>
             </div>
             <div className="space-y-3">
-              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[11px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認簽到</button>
+              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[11px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認報到</button>
               <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[10px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
             </div>
           </div>

@@ -130,7 +130,7 @@ export default function ProfilePage() {
   if (loading) return (
     <div className="min-h-dvh bg-[#FAF9F6] font-serif pb-24">
       <AppHeader />
-      <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Scanning logs...</div>
+      <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">讀取病歷中...</div>
     </div>
   );
 
@@ -353,14 +353,14 @@ export default function ProfilePage() {
         {/* 個人資訊 */}
         <section className="mb-12">
           <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2 mb-6 px-1">
-            <Activity className="w-3 h-3 text-sage/60" /> 個人資訊
+            <Activity className="w-3 h-3 text-sage/60" /> 病歷概覽
           </h3>
           <div className="grid grid-cols-4 gap-3">
             {[
               { label: "對戰勝率", value: `${winRate}%` },
-              { label: "建立場次", value: `${myGames.length}` },
-              { label: "報名場次", value: `${signups.length}` },
-              { label: "出席率", value: pastSignups.length > 0 ? `${attendanceRate}%` : "—" },
+              { label: "開診次數", value: `${myGames.length}` },
+              { label: "掛號次數", value: `${signups.length}` },
+              { label: "出勤率", value: pastSignups.length > 0 ? `${attendanceRate}%` : "—" },
             ].map((item, i) => (
               <div key={i} className="bg-white/60 rounded-2xl border border-white shadow-sm p-4 flex flex-col items-center gap-2">
                 <p className="text-2xl md:text-3xl font-black italic text-sage tracking-tight">{item.value}</p>
@@ -375,7 +375,7 @@ export default function ProfilePage() {
           <section className="mb-12">
             <div className="flex justify-between items-center mb-6 px-1">
               <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2">
-                <BrainCircuit className="w-3 h-3 text-sage/60" /> AI 教練建議
+                <BrainCircuit className="w-3 h-3 text-sage/60" /> AI 醫師處方
               </h3>
 
               <div className="flex items-center gap-2">
@@ -516,7 +516,7 @@ export default function ProfilePage() {
           <section className="mb-12">
             <div className="bg-white/30 p-5 rounded-[2rem] border border-white shadow-sm flex items-center justify-between">
               <p className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase italic">
-                AI 教練小建議
+                AI 醫師處方
               </p>
               <button
                 onClick={() => setShowCoach(true)}
@@ -531,7 +531,7 @@ export default function ProfilePage() {
         <section className="mb-10">
           <div className="flex justify-between items-center mb-6 px-1">
             <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2">
-              <Calendar className="w-3 h-3 text-sage/60" /> 戒球日誌紀錄
+              <Calendar className="w-3 h-3 text-sage/60" /> 勒戒日誌
             </h3>
             <div className="flex items-center gap-3 md:gap-4">
               <button onClick={() => shiftWeek(-1)} className="p-1 hover:text-sage text-stone-200 transition-colors"><ChevronLeft size={18} /></button>
@@ -691,7 +691,7 @@ export default function ProfilePage() {
                     No Records
                   </span>
                   <p className="text-xs text-stone-400 tracking-[0.2em] italic">
-                    這段時間沒有任何成癮紀錄
+                    這段期間無成癮活動紀錄
                   </p>
                 </div>
               )}
@@ -702,7 +702,7 @@ export default function ProfilePage() {
         {/* 底部按鈕 */}
         <section className="flex flex-col gap-4">
           <button onClick={handleLogout} className="w-full py-5 border border-sage-100 text-sage-300 text-[10px] tracking-[0.6em] uppercase font-bold rounded-3xl hover:bg-sage-300 transition-all">
-            logout 
+            離所登記 
           </button>
         </section>
 

@@ -6,13 +6,13 @@ import ShuttlecockIcon from "./ShuttlecockIcon";
 import { useEffect, useState } from "react";
 
 const navItems = [
-  { href: "/browse", label: "搜尋球局", icon: Search },
-  { href: "/enrolled", label: "已報名", icon: CalendarCheck },
+  { href: "/browse", label: "勒戒看板", icon: Search },
+  { href: "/enrolled", label: "我的療程", icon: CalendarCheck },
 ];
 
 const bottomBarItems = [
   ...navItems,
-  { href: "/profile", label: "帳號", icon: User },
+  { href: "/profile", label: "病歷", icon: User },
 ];
 
 export default function AppHeader() {
@@ -57,7 +57,7 @@ export default function AppHeader() {
                 {(userInfo?.verified_matches || 0) >= 3 && <CheckCircle size={12} className="text-blue-500 fill-blue-50" />}
               </div>
               <span className="text-[9px] tracking-[0.08em] text-sage font-bold mt-0.5">
-                {userInfo?.badminton_level ? `Lv.${Math.floor(parseFloat(userInfo.badminton_level))}` : "Diagnostic"}
+                {userInfo?.badminton_level ? `Lv.${Math.floor(parseFloat(userInfo.badminton_level))}` : "待診斷"}
               </span>
             </div>
             <div className="w-9 h-9 rounded-full overflow-hidden bg-stone-100 border border-stone/20 group-hover:ring-1 group-hover:ring-sage/30 transition-all">

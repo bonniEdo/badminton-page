@@ -165,7 +165,7 @@ export default function LiveViewPage({
       <div className="min-h-dvh bg-paper font-serif pb-20">
         <AppHeader />
         <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse tracking-widest text-sm">
-          載入實況中...
+          讀取戰場實況...
         </div>
       </div>
     );
@@ -255,9 +255,9 @@ export default function LiveViewPage({
                   </p>
                   <p className="text-[11px] text-stone-400 italic">
                     {myPlayer.status === "playing"
-                      ? "對戰中"
+                      ? "交戰中"
                       : myPlayer.status === "idle"
-                        ? "等待上場"
+                        ? "場邊待命"
                         : "尚未報到"}
                   </p>
                 </div>
@@ -291,7 +291,7 @@ export default function LiveViewPage({
               {playingCount}
             </p>
             <p className="text-[10px] text-stone-400 tracking-wider">
-              對戰中
+              交戰中
             </p>
           </div>
           <div className="bg-white border border-stone rounded-xl p-3 text-center">
@@ -338,7 +338,7 @@ export default function LiveViewPage({
               目前沒有進行中的對戰
             </p>
             <p className="text-[11px] text-stone-300 mt-1">
-              等待主揪安排比賽...
+              等待主治安排上場...
             </p>
           </div>
         )}
@@ -347,7 +347,7 @@ export default function LiveViewPage({
         {idlePlayers.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-[11px] tracking-[0.2em] text-stone-400 uppercase font-bold flex items-center gap-2">
-              <Users size={12} className="text-sage" /> 待命球員
+              <Users size={12} className="text-sage" /> 場邊待命
               <span className="text-sage ml-auto font-serif italic">
                 {idlePlayers.length} 人
               </span>
