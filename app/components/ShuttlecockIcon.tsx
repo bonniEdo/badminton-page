@@ -1,4 +1,14 @@
-export default function ShuttlecockIcon({ size = 24, className = "" }: { size?: number; className?: string }) {
+interface ShuttlecockIconProps {
+  size?: number | string;
+  className?: string;
+  strokeWidth?: number | string;
+}
+
+export default function ShuttlecockIcon({
+  size = 24,
+  className = "",
+  strokeWidth = 1.5,
+}: ShuttlecockIconProps) {
   return (
     <svg
       width={size}
@@ -6,18 +16,12 @@ export default function ShuttlecockIcon({ size = 24, className = "" }: { size?: 
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
     >
-      <circle cx="12" cy="19" r="3" />
-      <line x1="12" y1="16" x2="12" y2="11" />
-      <path d="M12 11 C10 9 6.5 7 5 3" />
-      <path d="M12 11 C14 9 17.5 7 19 3" />
-      <path d="M12 11 C11 8.5 8 5 7 2.5" />
-      <path d="M12 11 C13 8.5 16 5 17 2.5" />
-      <path d="M12 11 C12 8 12 4 12 2" />
+      <path d="M8 17a4 4 0 0 0 8 0 M7 17h10 M7 17L3 5 M17 17L21 5 M3 5a12 12 0 0 1 18 0 M9.5 17L7.5 2 M14.5 17L16.5 2 M12 17L12 1 M4.7 10h14.6" />
     </svg>
   );
 }
