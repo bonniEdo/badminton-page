@@ -37,7 +37,9 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     content: "", 
     type: "info" as any, 
     onConfirm: null as any,
-    onCancel: null as any 
+    onCancel: null as any,
+    teamANames: "" as string, 
+    teamBNames: "" as string 
   });
 
   const fetchData = async () => {
@@ -98,7 +100,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       const data = await res.json();
       if (res.ok) {
         fetchData();
-        setMsg({ isOpen: true, title: "戰報錄入", content: data.message, type: "info", onConfirm: null, onCancel: null });
+        setMsg({ isOpen: true, title: "戰報錄入", content: data.message, type: "info", onConfirm: null, onCancel: null,teamANames:"",teamBNames:"" });
       }
     } catch (e) {
       console.error(e);
@@ -165,7 +167,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     const idlePlayers = players.filter(p => p.status === 'idle' && !assignedIds.includes(p.playerId));
     
     if (idlePlayers.length < 4) {
-        setMsg({ isOpen: true, title: "球員不足", content: "待命池至少需要 4 位球員才能進行智慧配對。", type: "info", onConfirm: null, onCancel: null });
+        setMsg({ isOpen: true, title: "球員不足", content: "待命池至少需要 4 位球員才能進行智慧配對。", type: "info", onConfirm: null, onCancel: null, teamANames:"",teamBNames:"" });
         return;
     }
 
@@ -452,14 +454,27 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
                             <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-stone-100">
                                 {currentMatch ? (
-                                    <button onClick={() => setMsg({ 
-                                        isOpen: true, 
-                                        title: "錄入戰報", 
-                                        content: "這場對決誰主沉浮？系統將根據結果自動調整球員戰力值。", 
-                                        type: "match_result", 
-                                        onConfirm: (winner: 'A' | 'B') => executeFinishMatch(currentMatch.id, winner),
-                                        onCancel: () => executeFinishMatch(currentMatch.id, 'none')
-                                    })} className="w-full py-4 bg-stone-900 text-white text-xs tracking-[0.4em] md:tracking-[0.5em] font-black uppercase rounded-sm shadow-xl">結束比賽</button>
+                                  <button onClick={() => {
+                                    // 先找出兩隊球員的名稱
+                                    const pA1 = players.find(p => p.playerId === currentMatch.player_a1)?.displayName || "";
+                                    const pA2 = players.find(p => p.playerId === currentMatch.player_a2)?.displayName || "";
+                                    const pB1 = players.find(p => p.playerId === currentMatch.player_b1)?.displayName || "";
+                                    const pB2 = players.find(p => p.playerId === currentMatch.player_b2)?.displayName || "";
+
+                                    setMsg({ 
+                                      isOpen: true, 
+                                      title: "錄入戰報", 
+                                      content: "這場對決誰主沉浮？系統將根據結果自動調整球員戰力值。", 
+                                      type: "match_result", 
+                                      // 新增這兩行來存放球員名稱
+                                      teamANames: `${pA1} / ${pA2}`,
+                                      teamBNames: `${pB1} / ${pB2}`,
+                                      onConfirm: (winner: 'A' | 'B') => executeFinishMatch(currentMatch.id, winner),
+                                      onCancel: () => executeFinishMatch(currentMatch.id, 'none')
+                                    });
+                                  }} className="w-full py-4 bg-stone-900 text-white text-xs tracking-[0.4em] md:tracking-[0.5em] font-black uppercase rounded-sm shadow-xl">
+                                    結束比賽
+                                  </button>
                                 ) : (
                                     <div className="flex gap-2 md:gap-3">
                                         <button onClick={() => isReady ? executeStartMatch(num) : (selectedPlayerIds.length === 4 ? handleBatchFill(num) : handleAIAutoFill(num))}
@@ -498,8 +513,33 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                     {msg.type === 'match_result' ? (
                         <>
                             <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                <button onClick={() => msg.onConfirm('A')} className="py-4 bg-sage text-white text-[10px] tracking-[0.2em] uppercase font-bold rounded-sm shadow-md active:scale-95 transition-transform">A 隊勝</button>
-                                <button onClick={() => msg.onConfirm('B')} className="py-4 bg-stone-800 text-white text-[10px] tracking-[0.2em] uppercase font-bold rounded-sm shadow-md active:scale-95 transition-transform">B 隊勝</button>
+                                {/* A 隊區塊 */}
+                                <div className="space-y-2">
+                                    <button 
+                                        onClick={() => msg.onConfirm('A')} 
+                                        className="w-full py-4 bg-sage text-white text-[10px] tracking-[0.2em] uppercase font-bold rounded-sm shadow-md active:scale-95 transition-transform"
+                                    >
+                                        A 隊勝
+                                    </button>
+                                    {/* 新增名字顯示 */}
+                                    <p className="text-[10px] text-sage font-bold truncate px-1">
+                                        {msg.teamANames}
+                                    </p>
+                                </div>
+
+                                {/* B 隊區塊 */}
+                                <div className="space-y-2">
+                                    <button 
+                                        onClick={() => msg.onConfirm('B')} 
+                                        className="w-full py-4 bg-stone-800 text-white text-[10px] tracking-[0.2em] uppercase font-bold rounded-sm shadow-md active:scale-95 transition-transform"
+                                    >
+                                        B 隊勝
+                                    </button>
+                                    {/* 新增名字顯示 */}
+                                    <p className="text-[10px] text-stone-500 font-bold truncate px-1">
+                                        {msg.teamBNames}
+                                    </p>
+                                </div>
                             </div>
                             <button onClick={msg.onCancel} className="w-full py-3 text-stone-500 text-[10px] tracking-[0.2em] uppercase hover:text-stone-500">不計分，僅結束比賽</button>
                         </>
