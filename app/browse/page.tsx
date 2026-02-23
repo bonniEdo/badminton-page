@@ -428,7 +428,7 @@ export default function Browse() {
       )}
 
       {isLoggedIn && (
-        <Link href="/create" className="fixed bottom-24 md:bottom-6 right-6 z-40 w-14 h-14 bg-sage text-white rounded-full shadow-lg shadow-sage/30 flex items-center justify-center hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200">
+        <Link href="/create" className="fixed bottom-40 md:bottom-6 right-6 z-40 w-14 h-14 bg-sage text-white rounded-full shadow-lg shadow-sage/30 flex items-center justify-center hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200">
           <Plus size={24} strokeWidth={2} />
         </Link>
       )}

@@ -29,6 +29,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
   const [swappingSlot, setSwappingSlot] = useState<{ courtNum: string; slotIndex: number } | null>(null);
   const [pendingSlot, setPendingSlot] = useState<{ courtNum: string; slotIndex: number } | null>(null);
+  const [activeCourt, setActiveCourt] = useState("1");
 
   const [manualSlots, setManualSlots] = useState<Record<string, (number | null)[]>>({});
   const [courtStrategies, setCourtStrategies] = useState<Record<string, Strategy>>({});
@@ -435,26 +436,59 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-12 pb-8">
+            {courtCount > 1 && (
+              <div className="max-w-5xl mx-auto flex md:hidden overflow-x-auto gap-1.5 pb-1 mb-3">
                 {Array.from({ length: courtCount }, (_, i) => (i + 1).toString()).map(num => {
+                  const courtNames = gameInfo?.Courts ? gameInfo.Courts.split(',') : [];
+                  const label = courtNames[parseInt(num) - 1]?.trim() || num;
+                  const hasMatch = matches.some(m => m.court_number === num);
+                  return (
+                    <button key={num} onClick={() => setActiveCourt(num)}
+                      className={`shrink-0 px-4 py-2 rounded-lg text-[12px] font-bold tracking-wider transition-all border ${
+                        activeCourt === num
+                          ? 'bg-sage text-white border-sage shadow-md'
+                          : hasMatch
+                            ? 'bg-blue-50 text-blue-600 border-blue-200'
+                            : 'bg-white text-stone-500 border-stone-200 hover:border-sage/40'
+                      }`}>
+                      場地 {label}
+                      {hasMatch && <span className="ml-1 text-[9px]">⚡</span>}
+                    </button>
+                  );
+                })}
+                <button onClick={() => { expandCourtsTo(courtCount + 1); setActiveCourt((courtCount + 1).toString()); }}
+                  className="shrink-0 px-3 py-2 rounded-lg text-[12px] text-stone-400 border border-dashed border-stone-200 hover:border-sage hover:text-sage transition-all">
+                  <Plus size={14} />
+                </button>
+              </div>
+            )}
+
+            <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-12 pb-8">
+                {Array.from({ length: courtCount }, (_, i) => (i + 1).toString())
+                .map(num => {
                     const currentMatch = matches.find(m => m.court_number === num);
                     const slots = manualSlots[num] || [null,null,null,null];
                     const strategy = courtStrategies[num];
                     const isReady = slots.every(s => s !== null);
 
-                    // --- 新增：取得顯示用的真實名稱 ---
                     const courtNames = gameInfo?.Courts ? gameInfo.Courts.split(',') : [];
                     const displayCourtName = courtNames[parseInt(num) - 1]?.trim() || num;
-                    // --------------------------------
+
+                    const isMobileHidden = courtCount > 1 && activeCourt !== num;
 
                     return (
-                        <div key={num} className="...">
-                            <div className="flex justify-between items-center mb-6 ...">
-                                <span className="text-[11px] md:text-sm font-bold tracking-[0.5em] text-stone-500 uppercase italic">
+                        <div key={num} className={`${isMobileHidden ? 'hidden md:block' : ''}`}>
+                            <div className="hidden md:flex justify-between items-center mb-6">
+                                <span className="text-sm font-bold tracking-[0.5em] text-stone-500 uppercase italic">
                                   場地 {displayCourtName}
                                 </span>
-                                {currentMatch && <span className="...">On Stage</span>}
+                                {currentMatch && <span className="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full font-bold tracking-wider animate-pulse">On Stage</span>}
                             </div>
+                            {currentMatch && (
+                                <div className="md:hidden flex items-center justify-center gap-2 mb-4 py-2 bg-blue-50/60 rounded-lg border border-blue-100">
+                                    <span className="text-[10px] text-blue-600 font-bold tracking-wider animate-pulse">⚡ 對戰進行中</span>
+                                </div>
+                            )}
 
                             <div className="flex-1 flex flex-col justify-center">
                                 {currentMatch ? (
@@ -585,8 +619,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                         </div>
                     );
                 })}
-                {/* ✅ 圖標語法修正：使用 w/h class 代替非法的 md:size */}
-                <button onClick={() => expandCourtsTo(courtCount + 1)} className="flex flex-col items-center justify-center p-8 md:p-12 border-4 border-dashed border-stone-200 rounded-sm hover:border-sage hover:bg-sage/5 transition-all group min-h-[200px] md:min-h-[580px]">
+                <button onClick={() => { expandCourtsTo(courtCount + 1); setActiveCourt((courtCount + 1).toString()); }} className="hidden md:flex flex-col items-center justify-center p-8 md:p-12 border-4 border-dashed border-stone-200 rounded-sm hover:border-sage hover:bg-sage/5 transition-all group min-h-[200px] md:min-h-[580px]">
                     <Plus className="w-8 h-8 md:w-10 md:h-10 text-stone-200 group-hover:text-sage mb-3 md:mb-4 transition-transform group-hover:rotate-90 duration-500" />
                     <p className="text-[11px] md:text-sm tracking-[0.3em] md:tracking-[0.4em] text-stone-500 group-hover:text-sage uppercase italic font-bold">加開場地</p>
                 </button>
