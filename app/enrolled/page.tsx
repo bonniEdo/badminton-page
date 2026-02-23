@@ -28,6 +28,7 @@ export default function EnrolledPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('week');
+  const [filterType, setFilterType] = useState<'all' | 'hosted' | 'enrolled'>('all');
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -255,13 +256,17 @@ export default function EnrolledPage() {
   const sortedSessions = useMemo(() => {
     return allSessions
       .filter(s => showExpired ? true : !s.isExpired)
+      .filter(s => {
+        if (filterType === 'hosted') return s.isHosted;
+        if (filterType === 'enrolled') return !s.isHosted;
+        return true;
+      })
       .sort((a, b) => {
         if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
         if (a.isHostCanceled !== b.isHostCanceled) return a.isHostCanceled ? 1 : -1;
-        if (a.isHosted !== b.isHosted) return a.isHosted ? -1 : 1;
         return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
       });
-  }, [allSessions, showExpired]);
+  }, [allSessions, showExpired, filterType]);
 
   const calendarDays = useMemo(() => {
     const year = calendarMonth.getFullYear();
@@ -408,12 +413,26 @@ export default function EnrolledPage() {
         </div>
       </div>
 
-      {(viewMode === 'week' || viewMode === 'calendar') && (
-        <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-3 text-[11px] text-gray-400">
-          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-amber-400" />我發布的</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-sage" />已報名</span>
-        </div>
-      )}
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-1 text-[11px]">
+        {([
+          { key: 'all' as const, label: '全部', color: '' },
+          { key: 'hosted' as const, label: '我發布的', color: 'bg-amber-400' },
+          { key: 'enrolled' as const, label: '已報名', color: 'bg-sage' },
+        ]).map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setFilterType(tab.key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+              filterType === tab.key
+                ? 'bg-sage/10 text-sage font-bold border border-sage/20'
+                : 'text-gray-400 hover:text-gray-500 border border-transparent'
+            }`}
+          >
+            {tab.color && <span className={`inline-block w-2 h-2 rounded-sm ${tab.color}`} />}
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 mt-2 md:mt-4">
         {viewMode === 'list' && (
@@ -471,7 +490,7 @@ export default function EnrolledPage() {
                       </button>
                     </div>
                   )}
-                  {session.isHosted && !isCancelled && !session.isExpired && (
+                  {session.isHosted && !isCancelled && !session.isExpired && isToday && (
                     <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
                       <Link href={`/dashboard/live/${session.id}`} onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[11px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
@@ -630,7 +649,7 @@ export default function EnrolledPage() {
             </div>
             {!selectedSession.isExpired && !selectedSession.isHostCanceled && (
               <div className="mt-8 space-y-3">
-                {selectedSession.isHosted && (
+                {selectedSession.isHosted && selectedSession.date === todayStr && (
                   <button
                     onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
                     className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
