@@ -26,7 +26,7 @@ export default function EnrolledPage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('week');
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
