@@ -95,6 +95,11 @@ export default function ProfilePage() {
   const getWeekDays = () => {
     const days = [];
     const startOfWeek = new Date(baseDate);
+    
+    // ✅ 新增這兩行：將 startOfWeek 強制推回該週的「星期日」 (0)
+    const currentDayOfWeek = startOfWeek.getDay(); 
+    startOfWeek.setDate(startOfWeek.getDate() - currentDayOfWeek);
+
     const todayStr = getLocalDateString(new Date());
 
     for (let i = 0; i < 7; i++) {
@@ -516,11 +521,10 @@ export default function ProfilePage() {
           </section>
         )}
 
-        {/* ✅ 成癮紀錄日誌 - 修正文字顏色優先權 */}
-        <section className="mb-10">
+          <section className="mb-10">
           <div className="flex justify-between items-center mb-6 px-1">
             <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2">
-              <Calendar className="w-3 h-3 text-sage/60" /> 成癮紀錄日誌
+              <Calendar className="w-3 h-3 text-sage/60" /> 戒球日誌紀錄
             </h3>
             <div className="flex items-center gap-3 md:gap-4">
               <button onClick={() => shiftWeek(-1)} className="p-1 hover:text-sage text-stone-200 transition-colors"><ChevronLeft size={18} /></button>
@@ -533,20 +537,29 @@ export default function ProfilePage() {
               const isSelected = selectedDateStr === d.dateStr;
               return (
                 <div key={i} className="flex flex-col items-center gap-2 relative flex-shrink-0 md:flex-shrink">
-                  <span className={`text-[8px] font-bold ${d.isToday ? 'text-sage underline underline-offset-4 font-black' : 'text-stone-500'}`}>{d.weekday}</span>
+                  <span className={`text-[8px] font-bold ${d.isToday ? 'text-sage font-black' : 'text-stone-500'}`}>{d.weekday}</span>
                   <div
                     onClick={() => setSelectedDateStr(isSelected ? null : d.dateStr)}
-                    className={`w-9 h-11 md:w-10 md:h-12 rounded-xl md:rounded-2xl cursor-pointer flex flex-col items-center justify-center transition-all duration-500
-                      ${d.isToday ? 'animate-float shadow-xl shadow-sage/10 ring-2 ring-sage/30' : ''}
-                      ${isSelected ? 'ring-2 ring-stone-800 scale-105' : ''}
-                      ${d.hasGame
-                        ? 'bg-sage text-white shadow-md shadow-sage/20'
-                        : (d.isToday || isSelected ? 'bg-white text-stone-800' : 'bg-white/40 text-stone-500')
+                    className={`w-9 h-11 md:w-10 md:h-12 rounded-xl md:rounded-2xl cursor-pointer flex flex-col items-center justify-center transition-all duration-300
+                      ${isSelected ? 'ring-2 ring-stone-800 scale-105 z-10' : ''}
+                      ${d.isToday
+                        ? 'bg-sage text-white shadow-md shadow-sage/20 font-bold' /* ✅ 今天 (23)：綠底、白字 */
+                        : d.hasGame
+                          ? 'bg-white border-2 border-sage/50 text-stone-800' /* ✅ 有報名的天數 (24, 25)：白底、淡綠色外框、黑字 */
+                          : isSelected
+                            ? 'bg-white text-stone-800' /* 沒報名但被選中的天：白底黑字 */
+                            : 'bg-white/40 text-stone-500' /* 一般日：半透明白底灰字 */
                       }
                     `}
                   >
                     <span className="text-[11px] md:text-xs font-black">{d.day}</span>
-                    {d.hasGame && <div className="w-1 h-1 bg-white rounded-full mt-1 animate-pulse"></div>}
+                    
+                    {/* ✅ 點點邏輯對調：今天是白點點，其他有報名天數是黑點點 */}
+                    {d.hasGame && (
+                      <div className={`w-1 h-1 rounded-full mt-1 animate-pulse 
+                        ${d.isToday ? 'bg-white' : 'bg-stone-800'}
+                      `}></div>
+                    )}
                   </div>
                 </div>
               );
@@ -556,48 +569,77 @@ export default function ProfilePage() {
 
         {/* 戰報儀表板：文青淺色 */}
         <section className="mb-12">
-          <div className="mb-8 px-2 bg-white/60 p-6 rounded-[2rem] border border-white shadow-sm">
-            <div className="space-y-1">
-              <h3 className="text-[9px] tracking-[0.4em] text-stone-500 font-black uppercase">Battle Statistics</h3>
-              <p className="text-lg md:text-xl font-black italic text-stone-800 tracking-widest leading-none">
+          {/* ✅ 頂部標題區 - 完美還原截圖的雜誌感 */}
+          <div className="mb-6 bg-white px-8 py-7 rounded-[2.5rem] shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-stone-50">
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] md:text-[11px] tracking-[0.4em] text-stone-500 font-serif uppercase">
+                Battle Statistics
+              </h3>
+              <p className="text-xl md:text-2xl font-serif italic font-black text-stone-800 tracking-[0.15em] leading-none">
                 {selectedDateStr ? `${selectedDateStr.slice(5).replace('-', '/')} 戰報` : "對戰紀錄"}
               </p>
             </div>
           </div>
 
-          {/* 對戰清單 */}
-          <div className="space-y-4">
+          {/* ✅ 對戰清單 - 簡約日誌風格 */}
+          <div className="space-y-3">
             {displayedMatches.length > 0 ? displayedMatches.map((m, idx) => (
-              <div key={idx} className="relative bg-white/40 p-5 rounded-2xl border border-white shadow-sm transition-all hover:bg-white hover:shadow-xl hover:-translate-y-1 group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-colors ${m.result === 'win' ? 'bg-sage text-white shadow-md shadow-sage/20' : 'bg-stone-50 text-stone-500'
-                      }`}>
-                      {m.result === 'win' ? <Trophy size={16} /> : <XCircle size={16} />}
-                    </div>
-                    <div>
-                      <h4 className="text-xs md:text-sm font-black text-stone-800 font-sans tracking-tight">
-                        Court {m.court_number}
-                        <span className="mx-1 text-stone-200">/</span>
-                        <span className={`text-[8px] uppercase tracking-widest font-bold ${m.result === 'win' ? 'text-sage' : 'text-stone-400'}`}>
-                          {m.result === 'win' ? 'Victory' : 'Defeat'}
-                        </span>
-                      </h4>
-                      <p className="text-[9px] md:text-[10px] text-stone-400 font-medium italic flex items-center gap-1 mt-0.5">
-                        <MapPin size={10} className="text-sage/40" /> {m.location}
-                      </p>
-                    </div>
+              <div 
+                key={idx} 
+                className="group relative bg-white/50 hover:bg-white p-5 md:p-6 rounded-[2rem] border border-stone-100 hover:border-sage/30 shadow-sm transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0"
+              >
+                {/* 左側：狀態圖示與細節 */}
+                <div className="flex items-center gap-4 md:gap-5">
+                  {/* 勝負圖示：改成細緻的外框風格 */}
+                  <div className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-500 ${
+                    m.result === 'win' 
+                      ? 'border-sage/40 bg-sage/5 text-sage group-hover:bg-sage group-hover:text-white group-hover:border-sage' 
+                      : 'border-stone-200 bg-stone-50 text-stone-400 group-hover:bg-stone-100'
+                  }`}>
+                    {m.result === 'win' ? <Trophy size={18} strokeWidth={1.5} /> : <XCircle size={18} strokeWidth={1.5} />}
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] md:text-[11px] font-black text-stone-200 font-sans tracking-widest">
-                      {m.date ? m.date.slice(5, 10).replace('-', '/') : '--/--'}
+                  
+                  {/* 內文資訊 */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-3">
+                      <h4 className="text-sm md:text-base font-bold text-stone-800 font-serif tracking-wider">
+                        Court {m.court_number}
+                      </h4>
+                      {/* 勝負標籤 */}
+                      <span className={`text-[8px] md:text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded-full ${
+                        m.result === 'win' ? 'bg-sage/10 text-sage' : 'bg-stone-100 text-stone-400'
+                      }`}>
+                        {m.result === 'win' ? 'Victory' : 'Defeat'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] md:text-[11px] text-stone-400 font-medium tracking-wide flex items-center gap-1 mt-0.5">
+                      <MapPin size={12} className="text-sage/40" strokeWidth={2} /> 
+                      {m.location}
                     </p>
                   </div>
                 </div>
+
+                {/* 右側：日期 (加入左側邊線產生票根感) */}
+                <div className="hidden md:block text-right pl-6 border-l border-stone-100 group-hover:border-sage/20 transition-colors">
+                  <p className="text-xs font-serif font-bold text-stone-300 group-hover:text-stone-500 transition-colors tracking-widest">
+                    {m.date ? m.date.slice(5, 10).replace('-', '/') : '--/--'}
+                  </p>
+                </div>
+                
+                {/* 手機版日期顯示 (位於右上角) */}
+                <div className="absolute top-5 right-5 md:hidden">
+                   <p className="text-[10px] font-serif font-bold text-stone-300 tracking-widest">
+                    {m.date ? m.date.slice(5, 10).replace('-', '/') : '--/--'}
+                  </p>
+                </div>
               </div>
             )) : (
-              <div className="py-24 text-center border-2 border-dashed border-stone-100 rounded-[2.5rem] bg-white/20">
-                <p className="text-[10px] text-stone-500 font-black uppercase tracking-[0.5em] italic">
+              /* ✅ 空白狀態 - 變得更優雅 */
+              <div className="py-20 flex flex-col items-center justify-center text-center border border-dashed border-stone-200 rounded-[2.5rem] bg-white/40 backdrop-blur-sm">
+                <span className="text-[10px] md:text-xs text-stone-400 font-bold uppercase tracking-[0.5em] font-serif mb-2">
+                  No Records
+                </span>
+                <p className="text-xs text-stone-400 tracking-[0.2em]">
                   這段時間沒有任何成癮紀錄
                 </p>
               </div>

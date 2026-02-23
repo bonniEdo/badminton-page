@@ -188,11 +188,23 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   const executeStartMatch = async (courtNum: string) => {
     const playerIds = manualSlots[courtNum];
     const token = localStorage.getItem("token");
+
+    // --- 新增這幾行：轉換真實場地名稱 ---
+    // 假設你的資料庫欄位叫做 Courts，內容格式如 "A,B,C" 或 "5,6,7"
+    const courtNames = gameInfo?.Courts ? gameInfo.Courts.split(',') : [];
+    const realCourtName = courtNames[parseInt(courtNum) - 1]?.trim() || courtNum;
+    // --------------------------------
+
     const res = await fetch(`${API_URL}/api/match/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ gameId, courtNumber: courtNum, players: { a1: playerIds[0], a2: playerIds[1], b1: playerIds[2], b2: playerIds[3] } })
+      body: JSON.stringify({ 
+        gameId, 
+        courtNumber: realCourtName, // 修改這裡：把原本的 courtNum 改成 realCourtName
+        players: { a1: playerIds[0], a2: playerIds[1], b1: playerIds[2], b2: playerIds[3] } 
+      })
     });
+
     if (res.ok) {
       setManualSlots({ ...manualSlots, [courtNum]: [null, null, null, null] });
       fetchData();
@@ -333,12 +345,18 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                     const strategy = courtStrategies[num];
                     const isReady = slots.every(s => s !== null);
 
+                    // --- 新增：取得顯示用的真實名稱 ---
+                    const courtNames = gameInfo?.Courts ? gameInfo.Courts.split(',') : [];
+                    const displayCourtName = courtNames[parseInt(num) - 1]?.trim() || num;
+                    // --------------------------------
+
                     return (
-                        <div key={num} className={`relative p-5 md:p-8 border-2 rounded-sm transition-all duration-500 flex flex-col justify-between ${currentMatch ? 'bg-white border-sage shadow-xl' : 'bg-white border-stone-100'}`}>
-                            
-                            <div className="flex justify-between items-center mb-6 md:mb-8 border-b border-stone-100 pb-3">
-                                <span className="text-[10px] md:text-xs font-bold tracking-[0.5em] text-stone-500 uppercase italic">Court {num}</span>
-                                {currentMatch && <span className="bg-sage text-white px-3 md:px-4 py-1 text-[8px] md:text-[9px] font-bold tracking-[0.3em] uppercase animate-pulse">On Stage</span>}
+                        <div key={num} className="...">
+                            <div className="flex justify-between items-center mb-6 ...">
+                                <span className="text-[10px] md:text-xs font-bold tracking-[0.5em] text-stone-500 uppercase italic">
+                                  場地 {displayCourtName}
+                                </span>
+                                {currentMatch && <span className="...">On Stage</span>}
                             </div>
 
                             <div className="flex-1 flex flex-col justify-center">
