@@ -285,7 +285,9 @@ export default function Browse() {
               {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic leading-relaxed">{selectedSession.notes}</div>}
             </div>
 
-            {!joinedIds.includes(selectedSession.id) && !selectedSession.isExpired ? (
+            {selectedSession.isExpired ? (
+              <div className="py-3 text-center text-gray-400 text-[10px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">球局已結束</div>
+            ) : !joinedIds.includes(selectedSession.id) ? (
               <form onSubmit={submitJoin} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -304,14 +306,10 @@ export default function Browse() {
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="py-3 text-center text-orange-400 text-[10px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">
-                  {selectedSession.isExpired ? "球局已結束" : "已成功預約"}
-                </div>
-                {!selectedSession.isExpired && (
-                  <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[10px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
-                    + 幫朋友報名 (限一位)
-                  </button>
-                )}
+                <div className="py-3 text-center text-orange-400 text-[10px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">已成功預約</div>
+                <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[10px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
+                  + 幫朋友報名 (限一位)
+                </button>
               </div>
             )}
           </div>
