@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Eye, EyeOff, UserMinus, CheckCircle, Clock, X, MapPin, User, Banknote,
   Info, Calendar, PlusCircle, FileText, UserCheck, Layout, Trash2, Zap, Copy,
-  CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight
+  CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight, Activity
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -654,6 +654,13 @@ export default function EnrolledPage() {
                     onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
                     className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
                     <Zap size={14} fill="currentColor" /> 進入場蹤看板
+                  </button>
+                )}
+                {!selectedSession.isHosted && selectedSession.date === todayStr && (
+                  <button
+                    onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
+                    className="w-full py-4 bg-stone-800 text-white text-[11px] tracking-[0.3em] uppercase hover:bg-stone-700 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                    <Activity size={14} /> 交戰實況
                   </button>
                 )}
                 <button onClick={handleAddFriendClick}
