@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   X, MapPin, CalendarClock, Clock, User,
   CircleDollarSign, CheckCircle, Info,
-  Plus, ArrowRightLeft, Eye, EyeOff
+  Plus, ArrowRightLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -26,7 +26,7 @@ export default function Browse() {
   const router = useRouter();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showExpired, setShowExpired] = useState(false);
+  const [filterDate, setFilterDate] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [joinedIds, setJoinedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,16 +99,33 @@ export default function Browse() {
     finally { setLoadingParticipants(false); }
   };
 
+  const dateChips = useMemo(() => {
+    const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+    const chips: { label: string; value: string | null }[] = [{ label: "全部", value: null }];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const label = i === 0 ? `今天 ${month}/${day}` : i === 1 ? `明天 ${month}/${day}` : `週${weekdays[d.getDay()]} ${month}/${day}`;
+      chips.push({ label, value: dateStr });
+    }
+    return chips;
+  }, []);
+
   const sortedSessions = useMemo(() => {
     return [...sessions]
-      .filter(s => showExpired ? true : !s.isExpired)
+      .filter(s => !s.isExpired)
+      .filter(s => filterDate ? s.date === filterDate : true)
       .sort((a, b) => {
         if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
         const timeA = new Date(`${a.date}T${a.time}`).getTime();
         const timeB = new Date(`${b.date}T${b.time}`).getTime();
         return a.isExpired ? timeB - timeA : timeA - timeB;
       });
-  }, [sessions, showExpired]);
+  }, [sessions, filterDate]);
 
   const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
@@ -237,18 +254,35 @@ export default function Browse() {
       <AppHeader />
       <FriendLevelSelector />
 
-      <div className="max-w-4xl mx-auto px-6 mt-6 flex justify-between items-center">
+      <div className="max-w-4xl mx-auto px-6 mt-6">
         <h2 className="text-sm tracking-[0.2em] text-sage font-bold">球局看板</h2>
-        <button
-          onClick={() => setShowExpired(!showExpired)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
-        >
-          {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
-          {showExpired ? "顯示過期" : "隱藏過期"}
-        </button>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-6 mt-4">
+        <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+          {dateChips.map((chip) => (
+            <button
+              key={chip.value ?? "all"}
+              onClick={() => setFilterDate(chip.value)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] tracking-wider transition-all ${
+                filterDate === chip.value
+                  ? "bg-sage text-white shadow-sm"
+                  : "border border-stone text-ink/60 hover:border-sage/50"
+              }`}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <main className="max-w-4xl mx-auto p-6 mt-4">
+        {sortedSessions.length === 0 && (
+          <div className="text-center py-16 text-stone-400">
+            <CalendarClock size={32} className="mx-auto mb-3 opacity-40" />
+            <p className="text-sm tracking-wider">{filterDate ? "此日期尚無球局" : "目前沒有球局"}</p>
+          </div>
+        )}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {sortedSessions.map((s) => {
             const isJoined = joinedIds.includes(s.id);
