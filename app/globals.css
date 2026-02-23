@@ -14,8 +14,14 @@
   --font-serif: "Noto Serif TC", serif;
 }
 
+html {
+  height: -webkit-fill-available;
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-serif), "Noto Serif TC", serif;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
 }

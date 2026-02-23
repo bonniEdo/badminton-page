@@ -238,14 +238,14 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-paper font-serif pb-20">
+    <div className="min-h-dvh bg-paper font-serif pb-20">
       <AppHeader />
-      <div className="flex items-center justify-center h-[60vh] italic text-sage animate-pulse">Initializing Board...</div>
+      <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Initializing Board...</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 font-serif flex flex-col overflow-hidden pb-20 md:pb-0">
+    <div className="min-h-dvh bg-[#FAF9F6] text-stone-900 font-serif flex flex-col overflow-hidden pb-20 md:pb-0">
       <AppHeader />
 
       <div className="sticky top-0 md:top-14 z-20 bg-white/90 backdrop-blur-sm border-b border-stone-200 px-4 py-2.5 md:px-10 flex justify-between items-center">
@@ -269,7 +269,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 </div>
                 <button className="md:hidden text-stone-500" onClick={() => setIsBenchOpen(false)}><X size={24} /></button>
             </div>
-            <div className="overflow-y-auto space-y-2 custom-scrollbar pr-1 h-[calc(100vh-240px)] md:h-[calc(100vh-260px)]">
+            <div className="overflow-y-auto space-y-2 custom-scrollbar pr-1 h-[calc(100dvh-240px)] md:h-[calc(100dvh-260px)]">
                 {players
                   .filter(p => p.status === 'idle')
                   .sort((a, b) => {
@@ -468,7 +468,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
       {msg.isOpen && (
         <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-2xl p-8 md:p-10 shadow-2xl text-center border border-stone-100 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-2xl p-8 md:p-10 shadow-2xl text-center border border-stone-100 max-h-[90dvh] overflow-y-auto">
                 <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-6 ${msg.type === 'match_result' ? 'bg-orange-50 text-orange-400' : msg.type === 'confirm' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
                     {msg.type === 'match_result' ? <Zap size={24} /> : msg.type === 'confirm' ? <HelpCircle size={24} /> : <Info size={24} />}
                 </div>

@@ -202,14 +202,14 @@ export default function Browse() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-paper font-serif pb-24">
+    <div className="min-h-dvh bg-paper font-serif pb-24">
       <AppHeader />
-      <div className="flex items-center justify-center h-[60vh] italic text-sage animate-pulse">Loading...</div>
+      <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Loading...</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-paper text-ink font-serif pb-20">
+    <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
       <AppHeader />
       <FriendLevelSelector />
 

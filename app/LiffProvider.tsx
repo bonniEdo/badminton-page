@@ -94,7 +94,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
 
   if (isLiffLoading) {
     return (
-      <main className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 text-center font-serif">
+      <main className="min-h-dvh bg-paper flex flex-col items-center justify-center p-6 text-center font-serif">
         <div className="animate-in fade-in duration-700 space-y-6">
           <h1 className="text-4xl font-light tracking-[0.5em] text-sage">勒戒中心</h1>
           <div className="space-y-2">

@@ -343,7 +343,7 @@ export default function Dashboard() {
   const sortedHosted = useMemo(() => sortAndFilter(hostedSessions), [hostedSessions, showExpired]);
 
   return (
-    <div className="min-h-screen bg-paper text-ink font-serif pb-20">
+    <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
       <nav className="flex justify-between items-center px-4 py-3 md:px-8 md:py-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-30">
         <div className="flex flex-col items-start">
           <h1 className="text-lg md:text-xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">戒球日誌</h1>

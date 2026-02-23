@@ -73,7 +73,7 @@ export default function AppHeader() {
       </nav>
 
       {/* Mobile Bottom Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-sm border-t border-stone md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-sm border-t border-stone md:hidden [transform:translate3d(0,0,0)]">
         <div className="flex items-center justify-around h-16 px-2">
           {bottomBarItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + "/");

@@ -66,7 +66,7 @@ function LoginSuccessContent() {
   }, [searchParams, router]);
   
   return (
-    <main className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 font-serif text-center">
+    <main className="min-h-dvh bg-paper flex flex-col items-center justify-center p-6 font-serif text-center">
       <div className="animate-fade-in space-y-6">
         <h1 className="text-4xl font-light tracking-[0.5em] text-sage">勒戒中心</h1>
         

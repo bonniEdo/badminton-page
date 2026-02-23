@@ -147,7 +147,7 @@ export default function RatingWizardPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#FDFCFB] text-stone-700 flex flex-col items-center justify-center p-6 font-serif overflow-y-auto">
+    <main className="min-h-dvh bg-[#FDFCFB] text-stone-700 flex flex-col items-center justify-center p-6 font-serif overflow-y-auto">
       <CustomAlert
         isOpen={isAlertOpen}
         onClose={() => setIsAlertOpen(false)}
