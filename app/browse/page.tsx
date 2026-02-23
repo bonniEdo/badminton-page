@@ -15,7 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "
 const TW_MOBILE_REGEX = /^09\d{8}$/;
 
 interface Session {
-  id: number; hostName: string; title: string; date: string; time: string; endTime: string;
+  id: number; hostId: number; hostName: string; title: string; date: string; time: string; endTime: string;
   location: string; currentPlayers: number; maxPlayers: number; price: number; notes: string;
   isExpired: boolean; friendCount: number; badminton_level?: string; courtCount: number; courtNumber?: string;
 }
@@ -56,7 +56,7 @@ export default function Browse() {
 
       if (gamesRes.success && gamesRes.data) {
         setSessions((gamesRes.data || []).map((g: any) => ({
-          id: g.GameId, hostName: g.hostName, title: g.Title,
+          id: g.GameId, hostId: g.HostID, hostName: g.hostName, title: g.Title,
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
           endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "",
@@ -364,7 +364,19 @@ export default function Browse() {
               {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic leading-relaxed whitespace-pre-wrap">{selectedSession.notes}</div>}
             </div>
 
-            {selectedSession.isExpired ? (
+            {(() => {
+              const userStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+              const currentUserId = userStr ? JSON.parse(userStr)?.id : null;
+              const isHost = isLoggedIn && currentUserId && currentUserId === selectedSession.hostId;
+              return isHost;
+            })() ? (
+              <button
+                onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
+                className="w-full py-3 bg-sage text-white text-[10px] tracking-widest uppercase hover:bg-sage/90 transition-all font-serif"
+              >
+                進入管理看板
+              </button>
+            ) : selectedSession.isExpired ? (
               <div className="py-3 text-center text-gray-400 text-[10px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">球局已結束</div>
             ) : !isLoggedIn ? (
               <button

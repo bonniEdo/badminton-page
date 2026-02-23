@@ -324,7 +324,10 @@ export default function ManagePage() {
                 <div className="text-xs text-gray-500 font-sans space-y-1.5">
                   <p className="flex items-center gap-2"><Calendar size={12}/> {s.date}</p>
                   <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
-                  <p className="flex items-center gap-2"><MapPin size={12}/> {s.location}</p>
+                  <p className="flex items-center gap-2">
+                    <MapPin size={12}/>
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors">{s.location}</a>
+                  </p>
                 </div>
                 <div className="flex justify-end mt-6">
                   {s.isHostCanceled ? <span className="text-[11px] text-red-500 font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
@@ -467,12 +470,12 @@ export default function ManagePage() {
             <h2 className={`text-xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "球局紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 font-sans text-xs text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
-              <p className="flex items-center gap-3 italic"><MapPin size={14}/> {selectedSession.location}</p>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/> {selectedSession.location}</a>
               <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主揪"}</p>
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
-              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed">
+              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-xs italic text-gray-500 leading-relaxed whitespace-pre-wrap">
                 <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
                 {selectedSession.notes}
               </div>
@@ -490,7 +493,12 @@ export default function ManagePage() {
               </div>
             </div>
             {!selectedSession.isExpired && !selectedSession.isHostCanceled && (
-              <div className="mt-8">
+              <div className="mt-8 space-y-3">
+                <button
+                  onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
+                  className="w-full py-4 bg-sage text-white text-[10px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                  <Zap size={14} fill="currentColor" /> 進入場蹤看板
+                </button>
                 <button onClick={handleAddFriendClick}
                   className="w-full py-4 border border-sage text-sage text-[10px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
                   <PlusCircle size={14}/> ＋ 幫朋友報名 (限一位)
