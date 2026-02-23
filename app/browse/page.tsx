@@ -34,6 +34,7 @@ export default function Browse() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
   const [friendLevelModal, setFriendLevelModal] = useState<{ isOpen: boolean; type: "join" | "add" }>({ isOpen: false, type: "join" });
@@ -41,6 +42,8 @@ export default function Browse() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
+    const userStr = localStorage.getItem("user");
+    if (userStr) try { setCurrentUserId(JSON.parse(userStr)?.id ?? null); } catch (_) {}
     fetchData(false, !!token);
   }, []);
 
@@ -73,7 +76,10 @@ export default function Browse() {
           fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json())
         ]);
 
-        if (resUser.success && resUser.user) localStorage.setItem("user", JSON.stringify(resUser.user));
+        if (resUser.success && resUser.user) {
+          localStorage.setItem("user", JSON.stringify(resUser.user));
+          setCurrentUserId(resUser.user.id ?? null);
+        }
 
         if (resJoined.success) {
           setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
@@ -285,15 +291,19 @@ export default function Browse() {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {sortedSessions.map((s) => {
             const isJoined = joinedIds.includes(s.id);
+            const isHost = currentUserId !== null && s.hostId === currentUserId;
             return (
               <div key={s.id} onClick={() => handleOpenDetail(s)}
                 className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
                   s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
+                    : isHost ? "border-l-amber-400 shadow-sm"
                     : isJoined ? "border-l-orange-400 shadow-sm" : "border-l-sage shadow-sm"
                 }`}>
                 <div className="absolute top-0 right-0">
                   {s.isExpired
                     ? <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已散場</div>
+                    : isHost
+                    ? <div className="bg-amber-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">我開的</div>
                     : isJoined
                     ? <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已掛號</div>
                     : null}
