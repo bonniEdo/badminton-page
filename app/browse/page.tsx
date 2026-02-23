@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  X, MapPin, CalendarClock, User,
+  X, MapPin, CalendarClock, Clock, User,
   CircleDollarSign, CheckCircle, Info,
   Plus, ArrowRightLeft, Eye, EyeOff
 } from "lucide-react";
@@ -43,9 +43,9 @@ export default function Browse() {
     else fetchData();
   }, [router]);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const token = localStorage.getItem("token");
       const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
 
@@ -142,7 +142,7 @@ export default function Browse() {
     const json = await res.json();
     if (json.success) {
       setMsg({ isOpen: true, title: "預約成功", content: "期待在球場與你相遇。", type: "success" });
-      fetchData();
+      fetchData(true);
       setJoinedIds(prev => [...prev, selectedSession.id]);
       fetchParticipants(selectedSession.id);
       setFriendLevelModal({ ...friendLevelModal, isOpen: false });
@@ -163,7 +163,7 @@ export default function Browse() {
     if (json.success) {
       setFriendLevelModal({ ...friendLevelModal, isOpen: false });
       setSelectedSession(prev => prev ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : null);
-      fetchData();
+      fetchData(true);
       fetchParticipants(selectedSession.id);
       setMsg({ isOpen: true, title: "成功 +1", content: "已為朋友保留位置與程度紀錄。", type: "success" });
     } else {
@@ -209,11 +209,12 @@ export default function Browse() {
   );
 
   return (
-    <div className="min-h-screen bg-paper text-ink font-serif pb-24">
+    <div className="min-h-screen bg-paper text-ink font-serif pb-20">
       <AppHeader />
       <FriendLevelSelector />
 
-      <div className="max-w-4xl mx-auto px-6 mt-6 flex justify-end">
+      <div className="max-w-4xl mx-auto px-6 mt-6 flex justify-between items-center">
+        <h2 className="text-sm tracking-[0.2em] text-sage font-bold">球局看板</h2>
         <button
           onClick={() => setShowExpired(!showExpired)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-[10px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
@@ -223,22 +224,39 @@ export default function Browse() {
         </button>
       </div>
 
-      <main className="max-w-6xl mx-auto p-6 mt-4">
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <main className="max-w-4xl mx-auto p-6 mt-4">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {sortedSessions.map((s) => {
             const isJoined = joinedIds.includes(s.id);
             return (
-              <div key={s.id} onClick={() => handleOpenDetail(s)} className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70" : isJoined ? "border-l-orange-400 shadow-sm" : "border-l-sage shadow-sm"}`}>
-                <div className="absolute top-0 right-0">{s.isExpired ? <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已結束</div> : isJoined ? <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div> : null}</div>
-                <div className="mb-4">
-                  <span className="text-[10px] text-gray-400 tracking-widest uppercase block mb-1">主揪：{s.hostName}</span>
-                  <h3 className={`text-lg tracking-wide ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
+              <div key={s.id} onClick={() => handleOpenDetail(s)}
+                className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+                  s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
+                    : isJoined ? "border-l-orange-400 shadow-sm" : "border-l-sage shadow-sm"
+                }`}>
+                <div className="absolute top-0 right-0">
+                  {s.isExpired
+                    ? <div className="bg-gray-400 text-white text-[10px] px-3 py-1 tracking-widest uppercase">已結束</div>
+                    : isJoined
+                    ? <div className="bg-orange-400 text-white text-[10px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已報名</div>
+                    : null}
                 </div>
-                <div className="text-xs text-gray-500 font-sans space-y-1.5 mb-6">
-                  <p>📅 {s.date}</p><p>🕒 {s.time} - {s.endTime}</p><p>📍 {s.location}</p><p>💰 {s.price}</p>
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <span className="text-[10px] text-gray-400 tracking-widest uppercase block mb-1">主揪：{s.hostName}</span>
+                    <h3 className={`text-lg tracking-wide pr-4 ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
+                  </div>
                 </div>
-                <div className="flex justify-end items-center mt-auto pt-4 border-t border-stone/10">
-                  <span className="text-[11px] text-gray-400 font-sans"><span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人</span>
+                <div className="text-xs text-gray-500 font-sans space-y-1.5">
+                  <p className="flex items-center gap-2"><CalendarClock size={12}/> {s.date}</p>
+                  <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
+                  <p className="flex items-center gap-2"><MapPin size={12}/> {s.location}</p>
+                  <p className="flex items-center gap-2"><CircleDollarSign size={12}/> ${s.price}</p>
+                </div>
+                <div className="flex justify-end mt-6">
+                  <span className="text-[11px] text-gray-400 font-sans tracking-tighter">
+                    <span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人
+                  </span>
                 </div>
               </div>
             );

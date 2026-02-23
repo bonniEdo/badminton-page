@@ -53,9 +53,9 @@ export default function EnrolledPage() {
     finally { setLoadingParticipants(false); }
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return;
       const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
@@ -97,7 +97,7 @@ export default function EnrolledPage() {
       if (json.success) {
         setCheckInModal({ isOpen: false, session: null });
         setMsg({ isOpen: true, title: "已通知主揪", content: "今日的汗水，已被記錄在冊。請靜候主揪安排上場。", type: "success" });
-        fetchData();
+        fetchData(true);
         fetchParticipants(checkInModal.session.id);
       } else { alert(json.message || "簽到失敗"); }
     } catch (error) { console.error("Check-in error:", error); }
@@ -124,7 +124,7 @@ export default function EnrolledPage() {
       const json = await res.json();
       if (json.success) {
         setMsg({ isOpen: true, title: "已取消報名", content: "這段時光，我先不戒。", type: "success" });
-        fetchData();
+        fetchData(true);
         if (selectedSession && selectedSession.id === id) {
           if (cancelType === 'friend_only') setSelectedSession(prev => prev ? { ...prev, friendCount: 0 } : null);
           fetchParticipants(id);
@@ -158,7 +158,7 @@ export default function EnrolledPage() {
       if (json.success) {
         setLevelModal({ isOpen: false });
         setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
-        fetchData();
+        fetchData(true);
         fetchParticipants(selectedSession.id);
         setMsg({ isOpen: true, title: "成功攜帶隊友", content: "已將您的朋友納入麾下。", type: "success" });
       } else { alert(json.message); }

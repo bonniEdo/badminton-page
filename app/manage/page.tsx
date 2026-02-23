@@ -51,9 +51,9 @@ export default function ManagePage() {
     finally { setLoadingParticipants(false); }
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return;
       const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
@@ -96,7 +96,7 @@ export default function ManagePage() {
     });
     if (res.ok) {
       setDeleteConfirm({ isOpen: false, id: null });
-      fetchData();
+      fetchData(true);
       setMsg({ isOpen: true, title: "聚會終止", content: "這場相遇，我們留在回憶裡就好了。", type: "success" });
     }
   };
@@ -146,7 +146,7 @@ export default function ManagePage() {
       if (json.success) {
         setLevelModal({ isOpen: false });
         setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
-        fetchData();
+        fetchData(true);
         fetchParticipants(selectedSession.id);
         setMsg({ isOpen: true, title: "成功攜帶隊友", content: "已將您的朋友納入麾下。", type: "success" });
       } else { alert(json.message); }

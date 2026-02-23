@@ -5,6 +5,7 @@ import {
   MapPin, Calendar, LayoutGrid, ChevronLeft, HelpCircle, CheckCircle, Info, ArrowRightLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import AppHeader from "../../../components/AppHeader";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -236,24 +237,28 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     );
   };
 
-  if (loading) return <div className="h-screen bg-[#FAF9F6] flex items-center justify-center italic text-sage animate-pulse">Initializing Board...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-paper font-serif pb-20">
+      <AppHeader />
+      <div className="flex items-center justify-center h-[60vh] italic text-sage animate-pulse">Initializing Board...</div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 font-serif flex flex-col overflow-hidden">
-      
-      <nav className="z-50 bg-white border-b border-stone-200 sticky top-0 px-4 py-3 md:px-10 flex justify-between items-center h-16 md:h-20">
-        <button onClick={() => router.push("/dashboard?tab=hosted")} className="flex items-center gap-1 text-stone-500 hover:text-sage transition-all group">
-          <ChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-xs tracking-[0.2em] uppercase hidden sm:inline">返回日誌</span>
+    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 font-serif flex flex-col overflow-hidden pb-20 md:pb-0">
+      <AppHeader />
+
+      <div className="sticky top-0 md:top-14 z-20 bg-white/90 backdrop-blur-sm border-b border-stone-200 px-4 py-2.5 md:px-10 flex justify-between items-center">
+        <button onClick={() => router.push("/manage")} className="flex items-center gap-1 text-stone-500 hover:text-sage transition-all group">
+          <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="text-xs tracking-[0.1em] uppercase hidden sm:inline">返回管理</span>
         </button>
-        <div className="text-center flex flex-col items-center px-2">
-            <h1 className="text-[10px] md:text-sm font-bold tracking-[0.2em] md:tracking-[0.3em] text-stone-800 uppercase truncate max-w-[120px] sm:max-w-[200px] md:max-w-none">{gameInfo?.Title}</h1>
-        </div>
+        <h1 className="text-[10px] md:text-sm font-bold tracking-[0.2em] md:tracking-[0.3em] text-stone-800 uppercase truncate max-w-[120px] sm:max-w-[200px] md:max-w-none">{gameInfo?.Title}</h1>
         <button onClick={() => setIsBenchOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-sage text-white text-[9px] md:text-[10px] tracking-widest uppercase rounded-full shadow-md md:hidden">
             <Users size={12} /> 待命池
         </button>
-        <div className="hidden md:block w-24"></div> 
-      </nav>
+        <div className="hidden md:block w-24"></div>
+      </div>
 
       <div className="flex flex-1 overflow-hidden relative">
         <aside className={`fixed inset-y-0 left-0 z-[60] w-64 md:w-72 bg-white border-r border-stone-200 p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 shadow-2xl md:shadow-none"}`}>
@@ -264,7 +269,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 </div>
                 <button className="md:hidden text-stone-500" onClick={() => setIsBenchOpen(false)}><X size={24} /></button>
             </div>
-            <div className="overflow-y-auto space-y-2 custom-scrollbar pr-1 h-[calc(100vh-180px)] md:h-[calc(100vh-220px)]">
+            <div className="overflow-y-auto space-y-2 custom-scrollbar pr-1 h-[calc(100vh-240px)] md:h-[calc(100vh-260px)]">
                 {players
                   .filter(p => p.status === 'idle')
                   .sort((a, b) => {
@@ -321,7 +326,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-12 pb-24">
+            <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-12 pb-8">
                 {Array.from({ length: courtCount }, (_, i) => (i + 1).toString()).map(num => {
                     const currentMatch = matches.find(m => m.court_number === num);
                     const slots = manualSlots[num] || [null,null,null,null];
