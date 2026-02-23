@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { PlusCircle, CheckCircle, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import LoginPrompt from "../components/LoginPrompt";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -16,6 +17,7 @@ const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
 export default function CreatePage() {
   const router = useRouter();
   const todayStr = new Date().toISOString().split("T")[0];
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [newSession, setNewSession] = useState({
     title: "", gameDate: "", gameTime: "18:00", location: "竹東鎮立羽球場",
@@ -25,8 +27,8 @@ export default function CreatePage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) router.replace("/");
-  }, [router]);
+    if (token) setIsLoggedIn(true);
+  }, []);
 
   useEffect(() => {
     const savedData = sessionStorage.getItem("copySessionData");
@@ -62,6 +64,13 @@ export default function CreatePage() {
       setMsg({ isOpen: true, title: "開團失敗", content: err.message, type: "error" });
     }
   };
+
+  if (!isLoggedIn) return (
+    <div className="min-h-dvh bg-paper font-serif pb-24">
+      <AppHeader />
+      <LoginPrompt />
+    </div>
+  );
 
   return (
     <div className="min-h-dvh bg-paper text-ink font-serif pb-20">

@@ -8,12 +8,14 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import LoginPrompt from "../components/LoginPrompt";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
   const [matches, setMatches] = useState<any[]>([]);
   const [signups, setSignups] = useState<any[]>([]);
@@ -48,7 +50,7 @@ export default function ProfilePage() {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) return router.push("/");
+      if (!token) return router.push("/login");
       const headers = { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
 
       const [resUser, resMatches, resSignups, resMyGames] = await Promise.all([
@@ -69,7 +71,15 @@ export default function ProfilePage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsLoggedIn(true);
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
   const shiftWeek = (weeks: number) => {
     const newDate = new Date(baseDate);
@@ -107,13 +117,20 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     localStorage.clear();
-    router.replace("/");
+    router.replace("/login");
   };
 
   if (loading) return (
     <div className="min-h-dvh bg-[#FAF9F6] font-serif pb-24">
       <AppHeader />
       <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Scanning logs...</div>
+    </div>
+  );
+
+  if (!isLoggedIn) return (
+    <div className="min-h-dvh bg-[#FAF9F6] font-serif pb-24">
+      <AppHeader />
+      <LoginPrompt />
     </div>
   );
 

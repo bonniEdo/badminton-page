@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import LoginPrompt from "../components/LoginPrompt";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -22,6 +23,7 @@ interface Participant { Username: string; Status: string; FriendCount?: number; 
 export default function EnrolledPage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(true);
   const [joinedSessions, setJoinedSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,9 +37,13 @@ export default function EnrolledPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) router.replace("/");
-    else fetchData();
-  }, [router]);
+    if (token) {
+      setIsLoggedIn(true);
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
   const fetchParticipants = useCallback(async (gameId: number) => {
     const token = localStorage.getItem("token");
@@ -179,6 +185,13 @@ export default function EnrolledPage() {
     <div className="min-h-dvh bg-paper font-serif pb-24">
       <AppHeader />
       <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Loading...</div>
+    </div>
+  );
+
+  if (!isLoggedIn) return (
+    <div className="min-h-dvh bg-paper font-serif pb-24">
+      <AppHeader />
+      <LoginPrompt />
     </div>
   );
 

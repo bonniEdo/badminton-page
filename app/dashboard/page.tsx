@@ -7,6 +7,8 @@ import {
   Info, Calendar, PlusCircle, FileText, Copy, UserCheck, Zap, Layout 
 } from "lucide-react"; 
 import { useRouter, useSearchParams } from "next/navigation";
+import AppHeader from "../components/AppHeader";
+import LoginPrompt from "../components/LoginPrompt";
 
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -46,8 +48,9 @@ export default function Dashboard() {
 
   const router = useRouter();
   const searchParams = useSearchParams(); 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<"joined" | "hosted">("joined");
-  const [showExpired, setShowExpired] = useState(true); // 控制是否顯示過期
+  const [showExpired, setShowExpired] = useState(true);
   const [hostedSessions, setHostedSessions] = useState<Session[]>([]); 
   const [joinedSessions, setJoinedSessions] = useState<Session[]>([]); 
   const [loading, setLoading] = useState(true);
@@ -60,14 +63,17 @@ export default function Dashboard() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null; }>({ isOpen: false, session: null });
   
-  // 程度選擇 Modal 狀態
   const [levelModal, setLevelModal] = useState({ isOpen: false });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) router.replace("/");
-    fetchData();
-  }, [router]);
+    if (token) {
+      setIsLoggedIn(true);
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -79,7 +85,7 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
-    router.replace("/");
+    router.replace("/login");
   };
 
   const fetchParticipants = useCallback(async (gameId: number) => {
@@ -341,6 +347,13 @@ export default function Dashboard() {
 
   const sortedJoined = useMemo(() => sortAndFilter(joinedSessions), [joinedSessions, showExpired]);
   const sortedHosted = useMemo(() => sortAndFilter(hostedSessions), [hostedSessions, showExpired]);
+
+  if (!isLoggedIn) return (
+    <div className="min-h-dvh bg-paper font-serif pb-24">
+      <AppHeader />
+      <LoginPrompt />
+    </div>
+  );
 
   return (
     <div className="min-h-dvh bg-paper text-ink font-serif pb-20">

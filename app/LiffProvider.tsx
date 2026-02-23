@@ -4,6 +4,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import liff from '@line/liff';
 import { useRouter, usePathname } from 'next/navigation';
 
+const PUBLIC_PATHS = ['/', '/login', '/login-success', '/browse'];
+
 export default function LiffProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -14,13 +16,11 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
 
-    // 情境 1: 非 LINE 環境 (PC)
     if (!isLineBrowser) {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
       
-      if (token && (pathname === '/' || pathname === '/login')) {
-        // ✅ 根據填寫狀態決定跳轉目的地
+      if (token && pathname === '/login') {
         const user = userStr ? JSON.parse(userStr) : {};
         const target = user.is_profile_completed ? '/browse' : '/rating';
         router.replace(target);
@@ -30,7 +30,6 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
       return;
     }
 
-    // 情境 2: LINE 環境
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
@@ -40,15 +39,17 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
         const userStr = localStorage.getItem('user');
 
         if (token) {
-          if (pathname === '/' || pathname === '/login') {
-            // ✅ 根據填寫狀態決定跳轉目的地
+          if (pathname === '/login') {
             const user = userStr ? JSON.parse(userStr) : {};
             const target = user.is_profile_completed ? '/browse' : '/rating';
             router.replace(target);
           } else {
             setIsLiffLoading(false);
           }
-        } else {
+          return;
+        }
+
+        if (pathname === '/login') {
           if (!liff.isLoggedIn()) {
             liff.login();
             return;
@@ -66,28 +67,29 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
               if (data.success) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
-                
-                // ✅ 登入成功後根據後端回傳狀態跳轉
                 const target = data.user.is_profile_completed ? '/browse' : '/rating';
                 router.replace(target);
-              } else {
-                setIsLiffLoading(false);
+                return;
               }
             } catch (e) {
-              setIsLiffLoading(false);
+              /* fall through */
             }
           }
         }
+
+        setIsLiffLoading(false);
       })
       .catch(() => setIsLiffLoading(false));
   }, [router, pathname]);
 
-  // --- 核心防護：抵達目的地才關閉 Loading ---
   useEffect(() => {
     const token = localStorage.getItem('token');
     
-    // 只要 token 存在且網址已離開 / 或 /login，就放行 children
-    if (token && pathname !== '/' && pathname !== '/login') {
+    if (token && pathname !== '/login') {
+      setIsLiffLoading(false);
+    }
+
+    if (!token && PUBLIC_PATHS.includes(pathname)) {
       setIsLiffLoading(false);
     }
   }, [pathname]);

@@ -25,6 +25,7 @@ interface Participant { Username: string; Status: string; FriendCount: number; }
 export default function Browse() {
   const router = useRouter();
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [joinedIds, setJoinedIds] = useState<number[]>([]);
@@ -39,26 +40,22 @@ export default function Browse() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) router.replace("/");
-    else fetchData();
-  }, [router]);
+    setIsLoggedIn(!!token);
+    fetchData(false, !!token);
+  }, []);
 
-  const fetchData = async (silent = false) => {
+  const fetchData = async (silent = false, loggedIn?: boolean) => {
     try {
       if (!silent) setLoading(true);
       const token = localStorage.getItem("token");
-      const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
+      const isAuth = loggedIn ?? !!token;
+      const headers: Record<string, string> = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const [resUser, resGames, resJoined] = await Promise.all([
-        fetch(`${API_URL}/api/user/me`, { headers }).then(res => res.json()),
-        fetch(`${API_URL}/api/games/activegames`, { headers }).then(res => res.json()),
-        fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json())
-      ]);
+      const gamesRes = await fetch(`${API_URL}/api/games/activegames`, { headers }).then(res => res.json());
 
-      if (resUser.success && resUser.user) localStorage.setItem("user", JSON.stringify(resUser.user));
-
-      if (resGames.success && resGames.data) {
-        setSessions((resGames.data || []).map((g: any) => ({
+      if (gamesRes.success && gamesRes.data) {
+        setSessions((gamesRes.data || []).map((g: any) => ({
           id: g.GameId, hostName: g.hostName, title: g.Title,
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
@@ -70,8 +67,17 @@ export default function Browse() {
         })));
       }
 
-      if (resJoined.success) {
-        setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
+      if (isAuth && token) {
+        const [resUser, resJoined] = await Promise.all([
+          fetch(`${API_URL}/api/user/me`, { headers }).then(res => res.json()),
+          fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json())
+        ]);
+
+        if (resUser.success && resUser.user) localStorage.setItem("user", JSON.stringify(resUser.user));
+
+        if (resJoined.success) {
+          setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
+        }
       }
     } catch (e) {
       console.error("Fetch Data Error:", e);
@@ -82,11 +88,11 @@ export default function Browse() {
 
   const fetchParticipants = async (sessionId: number) => {
     setLoadingParticipants(true);
+    const headers: Record<string, string> = { "ngrok-skip-browser-warning": "true" };
     const token = localStorage.getItem("token");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     try {
-      const res = await fetch(`${API_URL}/api/games/${sessionId}/players`, {
-        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
-      });
+      const res = await fetch(`${API_URL}/api/games/${sessionId}/players`, { headers });
       const json = await res.json();
       if (json.success) setParticipants(json.data);
     } catch (e) { console.error(e); }
@@ -108,6 +114,23 @@ export default function Browse() {
     setSelectedSession(session);
     setJoinForm({ phone: "", numPlayers: 1 });
     fetchParticipants(session.id);
+  };
+
+  const handleLineLogin = async () => {
+    const isLineBrowser = /Line/i.test(window.navigator.userAgent);
+    if (isLineBrowser) {
+      router.push('/login');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/user/line-auth`, {
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (error) {
+      console.error("LINE Auth Error:", error);
+    }
   };
 
   const submitJoin = async (e: React.FormEvent) => {
@@ -305,6 +328,14 @@ export default function Browse() {
 
             {selectedSession.isExpired ? (
               <div className="py-3 text-center text-gray-400 text-[10px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">球局已結束</div>
+            ) : !isLoggedIn ? (
+              <button
+                onClick={handleLineLogin}
+                className="w-full py-4 bg-[#06C755] text-white text-[12px] tracking-[0.3em] font-bold rounded-full shadow-lg shadow-[#06C755]/20 hover:shadow-xl hover:shadow-[#06C755]/30 hover:brightness-105 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
+              >
+                <span className="bg-white text-[#06C755] text-[10px] px-2 py-0.5 rounded-sm font-black leading-none">LINE</span>
+                登入並報名
+              </button>
             ) : !joinedIds.includes(selectedSession.id) ? (
               <form onSubmit={submitJoin} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -347,9 +378,11 @@ export default function Browse() {
         </div>
       )}
 
-      <Link href="/create" className="fixed bottom-24 md:bottom-6 right-6 z-40 w-14 h-14 bg-sage text-white rounded-full shadow-lg shadow-sage/30 flex items-center justify-center hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200">
-        <Plus size={24} strokeWidth={2} />
-      </Link>
+      {isLoggedIn && (
+        <Link href="/create" className="fixed bottom-24 md:bottom-6 right-6 z-40 w-14 h-14 bg-sage text-white rounded-full shadow-lg shadow-sage/30 flex items-center justify-center hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200">
+          <Plus size={24} strokeWidth={2} />
+        </Link>
+      )}
     </div>
   );
 }
