@@ -1,14 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import ShuttlecockIcon from "./ShuttlecockIcon";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
 
 export default function LoginPrompt() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLineLogin = async () => {
+    localStorage.setItem("loginReturnPath", pathname);
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
     if (isLineBrowser) {
       router.push("/login");
