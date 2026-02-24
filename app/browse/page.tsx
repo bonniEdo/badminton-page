@@ -317,9 +317,9 @@ export default function Browse() {
           {sortedSessions.map((s) => {
             const isJoined = joinedIds.includes(s.id);
             const isHost = currentUserId !== null && s.hostId === currentUserId;
-            return (
+              return (
               <div key={s.id} onClick={() => handleOpenDetail(s)}
-                className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+                className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md rounded-2xl ${
                   s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
                     : isHost ? "border-l-amber-400 shadow-sm"
                     : isJoined ? "border-l-sage shadow-sm" : "border-l-stone shadow-sm"
@@ -328,9 +328,9 @@ export default function Browse() {
                   {s.isExpired
                     ? <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase">已散場</div>
                     : isHost
-                    ? <div className="bg-amber-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">我開的</div>
+                    ? <div className="bg-amber-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-tr-2xl rounded-bl-2xl">我開的</div>
                     : isJoined
-                    ? <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已掛號</div>
+                    ? <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-tr-2xl rounded-bl-2xl">已掛號</div>
                     : null}
                 </div>
                 <div className="flex justify-between items-start mb-3">
@@ -361,7 +361,7 @@ export default function Browse() {
 
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className="bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200">
+          <div className="bg-white border border-stone w-full max-w-md p-8 shadow-xl relative rounded-2xl transform-gpu transition-transform duration-300 animate-in zoom-in">
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage"><X size={24}/></button>
             <h2 className="text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-gray-500 mb-8">
