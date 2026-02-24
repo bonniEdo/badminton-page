@@ -100,7 +100,8 @@ export default function Browse() {
     try {
       const res = await fetch(`${API_URL}/api/games/${sessionId}/players`, { headers });
       const json = await res.json();
-      if (json.success) setParticipants(json.data);
+      // 取消候補機制：過濾掉 WAITLIST 狀態的病友
+      if (json.success) setParticipants(json.data.filter((p: Participant) => p.Status !== "WAITLIST"));
     } catch (e) { console.error(e); }
     finally { setLoadingParticipants(false); }
   };
@@ -160,6 +161,18 @@ export default function Browse() {
   const submitJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSession) return;
+
+    // 檢查名額是否不足
+    if (selectedSession.currentPlayers + joinForm.numPlayers > selectedSession.maxPlayers) {
+      setMsg({ 
+        isOpen: true, 
+        title: "空位不足", 
+        content: "搜哩只剩一人拉 下次請早~~\n不然就拋棄你朋友吧", 
+        type: "error" 
+      });
+      return;
+    }
+
     if (joinForm.numPlayers === 2) {
       setFriendLevelModal({ isOpen: true, type: "join" });
     } else {
@@ -174,6 +187,18 @@ export default function Browse() {
       setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
       return;
     }
+
+    // 檢查名額是否不足 (+1)
+    if (selectedSession.currentPlayers + 1 > selectedSession.maxPlayers) {
+      setMsg({ 
+        isOpen: true, 
+        title: "人數已滿", 
+        content: "目前只剩一個位置了\n沒辦法再塞下你的朋友拉~~", 
+        type: "error" 
+      });
+      return;
+    }
+
     setFriendLevelModal({ isOpen: true, type: "add" });
   };
 
@@ -359,7 +384,7 @@ export default function Browse() {
                           if (p.FriendCount > 0) list.push({ ...p, Display: `${p.Username} +1` });
                           return list;
                         }).map((p, i) => (
-                          <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border transition-all ${p.Status === 'WAITLIST' ? 'text-stone-500 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
+                          <div key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border text-sage border-sage/20 bg-sage/5 transition-all">
                             <User size={10} /><span>{p.Display}</span>
                           </div>
                         ))
@@ -431,7 +456,7 @@ export default function Browse() {
               {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
             </div>
             <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
-            <p className="text-base text-gray-400 italic mb-10 tracking-widest">{msg.content}</p>
+            <p className="text-base text-gray-400 italic mb-10 tracking-widest whitespace-pre-wrap">{msg.content}</p>
             <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] uppercase hover:bg-stone/5 transition">我知道了</button>
           </div>
         </div>
