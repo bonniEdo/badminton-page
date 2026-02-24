@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import Link from "next/link";
 import {
-  Eye, EyeOff, UserMinus, CheckCircle, Clock, X, MapPin, User, Banknote,
-  Info, Calendar, PlusCircle, FileText, UserCheck, Layout, Trash2, Zap, Copy,
-  CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight, Activity
+  Eye, EyeOff, UserMinus, CheckCircle, Clock, X, MapPin, Banknote,
+  Calendar, Trash2, Zap, Copy, CalendarDays, CalendarRange, List, 
+  Activity, Settings2, ChevronLeft, ChevronRight, UserCheck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -20,15 +19,15 @@ interface Session {
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
   isHosted?: boolean;
 }
-interface Participant { Username: string; Status: string; FriendCount?: number; }
 
 export default function EnrolledPage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showExpired, setShowExpired] = useState(true);
+  const [showExpired, setShowExpired] = useState(false); 
   const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('list');
   const [filterType, setFilterType] = useState<'all' | 'hosted' | 'enrolled'>('all');
+  
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -41,16 +40,13 @@ export default function EnrolledPage() {
     start.setHours(0, 0, 0, 0);
     return start;
   });
+
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
   const [checkInModal, setCheckInModal] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
-  const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
-  const [levelModal, setLevelModal] = useState({ isOpen: false });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -60,20 +56,6 @@ export default function EnrolledPage() {
     } else {
       setLoading(false);
     }
-  }, []);
-
-  const fetchParticipants = useCallback(async (gameId: number) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    setLoadingParticipants(true);
-    try {
-      const res = await fetch(`${API_URL}/api/games/${gameId}/players`, {
-        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
-      });
-      const json = await res.json();
-      if (json.success) setParticipants(json.data);
-    } catch (err) { console.error(err); }
-    finally { setLoadingParticipants(false); }
   }, []);
 
   const mapSession = (g: any, isHosted: boolean): Session => ({
@@ -95,35 +77,21 @@ export default function EnrolledPage() {
       const token = localStorage.getItem("token");
       if (!token) return;
       const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
-
-      const [resUser, resJoined, resHosted] = await Promise.all([
-        fetch(`${API_URL}/api/user/me`, { headers }).then(r => r.json()),
+      const [resJoined, resHosted] = await Promise.all([
         fetch(`${API_URL}/api/games/joined`, { headers }),
         fetch(`${API_URL}/api/games/mygame`, { headers }),
       ]);
-      if (resUser.success && resUser.user) localStorage.setItem("user", JSON.stringify(resUser.user));
-
       const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
       const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
-
       const hostedIds = new Set<number>();
       const hostedList: Session[] = [];
       if (jsonHosted.success) {
-        (jsonHosted.data || []).forEach((g: any) => {
-          hostedIds.add(g.GameId);
-          hostedList.push(mapSession(g, true));
-        });
+        (jsonHosted.data || []).forEach((g: any) => { hostedIds.add(g.GameId); hostedList.push(mapSession(g, true)); });
       }
-
       const joinedList: Session[] = [];
       if (jsonJoined.success) {
-        (jsonJoined.data || []).forEach((g: any) => {
-          if (!hostedIds.has(g.GameId)) {
-            joinedList.push(mapSession(g, false));
-          }
-        });
+        (jsonJoined.data || []).forEach((g: any) => { if (!hostedIds.has(g.GameId)) joinedList.push(mapSession(g, false)); });
       }
-
       setAllSessions([...hostedList, ...joinedList]);
     } catch (e: any) { console.error(e.message); }
     finally { setLoading(false); }
@@ -138,48 +106,22 @@ export default function EnrolledPage() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ gameId: checkInModal.session.id })
       });
-      const json = await res.json();
-      if (json.success) {
+      if ((await res.json()).success) {
         setCheckInModal({ isOpen: false, session: null });
-        setMsg({ isOpen: true, title: "已通知主治", content: "今日的汗水，已被記錄在冊。請靜候主治安排上場。", type: "success" });
+        setMsg({ isOpen: true, title: "簽到成功", content: "已記錄在冊。請靜候安排上場。", type: "success" });
         fetchData(true);
-        fetchParticipants(checkInModal.session.id);
-      } else { alert(json.message || "報到失敗"); }
-    } catch (error) { console.error("Check-in error:", error); }
+      }
+    } catch (error) { console.error(error); }
   };
 
-  const handleOpenDetail = (session: Session) => {
-    setSelectedSession(session);
-    fetchParticipants(session.id);
-  };
-
-  const handleLeave = (e: React.MouseEvent, session: Session) => {
+  const handleCopy = (e: React.MouseEvent, s: Session) => {
     e.stopPropagation();
-    setCancelMenu({ isOpen: true, session });
-  };
-
-  const executeCancel = async (id: number, cancelType: string) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${API_URL}/api/games/${id}/join`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ cancelType })
-      });
-      const json = await res.json();
-      if (json.success) {
-        setMsg({ isOpen: true, title: "已取消掛號", content: "這段時光，我先不戒了。", type: "success" });
-        fetchData(true);
-        if (cancelType === 'friend_only') {
-          setAllSessions(prev => prev.map(s => s.id === id ? { ...s, friendCount: 0 } : s));
-        }
-        if (selectedSession && selectedSession.id === id) {
-          if (cancelType === 'friend_only') setSelectedSession(prev => prev ? { ...prev, friendCount: 0 } : null);
-          fetchParticipants(id);
-        }
-        setCancelMenu({ isOpen: false, session: null });
-      } else { alert(json.message); }
-    } catch (error) { console.error("Cancel error:", error); }
+    sessionStorage.setItem("copySessionData", JSON.stringify({
+      title: s.title, gameTime: s.time, endTime: s.endTime, location: s.location,
+      maxPlayers: s.maxPlayers?.toString() || "", price: s.price?.toString() || "",
+      phone: s.phone || "", notes: s.notes || ""
+    }));
+    router.push("/create");
   };
 
   const executeDelete = async () => {
@@ -191,110 +133,27 @@ export default function EnrolledPage() {
     });
     if (res.ok) {
       setDeleteConfirm({ isOpen: false, id: null });
-      if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
       fetchData(true);
       setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在病歷裡就好了。", type: "success" });
     }
   };
 
-  const handleCopy = (e: React.MouseEvent, s: Session) => {
-    e.stopPropagation();
-    let locName = s.location;
-    let cNum = "";
-    let cCount = "1";
-    if (s.location.includes(" (")) {
-      const [base, extra] = s.location.split(" (");
-      locName = base;
-      const content = extra.replace(")", "");
-      if (content.includes(" / ")) { const [numPart, countPart] = content.split(" / "); cNum = numPart; cCount = countPart.replace("面場", ""); }
-      else if (content.includes("面場")) { cCount = content.replace("面場", ""); }
-      else { cNum = content; }
-    }
-    sessionStorage.setItem("copySessionData", JSON.stringify({
-      title: s.title, gameTime: s.time, endTime: s.endTime, location: locName, courtNumber: cNum,
-      courtCount: cCount, maxPlayers: s.maxPlayers?.toString() || "", price: s.price?.toString() || "",
-      phone: s.phone || "", notes: s.notes || ""
-    }));
-    router.push("/create");
-  };
-
-  const handleAddFriendClick = () => {
-    if (!selectedSession) return;
-    const userStr = localStorage.getItem("user");
-    const currentUser = userStr ? JSON.parse(userStr) : null;
-    const friendVirtualName = currentUser ? `${currentUser.username} +1` : null;
-    const hasAddedFriend = (friendVirtualName && participants.some(p => p.Username === friendVirtualName)) ||
-                           (selectedSession.friendCount && selectedSession.friendCount >= 1);
-    if (hasAddedFriend) {
-      setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
-      return;
-    }
-    setLevelModal({ isOpen: true });
-  };
-
-  const executeAddFriend = async (friendLevel: number) => {
-    if (!selectedSession) return;
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/add-friend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ friendLevel })
-      });
-      const json = await res.json();
-      if (json.success) {
-        setLevelModal({ isOpen: false });
-        setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
-        setAllSessions(prev => prev.map(s => s.id === selectedSession.id ? { ...s, friendCount: 1 } : s));
-        fetchData(true);
-        fetchParticipants(selectedSession.id);
-        setMsg({ isOpen: true, title: "攜友入所", content: "已為同伴辦理入所手續。", type: "success" });
-      } else { alert(json.message); }
-    } catch (err) { console.error(err); }
-  };
-
   const sortedSessions = useMemo(() => {
-    return allSessions
-      .filter(s => showExpired ? true : !s.isExpired)
-      .filter(s => {
-        if (filterType === 'hosted') return s.isHosted;
-        if (filterType === 'enrolled') return !s.isHosted;
-        return true;
-      })
-      .sort((a, b) => {
-        if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
-        if (a.isHostCanceled !== b.isHostCanceled) return a.isHostCanceled ? 1 : -1;
-        return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
-      });
-  }, [allSessions, showExpired, filterType]);
+    const sortByTime = (a: Session, b: Session) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
+    const active = allSessions.filter(s => !s.isExpired).sort(sortByTime);
+    const expired = allSessions.filter(s => s.isExpired).sort(sortByTime);
 
-  const calendarDays = useMemo(() => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const prevMonthDays = new Date(year, month, 0).getDate();
+    const filterFn = (s: Session) => {
+      if (filterType === 'hosted') return s.isHosted;
+      if (filterType === 'enrolled') return !s.isHosted;
+      return true;
+    };
 
-    const days: { date: string; day: number; isCurrentMonth: boolean }[] = [];
-    for (let i = firstDay - 1; i >= 0; i--) {
-      const d = prevMonthDays - i;
-      const m = month === 0 ? 12 : month;
-      const y = month === 0 ? year - 1 : year;
-      days.push({ date: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: false });
+    if (viewMode === 'list') {
+      return showExpired ? [...active.filter(filterFn), ...expired.filter(filterFn)] : active.filter(filterFn);
     }
-    for (let d = 1; d <= daysInMonth; d++) {
-      days.push({ date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: true });
-    }
-    const remaining = 7 - (days.length % 7);
-    if (remaining < 7) {
-      for (let d = 1; d <= remaining; d++) {
-        const m = month + 2 > 12 ? 1 : month + 2;
-        const y = month + 2 > 12 ? year + 1 : year;
-        days.push({ date: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, day: d, isCurrentMonth: false });
-      }
-    }
-    return days;
-  }, [calendarMonth]);
+    return [...active.filter(filterFn), ...expired.filter(filterFn)];
+  }, [allSessions, showExpired, filterType, viewMode]);
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, Session[]> = {};
@@ -302,488 +161,302 @@ export default function EnrolledPage() {
       if (!map[s.date]) map[s.date] = [];
       map[s.date].push(s);
     });
-    Object.values(map).forEach(arr => {
-      arr.sort((a, b) => {
-        if (a.isHosted && !b.isHosted) return -1;
-        if (!a.isHosted && b.isHosted) return 1;
-        return a.time.localeCompare(b.time);
-      });
-    });
     return map;
   }, [sortedSessions]);
 
-  const calendarLabel = `${calendarMonth.getFullYear()} 年 ${calendarMonth.getMonth() + 1} 月`;
-  const goToPrevMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const goToNextMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-
   const weekDays = useMemo(() => {
-    const days: { date: string; day: number; weekday: string; month: number }[] = [];
-    const weekdayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    const days: { date: string, label: string }[] = [];
+    const labels = ['日', '一', '二', '三', '四', '五', '六'];
     for (let i = 0; i < 7; i++) {
       const d = new Date(weekStart);
       d.setDate(weekStart.getDate() + i);
-      days.push({
-        date: d.toLocaleDateString('en-CA'),
-        day: d.getDate(),
-        weekday: weekdayNames[d.getDay()],
-        month: d.getMonth() + 1
-      });
+      days.push({ date: d.toLocaleDateString('en-CA'), label: labels[d.getDay()] });
     }
     return days;
   }, [weekStart]);
 
-  const weekLabel = (() => {
-    const end = new Date(weekStart);
-    end.setDate(weekStart.getDate() + 6);
-    const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
-    return `${fmt(weekStart)} — ${fmt(end)}`;
-  })();
-  const goToPrevWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 7); return d; });
-  const goToNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; });
-
-  const getSessionStyle = (session: Session, variant: 'card' | 'week' | 'calendar') => {
-    const isCancelled = session.isHostCanceled;
-    if (variant === 'card') {
-      if (isCancelled) return "border-l-red-200 bg-gray-50 opacity-60 grayscale";
-      if (session.isExpired) return "border-l-gray-300 bg-gray-50/80 grayscale opacity-70";
-      if (session.isHosted) return "border-l-amber-400 shadow-sm";
-      const isToday = session.date === todayStr;
-      const needsCheckIn = session.status === 'waiting_checkin';
-      if (needsCheckIn && isToday) return "border-l-[#D6C58D] shadow-[0_0_20px_rgba(214,197,141,0.4)] ring-1 ring-[#D6C58D]/10 bg-[#FAF9F6]";
-      if (session.myStatus === 'WAITLIST') return "border-l-orange-400 shadow-sm";
-      return "border-l-sage shadow-sm";
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days = [];
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
     }
-    if (isCancelled) return "bg-red-50 text-red-300 line-through";
-    if (session.isExpired) return "bg-gray-50 text-gray-400";
-    if (session.isHosted) return "bg-amber-50 text-amber-700 hover:bg-amber-100/60";
-    if (session.myStatus === 'WAITLIST') return "bg-orange-50 text-orange-600 hover:bg-orange-100/60";
-    return "bg-sage/10 text-sage hover:bg-sage/20";
-  };
+    return days;
+  }, [calendarMonth]);
 
   if (loading) return (
-    <div className="min-h-dvh bg-paper font-serif pb-24">
-      <AppHeader />
-      <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Loading...</div>
-    </div>
-  );
-
-  if (!isLoggedIn) return (
-    <div className="min-h-dvh bg-paper font-serif pb-24">
-      <AppHeader />
-      <LoginPrompt />
-    </div>
+    <div className="min-h-dvh bg-paper flex items-center justify-center text-sage font-bold tracking-widest animate-pulse">正在調閱病歷...</div>
   );
 
   return (
-    <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
+    <div className="min-h-dvh bg-paper text-stone-800 font-serif pb-20 overflow-x-hidden">
       <AppHeader />
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
-        <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的療程</h2>
-        <div className="flex items-center gap-1.5">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-8 flex flex-col gap-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl md:text-2xl tracking-[0.2em] text-sage font-bold">我的療程</h2>
           {viewMode === 'list' && (
             <button
               onClick={() => setShowExpired(!showExpired)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all text-[11px] tracking-widest uppercase ${showExpired ? "border-sage/30 text-sage bg-sage/5" : "border-stone/30 text-gray-400"}`}
+              className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${showExpired ? "border-sage text-sage bg-white shadow-sm" : "border-stone/40 text-stone-500 bg-stone/5"}`}
             >
-              {showExpired ? <Eye size={12} /> : <EyeOff size={12} />}
-              {showExpired ? "顯示過期" : "隱藏過期"}
+              {showExpired ? <Eye size={16} /> : <EyeOff size={16} />}
+              時光紀錄
             </button>
           )}
-          <div className="flex rounded-full border border-stone/30 overflow-hidden text-[11px]">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'list' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
-            >
-              <List size={12} />列表
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all border-x border-stone/20 ${viewMode === 'week' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
-            >
-              <CalendarRange size={12} />週
-            </button>
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'calendar' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
-            >
-              <CalendarDays size={12} />月
-            </button>
+        </div>
+
+        {/* 切換檢視按鈕 - 手機版優化 */}
+        <div className="flex rounded-2xl border border-stone/30 overflow-hidden bg-white shadow-sm w-full">
+          <button onClick={() => setViewMode('list')} className={`flex-1 py-4 flex items-center justify-center gap-2 transition-all ${viewMode === 'list' ? "bg-sage text-white font-bold" : "text-stone-700 hover:bg-stone-50"}`}>
+            <List size={20} /> <span className="text-sm md:text-base">列表</span>
+          </button>
+          <button onClick={() => setViewMode('week')} className={`flex-1 py-4 flex items-center justify-center gap-2 border-x border-stone/20 transition-all ${viewMode === 'week' ? "bg-sage text-white font-bold" : "text-stone-700 hover:bg-stone-50"}`}>
+            <CalendarRange size={20} /> <span className="text-sm md:text-base">週看板</span>
+          </button>
+          <button onClick={() => setViewMode('calendar')} className={`flex-1 py-4 flex items-center justify-center gap-2 transition-all ${viewMode === 'calendar' ? "bg-sage text-white font-bold" : "text-stone-700 hover:bg-stone-50"}`}>
+            <CalendarDays size={20} /> <span className="text-sm md:text-base">月曆</span>
+          </button>
+        </div>
+
+        {/* 篩選與配色提示 */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {['all', 'hosted', 'enrolled'].map(k => (
+              <button key={k} onClick={() => setFilterType(k as any)}
+                className={`flex-shrink-0 px-6 py-2 rounded-full font-bold text-sm border transition-all ${filterType === k ? "bg-stone-800 text-white shadow-md" : "bg-white border-stone/30 text-stone-600"}`}>
+                {k === 'all' ? '全部' : k === 'hosted' ? '我發起' : '我報名'}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-5 text-[11px] font-bold text-stone-500 px-1">
+             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"/>我發起的</span>
+             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sage shadow-sm"/>我預約的</span>
+             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-stone-300"/>勒戒過的</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-2 flex items-center gap-1.5 text-[11px]">
-        {([
-          { key: 'all' as const, label: '全部', color: 'stone-700', activeBg: 'bg-stone-700 text-white', inactiveBorder: 'border-stone-400 text-stone-500' },
-          { key: 'hosted' as const, label: '我開的', color: 'amber-400', activeBg: 'bg-amber-400 text-white', inactiveBorder: 'border-amber-400 text-amber-500' },
-          { key: 'enrolled' as const, label: '已掛號', color: 'sage', activeBg: 'bg-sage text-white', inactiveBorder: 'border-sage text-sage' },
-        ]).map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setFilterType(tab.key)}
-            className={`px-3.5 py-1.5 rounded-full font-bold tracking-wider transition-all border ${
-              filterType === tab.key
-                ? `${tab.activeBg} border-transparent shadow-sm`
-                : `bg-transparent ${tab.inactiveBorder} hover:opacity-80`
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 mt-2 md:mt-4">
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        {/* 1. 列表模式 */}
         {viewMode === 'list' && (
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {sortedSessions.map((session) => {
-              const isCancelled = session.isHostCanceled;
               const isToday = session.date === todayStr;
-              const needsCheckIn = session.status === 'waiting_checkin';
+              const hasCheckedIn = !!session.check_in_at;
+              const needsCheckIn = !hasCheckedIn && session.status === 'waiting_checkin';
               return (
-                <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} onClick={() => handleOpenDetail(session)}
-                  className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${getSessionStyle(session, 'card')}`}>
+                <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} 
+                  onClick={() => setSelectedSession(session)}
+                  className={`relative cursor-pointer bg-white border border-stone p-7 border-l-[6px] transition-all hover:shadow-xl rounded-2xl overflow-hidden ${
+                    session.isHostCanceled ? "border-l-red-300 opacity-60 bg-gray-50" :
+                    session.isExpired ? "border-l-stone-300 opacity-80 bg-gray-50" :
+                    session.isHosted ? "border-l-amber-500 shadow-sm" : "border-l-sage shadow-sm"
+                  }`}>
+                  
                   <div className="absolute top-0 right-0">
-                    {isCancelled ? null
-                      : session.isExpired ? <div className="bg-gray-400 text-white text-[11px] px-3 py-1 tracking-widest uppercase rounded-bl-lg">療程結束</div>
-                      : session.isHosted ? <div className="bg-amber-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">我開的</div>
-                      : session.status === 'idle' ? <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">場邊待命</div>
-                      : session.status === 'playing' ? <div className="bg-blue-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg animate-pulse">接受治療中</div>
-                      : session.myStatus === 'WAITLIST' ? <div className="bg-orange-400 text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">排隊候診</div>
-                      : <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">已掛號</div>
-                    }
+                    <div className={`text-white text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-2xl ${session.isExpired ? 'bg-stone-400' : session.isHosted ? 'bg-amber-500' : 'bg-sage'}`}>
+                      {session.isExpired ? '已結束' : session.isHosted ? '主治中' : '在場邊休息'}
+                    </div>
                   </div>
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className={`text-xl tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-gray-400" : session.isHosted ? "text-stone-700" : ""}`}>{session.title}</h3>
-                    <div className="flex gap-3">
-                      {session.isHosted && (
-                        <button onClick={(e) => handleCopy(e, session)} className="text-gray-300 hover:text-sage transition-colors pt-1"><Copy size={16}/></button>
-                      )}
-                      {session.isHosted && !isCancelled && !session.isExpired && (
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="text-gray-300 hover:text-red-400 transition-colors pt-1"><Trash2 size={16}/></button>
-                      )}
-                      {!session.isHosted && !isCancelled && !session.isExpired && session.status === 'waiting_checkin' && (
-                        <button onClick={(e) => handleLeave(e, session)} className="text-gray-300 hover:text-orange-400 transition-colors pt-1"><UserMinus size={18} /></button>
+
+                  <div className="flex justify-between items-start mb-6 pr-12">
+                    <h3 className={`text-2xl tracking-widest font-bold ${session.isExpired ? "text-stone-400" : "text-stone-800"}`}>{session.title}</h3>
+                    <div className="flex gap-4">
+                      {session.isHosted && !session.isExpired && (
+                        <>
+                          <button onClick={(e) => handleCopy(e, session)} className="text-stone-300 hover:text-sage transition-colors"><Copy size={18}/></button>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="text-stone-300 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                        </>
                       )}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500 space-y-1.5">
-                    <p className="flex items-center gap-2"><Calendar size={12}/> {session.date}</p>
-                    <p className="flex items-center gap-2"><Clock size={12}/> {session.time} - {session.endTime}</p>
-                    <p className="flex items-center gap-2">
-                      <MapPin size={12}/>
-                      {session.isHosted ? (
-                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(session.location)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors">{session.location}</a>
-                      ) : session.location}
-                    </p>
+
+                  <div className="text-[15px] text-stone-700 space-y-3 font-serif">
+                    <p className="flex items-center gap-3"><Calendar size={16} className="text-stone-400"/> {session.date}</p>
+                    <p className="flex items-center gap-3"><Clock size={16} className="text-stone-400"/> {session.time} - {session.endTime}</p>
+                    <p className="flex items-center gap-3"><MapPin size={16} className="text-stone-400"/> {session.location}</p>
+                    <p className="flex items-center gap-3"><Banknote size={16} className="text-stone-400"/> ${session.price}</p>
                   </div>
-                  {!isCancelled && !session.isExpired && isToday && needsCheckIn && !session.isHosted && (
-                    <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
-                        className="w-full py-2 bg-[#D6C58D]/10 text-[#A68F4C] text-[11px] tracking-[0.3em] hover:bg-[#D6C58D] hover:text-white transition-all duration-700 uppercase italic border border-[#D6C58D]/30 font-serif">
-                        我到了
+
+                  <div className="mt-8 flex flex-col gap-3">
+                    {!session.isExpired && isToday && (
+                      needsCheckIn ? (
+                        <button onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
+                          className="w-full py-3.5 bg-[#D6C58D] text-white text-sm tracking-[0.4em] hover:bg-[#C4B37A] transition-all rounded-xl font-bold shadow-sm">
+                          簽到：我到了
+                        </button>
+                      ) : hasCheckedIn && !session.isHosted ? (
+                        <div className="w-full py-3.5 bg-stone-100 text-stone-400 text-sm tracking-[0.4em] rounded-xl font-bold flex items-center justify-center gap-2">
+                          <CheckCircle size={16} /> 已經報到
+                        </div>
+                      ) : null
+                    )}
+                    
+                    {!session.isExpired && (
+                      <button onClick={(e) => { e.stopPropagation(); router.push(session.isHosted ? `/dashboard/live/${session.id}` : `/enrolled/live/${session.id}`); }}
+                        className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] border transition-all rounded-xl font-bold ${
+                          session.isHosted ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-stone-50 text-stone-800 border-stone-200"
+                        }`}>
+                        {session.isHosted ? <><Settings2 size={16} /> 進入主控室 (磁鐵板)</> : <><Activity size={16} /> 查看對戰實況</>}
                       </button>
-                    </div>
-                  )}
-                  {session.isHosted && !isCancelled && !session.isExpired && isToday && (
-                    <div className="mt-4 pt-4 border-t border-stone/10 flex justify-end">
-                      <Link href={`/dashboard/live/${session.id}`} onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 px-4 py-2 bg-sage/5 text-sage text-[11px] tracking-[0.2em] border border-sage/20 hover:bg-sage hover:text-white transition-all uppercase italic font-serif shadow-sm">
-                        <Zap size={12} fill="currentColor" className="animate-pulse" /> 進入場蹤看板
-                      </Link>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <div className="flex justify-end mt-6">
-                    {isCancelled ? <span className="text-[12px] text-red-500 font-bold italic tracking-[0.2em] uppercase">{session.isHosted ? "此療程已取消" : "主治已取消"}</span>
-                      : session.isExpired ? <span className="text-[12px] text-gray-400 italic tracking-widest uppercase">{session.isHosted ? "療程紀錄" : "已嘗試勒戒"}</span>
-                      : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-orange-400" : "text-gray-400"}`}><span className={session.isHosted ? "text-amber-500 font-bold" : "font-bold"}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                    <span className="text-xs text-stone-500 font-bold uppercase tracking-widest">掛號人數 {session.currentPlayers} / {session.maxPlayers}</span>
                   </div>
                 </div>
               );
             })}
-          </section>
+          </div>
         )}
 
+        {/* 2. 週看板模式 - 月曆方格佈局 */}
         {viewMode === 'week' && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={goToPrevWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
-                <ChevronLeft size={16} />
-              </button>
-              <h3 className="text-sm md:text-base tracking-[0.2em] text-ink/70">{weekLabel}</h3>
-              <button onClick={goToNextWeek} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
-                <ChevronRight size={16} />
-              </button>
+          <div className="bg-white rounded-[2.5rem] border border-stone/20 shadow-xl overflow-hidden p-4 md:p-8">
+            <div className="flex justify-between items-center mb-8 px-2">
+              <button onClick={() => setWeekStart(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; })} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronLeft size={24}/></button>
+              <h3 className="text-lg md:text-xl font-bold tracking-[0.2em] text-stone-800">{weekDays[0].date.replace(/-/g, '/')} — {weekDays[6].date.replace(/-/g, '/')}</h3>
+              <button onClick={() => setWeekStart(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; })} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronRight size={24}/></button>
             </div>
-
-            <div className="grid grid-cols-7 gap-1 md:gap-2">
-              {weekDays.map(cell => {
-                const daySessions = sessionsByDate[cell.date] || [];
-                const isToday = cell.date === todayStr;
-                return (
-                  <div key={cell.date} className={`rounded-lg md:rounded-xl border p-1 md:p-2 min-h-[140px] md:min-h-[240px] transition-colors ${
-                    isToday ? "border-sage/40 bg-sage/5" : "border-stone/20 bg-white"
-                  }`}>
-                    <div className={`text-center mb-1 md:mb-2 pb-1 md:pb-2 border-b border-stone/10 ${isToday ? "text-sage" : "text-ink/50"}`}>
-                      <div className="text-[10px] md:text-[11px] tracking-widest">{cell.weekday}</div>
-                      <div className={`text-base md:text-xl font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
-                    </div>
-                    <div className="space-y-1">
-                      {daySessions.map(session => {
-                        const borderColor = session.isHostCanceled ? 'border-l-red-300'
-                          : session.isExpired ? 'border-l-gray-300'
-                          : session.isHosted ? 'border-l-amber-400'
-                          : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
-                          : 'border-l-sage';
-                        return (
-                          <button
-                            key={session.id}
-                            onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[9px] md:text-[11px] leading-tight transition-colors border-l-2 ${borderColor} ${getSessionStyle(session, 'week')}`}
-                          >
-                            <div className="font-bold truncate">{session.time}</div>
-                            <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
-                            <div className="truncate text-[8px] md:text-[9px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
+            <div className="grid grid-cols-7 gap-px bg-stone/10 border border-stone/10 rounded-2xl overflow-hidden">
+              {weekDays.map(day => (
+                <div key={day.label} className="bg-stone-50 py-3 text-center text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-widest">{day.label}</div>
+              ))}
+              {weekDays.map((day, idx) => (
+                <div key={idx} className={`min-h-[120px] md:min-h-[220px] bg-white p-1.5 md:p-3 border-t border-l border-stone/5 transition-colors ${day.date === todayStr ? 'bg-sage/5' : ''}`}>
+                  <div className={`text-xs md:text-sm font-bold mb-3 ${day.date === todayStr ? 'text-sage' : 'text-stone-400'}`}>{day.date.split('-')[2]}</div>
+                  <div className="space-y-1.5">
+                    {(sessionsByDate[day.date] || []).map(s => (
+                      <div key={s.id} onClick={() => setSelectedSession(s)} 
+                        className={`text-[9px] md:text-[10px] p-2 rounded-lg truncate cursor-pointer font-bold border-l-2 shadow-sm ${
+                          s.isExpired ? 'bg-gray-50 text-stone-300 border-stone-200 opacity-60' :
+                          s.isHosted ? 'bg-amber-100 text-amber-800 border-amber-500' : 'bg-sage/10 text-sage border-sage'
+                        }`}>
+                        <div className="mb-0.5 opacity-70 truncate">{s.time}</div>
+                        <div className="truncate">{s.title}</div>
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {viewMode === 'calendar' && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={goToPrevMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
-                <ChevronLeft size={16} />
-              </button>
-              <h3 className="text-sm md:text-base tracking-[0.2em] text-ink/70">{calendarLabel}</h3>
-              <button onClick={goToNextMonth} className="p-1.5 rounded-full hover:bg-sage/5 text-sage transition-colors">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-7 text-center text-[10px] md:text-[11px] tracking-widest text-gray-400 uppercase mb-1">
-              {['日', '一', '二', '三', '四', '五', '六'].map(d => (
-                <div key={d} className="py-1 md:py-2">{d}</div>
+                </div>
               ))}
             </div>
+          </div>
+        )}
 
-            <div className="grid grid-cols-7 border-t border-l border-stone/20">
-              {calendarDays.map((cell, idx) => {
-                const daySessions = sessionsByDate[cell.date] || [];
-                const isToday = cell.date === todayStr;
-                return (
-                  <div
-                    key={idx}
-                    className={`border-r border-b border-stone/20 min-h-[70px] md:min-h-[110px] p-1 md:p-1.5 transition-colors ${
-                      cell.isCurrentMonth ? "bg-white" : "bg-stone/5"
-                    } ${isToday ? "ring-1 ring-inset ring-sage/30" : ""}`}
-                  >
-                    <div className={`text-[11px] md:text-[12px] mb-0.5 md:mb-1 ${
-                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/60" : "text-gray-300"
-                    }`}>
-                      {cell.day}
-                    </div>
-                    <div className="space-y-0.5 md:space-y-1">
-                      {daySessions.slice(0, 2).map(session => {
-                        const borderColor = session.isHostCanceled ? 'border-l-red-300'
-                          : session.isExpired ? 'border-l-gray-300'
-                          : session.isHosted ? 'border-l-amber-400'
-                          : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
-                          : 'border-l-sage';
-                        return (
-                          <button
-                            key={session.id}
-                            onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-colors border-l-2 ${borderColor} ${getSessionStyle(session, 'calendar')}`}
-                          >
-                            <span className="md:hidden">{session.time}</span>
-                            <span className="hidden md:inline">{session.time} {session.title}</span>
-                          </button>
-                        );
-                      })}
-                      {daySessions.length > 2 && (
-                        <div className="text-[9px] md:text-[10px] text-gray-400 text-center">+{daySessions.length - 2}</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+        {/* 3. 月曆模式 */}
+        {viewMode === 'calendar' && (
+          <div className="bg-white rounded-[2.5rem] border border-stone/20 shadow-xl overflow-hidden p-4 md:p-8">
+            <div className="flex justify-between items-center mb-8 px-2">
+              <button onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronLeft size={24}/></button>
+              <h3 className="text-lg md:text-xl font-bold tracking-[0.2em] text-stone-800">{calendarMonth.getFullYear()} 年 {calendarMonth.getMonth() + 1} 月</h3>
+              <button onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronRight size={24}/></button>
             </div>
-          </section>
+            <div className="grid grid-cols-7 gap-px bg-stone/10 border border-stone/10 rounded-2xl overflow-hidden">
+              {['日','一','二','三','四','五','六'].map(d => (
+                <div key={d} className="bg-stone-50 py-3 text-center text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-widest">{d}</div>
+              ))}
+              {calendarDays.map((date, idx) => (
+                <div key={idx} className={`min-h-[100px] md:min-h-[140px] bg-white p-2 border-t border-l border-stone/5 ${date === todayStr ? 'bg-sage/5' : ''}`}>
+                  {date && (
+                    <>
+                      <div className={`text-xs md:text-sm font-bold mb-2 ${date === todayStr ? 'text-sage' : 'text-stone-400'}`}>{date.split('-')[2]}</div>
+                      <div className="space-y-1">
+                        {(sessionsByDate[date] || []).slice(0, 3).map(s => (
+                          <div key={s.id} onClick={() => setSelectedSession(s)} 
+                            className={`text-[9px] md:text-[10px] p-1 md:p-1.5 rounded-md truncate cursor-pointer font-bold border-l-2 shadow-sm ${
+                              s.isExpired ? 'bg-gray-50 text-stone-300 border-stone-200 opacity-60' :
+                              s.isHosted ? 'bg-amber-100 text-amber-800 border-amber-500' : 'bg-sage/10 text-sage border-sage'
+                            }`}>{s.time} {s.title}</div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </main>
 
-      {/* Detail Modal */}
+      {/* 詳細 Modal */}
       {selectedSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              {selectedSession.isHosted && (
-                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-gray-300 hover:text-sage transition-colors" title="複製療程"><Copy size={18}/></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md p-10 shadow-2xl relative animate-in zoom-in duration-200 rounded-3xl border border-stone">
+            <div className="absolute top-6 right-6 flex items-center gap-3">
+              {selectedSession.isHosted && !selectedSession.isExpired && (
+                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-stone-300 hover:text-sage transition-colors"><Copy size={20}/></button>
               )}
-              {selectedSession.isHosted && !selectedSession.isHostCanceled && !selectedSession.isExpired && (
-                <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="text-gray-300 hover:text-red-400 transition-colors" title="刪除療程"><Trash2 size={18}/></button>
+              <button onClick={() => setSelectedSession(null)} className="text-stone-400 hover:text-stone-800 transition-colors"><X size={32}/></button>
+            </div>
+            <h2 className="text-2xl mb-8 tracking-[0.3em] text-sage font-bold border-b border-stone/10 pb-5">{selectedSession.title}</h2>
+            <div className="space-y-6 text-lg text-stone-800 mb-10 font-serif">
+              <p className="flex items-center gap-4"><Calendar size={20} className="text-stone-400"/> {selectedSession.date} ({selectedSession.time})</p>
+              <p className="flex items-center gap-4"><MapPin size={20} className="text-stone-400"/> {selectedSession.location}</p>
+              <p className="flex items-center gap-4 font-medium"><Banknote size={20} className="text-stone-400"/> ${selectedSession.price}</p>
+              <p className="flex items-center gap-4 font-bold text-sage"><UserCheck size={20}/> {selectedSession.phone || "現場找主治"}</p>
+            </div>
+            <div className="space-y-4 pt-4 border-t border-stone/5">
+              <button onClick={() => { setSelectedSession(null); router.push(selectedSession.isHosted ? `/dashboard/live/${selectedSession.id}` : `/enrolled/live/${selectedSession.id}`); }}
+                className={`w-full py-5 text-sm tracking-[0.3em] uppercase transition-all font-bold flex items-center justify-center gap-3 rounded-2xl shadow-md ${selectedSession.isHosted ? "bg-amber-500 text-white shadow-amber-200" : "bg-stone-800 text-white shadow-stone-200"}`}>
+                {selectedSession.isHosted ? <><Settings2 size={20} /> 進入主控室 (磁鐵板)</> : <><Activity size={20} /> 查看對戰實況</>}
+              </button>
+              {!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && (
+                <button onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })} className="w-full py-5 bg-[#D6C58D] text-white text-sm tracking-[0.3em] font-bold rounded-2xl shadow-md uppercase">簽到：我到了</button>
               )}
-              <button onClick={() => setSelectedSession(null)} className="text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
-            </div>
-            {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
-              <div className="inline-block bg-amber-400 text-white text-[10px] px-2.5 py-0.5 font-bold tracking-wider rounded-full mb-3">主揪</div>
-            )}
-            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
-            <div className="space-y-4 text-sm text-gray-500 mb-8">
-              <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
-              {selectedSession.isHosted ? (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/> {selectedSession.location}</a>
-              ) : (
-                <p className="flex items-center gap-3 italic"><MapPin size={14}/> {selectedSession.location}</p>
+              {selectedSession.isHosted && !selectedSession.isExpired && (
+                <button onClick={() => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="w-full py-4 text-red-500 text-xs tracking-[0.3em] font-bold uppercase rounded-2xl hover:bg-red-50 transition-all">終止此療程</button>
               )}
-              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主治"}</p>
-              <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
-            </div>
-            {selectedSession.notes && (
-              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-sm italic text-gray-500 leading-relaxed whitespace-pre-wrap">
-                <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
-                {selectedSession.notes}
-              </div>
-            )}
-            <div className="border-t border-stone/10 pt-6 mt-4">
-              <div className="flex justify-between items-center mb-4"><h3 className="text-[11px] tracking-widest text-gray-400 uppercase">Participants</h3><span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
-              <div className="max-h-32 overflow-y-auto">
-                <div className="flex flex-wrap gap-2">
-                  {participants.map((p, i) => (
-                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border ${p.Status === 'WAITLIST' ? 'text-stone-500 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
-                      <User size={10}/><span>{p.Username}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {!selectedSession.isExpired && !selectedSession.isHostCanceled && (
-              <div className="mt-8 space-y-3">
-                {selectedSession.isHosted && selectedSession.date === todayStr && (
-                  <button
-                    onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                    className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
-                    <Zap size={14} fill="currentColor" /> 進入實況看板
-                  </button>
-                )}
-                {selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
-                  <button
-                    onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })}
-                    className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
-                    <MapPin size={14} /> 我到了，報到
-                  </button>
-                )}
-                {!selectedSession.isHosted && selectedSession.date === todayStr && (
-                  <button
-                    onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
-                    className="w-full py-4 bg-stone-800 text-white text-[11px] tracking-[0.3em] uppercase hover:bg-stone-700 transition-all font-bold flex items-center justify-center gap-2 font-serif">
-                    <Activity size={14} /> 對戰實況
-                  </button>
-                )}
-                <button onClick={handleAddFriendClick}
-                  className="w-full py-4 border border-sage text-sage text-[11px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
-                  <PlusCircle size={14}/> ＋ 攜友入所 (限一位)
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Level Modal */}
-      {levelModal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white border border-stone w-full max-w-sm rounded-[3rem] p-12 shadow-2xl text-center">
-            <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8"><Layout className="text-sage opacity-50" size={24}/></div>
-            <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">同伴的症狀</h2>
-            <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響所內 AI 醫師如何為您們配對</p>
-            <div className="space-y-4">
-              {[{ label: "初次碰球 (L1-3)", value: 2 }, { label: "重度球毒 (L4-7)", value: 5 }, { label: "球得我心 (L8-12)", value: 10 }, { label: "球入五臟 (L13-18)", value: 15 }].map((lvl) => (
-                <button key={lvl.value} onClick={() => executeAddFriend(lvl.value)}
-                  className="w-full py-5 px-6 rounded-full border border-stone/10 bg-white text-stone-500 text-sm tracking-[0.2em] hover:bg-sage hover:text-white hover:border-sage transition-all duration-500 font-light">{lvl.label}</button>
-              ))}
-            </div>
-            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[11px] text-gray-300 tracking-[0.4em] uppercase hover:text-stone-500">取消</button>
-          </div>
-        </div>
-      )}
-
-      {/* Msg Modal */}
-      {msg.isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
-            <div className="flex flex-col items-center">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
-                {msg.type === 'success' ? <CheckCircle size={24}/> : <Info size={24}/>}
-              </div>
-              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
-              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p>
-              <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Cancel Menu */}
-      {cancelMenu.isOpen && cancelMenu.session && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl tracking-widest text-sage font-bold">取消掛號</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
-            <p className="text-base text-gray-500 mb-8 leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前掛號了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
-            <div className="space-y-4">
-              {(cancelMenu.session?.friendCount || 0) > 0 && (
-                <button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-base tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18}/> 僅取消同伴 (保留本人)</button>
-              )}
-              <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-base tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18}/> 確認取消掛號</button>
-              <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-sm tracking-widest hover:text-gray-600 transition-all uppercase">返回</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirm */}
-      {deleteConfirm.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24}/></div>
-              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止此療程？</h2>
-              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
-              <div className="w-full space-y-3">
-                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認終止療程</button>
-                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Check-in Modal */}
+      {/* 簽到 Modal */}
       {checkInModal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-paper/95 backdrop-blur-md animate-in fade-in duration-700">
-          <div className="max-w-xs w-full text-center space-y-10 p-8">
-            <div className="relative mx-auto w-20 h-20 border border-[#D6C58D]/30 rounded-full flex items-center justify-center">
-              <MapPin size={28} strokeWidth={1} className="text-[#A68F4C] animate-bounce" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-500">
+          <div className="max-w-sm w-full text-center space-y-12 p-10 bg-white shadow-2xl border border-stone/20 rounded-[3rem]">
+            <div className="mx-auto w-24 h-24 border-2 border-[#D6C58D]/30 rounded-full flex items-center justify-center bg-[#D6C58D]/5"><MapPin size={40} className="text-[#A68F4C] animate-bounce" /></div>
+            <div className="space-y-5">
+              <h2 className="text-2xl md:text-3xl tracking-[0.4em] text-stone-900 font-bold">抵達現場</h2>
+              <div className="w-12 h-[2px] bg-[#D6C58D] mx-auto rounded-full"></div>
+              <p className="text-base text-stone-700 leading-loose tracking-[0.2em] font-serif">汗水還未落下，<br/>但療程已經開始了。</p>
             </div>
+            <div className="space-y-4 pt-4">
+              <button onClick={executeCheckIn} className="w-full py-5 bg-[#D6C58D] text-white text-base tracking-[0.5em] font-bold rounded-2xl shadow-lg uppercase">確認簽到</button>
+              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-400 text-sm font-bold tracking-[0.3em] uppercase">稍後處理</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 刪除確認 Modal */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-[3rem] p-12 shadow-2xl text-center border border-stone/10">
+            <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-8 border border-red-100"><Trash2 size={32}/></div>
+            <h2 className="text-2xl tracking-[0.3em] text-stone-900 font-bold mb-5">終止此療程？</h2>
+            <p className="text-base text-stone-600 font-serif mb-12 tracking-widest leading-relaxed">一旦終止，所有的掛號與期待都將隨風而去。確認要執行嗎？</p>
             <div className="space-y-4">
-              <h2 className="text-2xl tracking-[0.4em] text-stone-800 font-light">抵達勒戒所</h2>
-              <div className="w-8 h-[1px] bg-[#D6C58D]/40 mx-auto"></div>
-              <p className="text-[12px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但勒戒已經開始了。 」</p>
+              <button onClick={executeDelete} className="w-full py-5 bg-red-500 text-white text-sm tracking-[0.4em] font-bold rounded-2xl shadow-lg uppercase">確認終止</button>
+              <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-5 border border-stone text-stone-500 text-sm font-bold rounded-2xl uppercase transition-all hover:bg-stone-50">保留這份期待</button>
             </div>
-            <div className="space-y-3">
-              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[11px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認報到</button>
-              <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[10px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
-            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 訊息 Modal */}
+      {msg.isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-12 shadow-2xl text-center border border-stone/10">
+            <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-8 bg-sage text-white shadow-lg shadow-sage/20"><CheckCircle size={32}/></div>
+            <h2 className="text-2xl tracking-[0.3em] text-stone-900 font-bold mb-5">{msg.title}</h2>
+            <p className="text-base text-stone-600 font-serif mb-10 tracking-widest leading-relaxed">{msg.content}</p>
+            <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 bg-stone-100 text-stone-800 text-sm font-bold rounded-2xl uppercase">我知道了</button>
           </div>
         </div>
       )}

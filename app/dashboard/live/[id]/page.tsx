@@ -214,7 +214,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
       {/* 頂部導航 */}
       <div className="sticky top-0 md:top-14 z-20 bg-white/80 backdrop-blur-md border-b border-stone-100 px-6 py-3 flex justify-between items-center">
-        <button onClick={() => router.push("/manage")} className="text-stone-400 hover:text-sage transition-all"><ChevronLeft size={24} /></button>
+        <button onClick={() => router.push("/enrolled")} className="text-stone-400 hover:text-sage transition-all"><ChevronLeft size={24} /></button>
         <div className="text-center">
           <h1 className="text-sm font-bold tracking-[0.3em] uppercase">{gameInfo?.Title || "場地載入中"}</h1>
           <p className="text-[9px] text-stone-400 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
