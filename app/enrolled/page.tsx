@@ -1,13 +1,11 @@
 "use client";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Eye, EyeOff, UserMinus, CheckCircle, Clock, X, MapPin, Banknote,
-  Calendar, Trash2, Zap, Copy, CalendarDays, CalendarRange, List, 
-  Activity, Settings2, ChevronLeft, ChevronRight, UserCheck
+  Eye, EyeOff, CheckCircle, Clock, X, MapPin, Banknote,
+  Calendar, Trash2, Copy, Activity, Settings2, UserCheck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
-import LoginPrompt from "../components/LoginPrompt";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -25,21 +23,7 @@ export default function EnrolledPage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showExpired, setShowExpired] = useState(false); 
-  const [viewMode, setViewMode] = useState<'list' | 'week' | 'calendar'>('list');
   const [filterType, setFilterType] = useState<'all' | 'hosted' | 'enrolled'>('all');
-  
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
-  const [weekStart, setWeekStart] = useState(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const start = new Date(now);
-    start.setDate(now.getDate() - day);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  });
 
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,44 +133,8 @@ export default function EnrolledPage() {
       return true;
     };
 
-    if (viewMode === 'list') {
-      return showExpired ? [...active.filter(filterFn), ...expired.filter(filterFn)] : active.filter(filterFn);
-    }
-    return [...active.filter(filterFn), ...expired.filter(filterFn)];
-  }, [allSessions, showExpired, filterType, viewMode]);
-
-  const sessionsByDate = useMemo(() => {
-    const map: Record<string, Session[]> = {};
-    sortedSessions.forEach(s => {
-      if (!map[s.date]) map[s.date] = [];
-      map[s.date].push(s);
-    });
-    return map;
-  }, [sortedSessions]);
-
-  const weekDays = useMemo(() => {
-    const days: { date: string, label: string }[] = [];
-    const labels = ['日', '一', '二', '三', '四', '五', '六'];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart);
-      d.setDate(weekStart.getDate() + i);
-      days.push({ date: d.toLocaleDateString('en-CA'), label: labels[d.getDay()] });
-    }
-    return days;
-  }, [weekStart]);
-
-  const calendarDays = useMemo(() => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const days = [];
-    for (let i = 0; i < firstDay; i++) days.push(null);
-    for (let d = 1; d <= daysInMonth; d++) {
-      days.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
-    }
-    return days;
-  }, [calendarMonth]);
+    return showExpired ? [...active.filter(filterFn), ...expired.filter(filterFn)] : active.filter(filterFn);
+  }, [allSessions, showExpired, filterType]);
 
   if (loading) return (
     <div className="min-h-dvh bg-paper flex items-center justify-center text-sage font-bold tracking-widest animate-pulse">正在調閱病歷...</div>
@@ -199,27 +147,12 @@ export default function EnrolledPage() {
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-8 flex flex-col gap-6">
         <div className="flex justify-between items-center">
           <h2 className="text-xl md:text-2xl tracking-[0.2em] text-sage font-bold">我的療程</h2>
-          {viewMode === 'list' && (
-            <button
-              onClick={() => setShowExpired(!showExpired)}
-              className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${showExpired ? "border-sage text-sage bg-white shadow-sm" : "border-stone/40 text-stone-500 bg-stone/5"}`}
-            >
-              {showExpired ? <Eye size={16} /> : <EyeOff size={16} />}
-              時光紀錄
-            </button>
-          )}
-        </div>
-
-        {/* 切換檢視按鈕 - 手機版優化 */}
-        <div className="flex rounded-2xl border border-stone/30 overflow-hidden bg-white shadow-sm w-full">
-          <button onClick={() => setViewMode('list')} className={`flex-1 py-4 flex items-center justify-center gap-2 transition-all ${viewMode === 'list' ? "bg-sage text-white font-bold" : "text-stone-700 hover:bg-stone-50"}`}>
-            <List size={20} /> <span className="text-sm md:text-base">列表</span>
-          </button>
-          <button onClick={() => setViewMode('week')} className={`flex-1 py-4 flex items-center justify-center gap-2 border-x border-stone/20 transition-all ${viewMode === 'week' ? "bg-sage text-white font-bold" : "text-stone-700 hover:bg-stone-50"}`}>
-            <CalendarRange size={20} /> <span className="text-sm md:text-base">週看板</span>
-          </button>
-          <button onClick={() => setViewMode('calendar')} className={`flex-1 py-4 flex items-center justify-center gap-2 transition-all ${viewMode === 'calendar' ? "bg-sage text-white font-bold" : "text-stone-700 hover:bg-stone-50"}`}>
-            <CalendarDays size={20} /> <span className="text-sm md:text-base">月曆</span>
+          <button
+            onClick={() => setShowExpired(!showExpired)}
+            className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${showExpired ? "border-sage text-sage bg-white shadow-sm" : "border-stone/40 text-stone-500 bg-stone/5"}`}
+          >
+            {showExpired ? <Eye size={16} /> : <EyeOff size={16} />}
+            時光紀錄
           </button>
         </div>
 
@@ -233,154 +166,79 @@ export default function EnrolledPage() {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap gap-5 text-[11px] font-bold text-stone-500 px-1">
-             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"/>我發起的</span>
-             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sage shadow-sm"/>我預約的</span>
-             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-stone-300"/>勒戒過的</span>
-          </div>
         </div>
       </div>
 
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        {/* 1. 列表模式 */}
-        {viewMode === 'list' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {sortedSessions.map((session) => {
-              const isToday = session.date === todayStr;
-              const hasCheckedIn = !!session.check_in_at;
-              const needsCheckIn = !hasCheckedIn && session.status === 'waiting_checkin';
-              return (
-                <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} 
-                  onClick={() => setSelectedSession(session)}
-                  className={`relative cursor-pointer bg-white border border-stone p-7 border-l-[6px] transition-all hover:shadow-xl rounded-2xl overflow-hidden ${
-                    session.isHostCanceled ? "border-l-red-300 opacity-60 bg-gray-50" :
-                    session.isExpired ? "border-l-stone-300 opacity-80 bg-gray-50" :
-                    session.isHosted ? "border-l-amber-500 shadow-sm" : "border-l-sage shadow-sm"
-                  }`}>
-                  
-                  <div className="absolute top-0 right-0">
-                    <div className={`text-white text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-2xl ${session.isExpired ? 'bg-stone-400' : session.isHosted ? 'bg-amber-500' : 'bg-sage'}`}>
-                      {session.isExpired ? '已結束' : session.isHosted ? '主治中' : '在場邊休息'}
-                    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {sortedSessions.map((session) => {
+            const isToday = session.date === todayStr;
+            const hasCheckedIn = !!session.check_in_at;
+            const needsCheckIn = !hasCheckedIn && session.status === 'waiting_checkin';
+            return (
+              <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} 
+                onClick={() => setSelectedSession(session)}
+                className={`relative cursor-pointer bg-white border border-stone p-7 border-l-[6px] transition-all hover:shadow-xl rounded-2xl overflow-hidden ${
+                  session.isHostCanceled ? "border-l-red-300 opacity-60 bg-gray-50" :
+                  session.isExpired ? "border-l-stone-300 opacity-80 bg-gray-50" :
+                  session.isHosted ? "border-l-amber-500 shadow-sm" : "border-l-sage shadow-sm"
+                }`}>
+                
+                <div className="absolute top-0 right-0">
+                  <div className={`text-white text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-2xl ${session.isExpired ? 'bg-stone-400' : session.isHosted ? 'bg-amber-500' : 'bg-sage'}`}>
+                    {session.isExpired ? '已結束' : session.isHosted ? '主治中' : '在場邊休息'}
                   </div>
+                </div>
 
-                  <div className="flex justify-between items-start mb-6 pr-12">
-                    <h3 className={`text-2xl tracking-widest font-bold ${session.isExpired ? "text-stone-400" : "text-stone-800"}`}>{session.title}</h3>
-                    <div className="flex gap-4">
-                      {session.isHosted && !session.isExpired && (
-                        <>
-                          <button onClick={(e) => handleCopy(e, session)} className="text-stone-300 hover:text-sage transition-colors"><Copy size={18}/></button>
-                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="text-stone-300 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-[15px] text-stone-700 space-y-3 font-serif">
-                    <p className="flex items-center gap-3"><Calendar size={16} className="text-stone-400"/> {session.date}</p>
-                    <p className="flex items-center gap-3"><Clock size={16} className="text-stone-400"/> {session.time} - {session.endTime}</p>
-                    <p className="flex items-center gap-3"><MapPin size={16} className="text-stone-400"/> {session.location}</p>
-                    <p className="flex items-center gap-3"><Banknote size={16} className="text-stone-400"/> ${session.price}</p>
-                  </div>
-
-                  <div className="mt-8 flex flex-col gap-3">
-                    {!session.isExpired && isToday && (
-                      needsCheckIn ? (
-                        <button onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
-                          className="w-full py-3.5 bg-[#D6C58D] text-white text-sm tracking-[0.4em] hover:bg-[#C4B37A] transition-all rounded-xl font-bold shadow-sm">
-                          簽到：我到了
-                        </button>
-                      ) : hasCheckedIn && !session.isHosted ? (
-                        <div className="w-full py-3.5 bg-stone-100 text-stone-400 text-sm tracking-[0.4em] rounded-xl font-bold flex items-center justify-center gap-2">
-                          <CheckCircle size={16} /> 已經報到
-                        </div>
-                      ) : null
+                <div className="flex justify-between items-start mb-6 pr-12">
+                  <h3 className={`text-2xl tracking-widest font-bold ${session.isExpired ? "text-stone-400" : "text-stone-800"}`}>{session.title}</h3>
+                  <div className="flex gap-4">
+                    {session.isHosted && !session.isExpired && (
+                      <>
+                        <button onClick={(e) => handleCopy(e, session)} className="text-stone-300 hover:text-sage transition-colors"><Copy size={18}/></button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="text-stone-300 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                      </>
                     )}
-                    
-                    {!session.isExpired && (
-                      <button onClick={(e) => { e.stopPropagation(); router.push(session.isHosted ? `/dashboard/live/${session.id}` : `/enrolled/live/${session.id}`); }}
-                        className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] border transition-all rounded-xl font-bold ${
-                          session.isHosted ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-stone-50 text-stone-800 border-stone-200"
-                        }`}>
-                        {session.isHosted ? <><Settings2 size={16} /> 進入主控室 (磁鐵板)</> : <><Activity size={16} /> 查看對戰實況</>}
+                  </div>
+                </div>
+
+                <div className="text-[15px] text-stone-700 space-y-3 font-serif">
+                  <p className="flex items-center gap-3"><Calendar size={16} className="text-stone-400"/> {session.date}</p>
+                  <p className="flex items-center gap-3"><Clock size={16} className="text-stone-400"/> {session.time} - {session.endTime}</p>
+                  <p className="flex items-center gap-3"><MapPin size={16} className="text-stone-400"/> {session.location}</p>
+                  <p className="flex items-center gap-3"><Banknote size={16} className="text-stone-400"/> ${session.price}</p>
+                </div>
+
+                <div className="mt-8 flex flex-col gap-3">
+                  {!session.isExpired && isToday && (
+                    needsCheckIn ? (
+                      <button onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
+                        className="w-full py-3.5 bg-[#D6C58D] text-white text-sm tracking-[0.4em] hover:bg-[#C4B37A] transition-all rounded-xl font-bold shadow-sm">
+                        簽到：我到了
                       </button>
-                    )}
-                  </div>
-                  <div className="flex justify-end mt-6">
-                    <span className="text-xs text-stone-500 font-bold uppercase tracking-widest">掛號人數 {session.currentPlayers} / {session.maxPlayers}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* 2. 週看板模式 - 月曆方格佈局 */}
-        {viewMode === 'week' && (
-          <div className="bg-white rounded-[2.5rem] border border-stone/20 shadow-xl overflow-hidden p-4 md:p-8">
-            <div className="flex justify-between items-center mb-8 px-2">
-              <button onClick={() => setWeekStart(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; })} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronLeft size={24}/></button>
-              <h3 className="text-lg md:text-xl font-bold tracking-[0.2em] text-stone-800">{weekDays[0].date.replace(/-/g, '/')} — {weekDays[6].date.replace(/-/g, '/')}</h3>
-              <button onClick={() => setWeekStart(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; })} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronRight size={24}/></button>
-            </div>
-            <div className="grid grid-cols-7 gap-px bg-stone/10 border border-stone/10 rounded-2xl overflow-hidden">
-              {weekDays.map(day => (
-                <div key={day.label} className="bg-stone-50 py-3 text-center text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-widest">{day.label}</div>
-              ))}
-              {weekDays.map((day, idx) => (
-                <div key={idx} className={`min-h-[120px] md:min-h-[220px] bg-white p-1.5 md:p-3 border-t border-l border-stone/5 transition-colors ${day.date === todayStr ? 'bg-sage/5' : ''}`}>
-                  <div className={`text-xs md:text-sm font-bold mb-3 ${day.date === todayStr ? 'text-sage' : 'text-stone-400'}`}>{day.date.split('-')[2]}</div>
-                  <div className="space-y-1.5">
-                    {(sessionsByDate[day.date] || []).map(s => (
-                      <div key={s.id} onClick={() => setSelectedSession(s)} 
-                        className={`text-[9px] md:text-[10px] p-2 rounded-lg truncate cursor-pointer font-bold border-l-2 shadow-sm ${
-                          s.isExpired ? 'bg-gray-50 text-stone-300 border-stone-200 opacity-60' :
-                          s.isHosted ? 'bg-amber-100 text-amber-800 border-amber-500' : 'bg-sage/10 text-sage border-sage'
-                        }`}>
-                        <div className="mb-0.5 opacity-70 truncate">{s.time}</div>
-                        <div className="truncate">{s.title}</div>
+                    ) : hasCheckedIn && !session.isHosted ? (
+                      <div className="w-full py-3.5 bg-stone-100 text-stone-400 text-sm tracking-[0.4em] rounded-xl font-bold flex items-center justify-center gap-2">
+                        <CheckCircle size={16} /> 已經報到
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 3. 月曆模式 */}
-        {viewMode === 'calendar' && (
-          <div className="bg-white rounded-[2.5rem] border border-stone/20 shadow-xl overflow-hidden p-4 md:p-8">
-            <div className="flex justify-between items-center mb-8 px-2">
-              <button onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronLeft size={24}/></button>
-              <h3 className="text-lg md:text-xl font-bold tracking-[0.2em] text-stone-800">{calendarMonth.getFullYear()} 年 {calendarMonth.getMonth() + 1} 月</h3>
-              <button onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))} className="p-2 hover:bg-stone-100 rounded-full text-sage"><ChevronRight size={24}/></button>
-            </div>
-            <div className="grid grid-cols-7 gap-px bg-stone/10 border border-stone/10 rounded-2xl overflow-hidden">
-              {['日','一','二','三','四','五','六'].map(d => (
-                <div key={d} className="bg-stone-50 py-3 text-center text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-widest">{d}</div>
-              ))}
-              {calendarDays.map((date, idx) => (
-                <div key={idx} className={`min-h-[100px] md:min-h-[140px] bg-white p-2 border-t border-l border-stone/5 ${date === todayStr ? 'bg-sage/5' : ''}`}>
-                  {date && (
-                    <>
-                      <div className={`text-xs md:text-sm font-bold mb-2 ${date === todayStr ? 'text-sage' : 'text-stone-400'}`}>{date.split('-')[2]}</div>
-                      <div className="space-y-1">
-                        {(sessionsByDate[date] || []).slice(0, 3).map(s => (
-                          <div key={s.id} onClick={() => setSelectedSession(s)} 
-                            className={`text-[9px] md:text-[10px] p-1 md:p-1.5 rounded-md truncate cursor-pointer font-bold border-l-2 shadow-sm ${
-                              s.isExpired ? 'bg-gray-50 text-stone-300 border-stone-200 opacity-60' :
-                              s.isHosted ? 'bg-amber-100 text-amber-800 border-amber-500' : 'bg-sage/10 text-sage border-sage'
-                            }`}>{s.time} {s.title}</div>
-                        ))}
-                      </div>
-                    </>
+                    ) : null
+                  )}
+                  
+                  {!session.isExpired && (
+                    <button onClick={(e) => { e.stopPropagation(); router.push(session.isHosted ? `/dashboard/live/${session.id}` : `/enrolled/live/${session.id}`); }}
+                      className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] border transition-all rounded-xl font-bold ${
+                        session.isHosted ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-stone-50 text-stone-800 border-stone-200"
+                      }`}>
+                      {session.isHosted ? <><Settings2 size={16} /> 進入主控室 (磁鐵板)</> : <><Activity size={16} /> 查看對戰實況</>}
+                    </button>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <div className="flex justify-end mt-6">
+                  <span className="text-xs text-stone-500 font-bold uppercase tracking-widest">掛號人數 {session.currentPlayers} / {session.maxPlayers}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </main>
 
       {/* 詳細 Modal */}
