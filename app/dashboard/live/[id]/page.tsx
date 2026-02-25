@@ -209,23 +209,25 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   };
 
   return (
-    <div className="min-h-dvh bg-[#FAF9F6] text-stone-800 font-serif flex flex-col overflow-hidden pb-20 md:pb-0">
+    <div className="min-h-dvh neu-page text-stone-800 font-serif flex flex-col overflow-hidden pb-20 md:pb-0">
       <AppHeader />
 
       {/* 頂部導航 */}
-      <div className="sticky top-0 md:top-14 z-20 bg-white/80 backdrop-blur-md border-b border-stone-100 px-6 py-3 flex justify-between items-center">
-        <button onClick={() => router.push("/enrolled")} className="text-stone-400 hover:text-sage transition-all"><ChevronLeft size={24} /></button>
-        <div className="text-center">
-          <h1 className="text-sm font-bold tracking-[0.3em] uppercase">{gameInfo?.Title || "場地載入中"}</h1>
-          <p className="text-[9px] text-stone-400 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
+      <div className="sticky top-0 md:top-14 z-20 neu-floating-header px-6 py-3">
+        <div className="neu-surface neu-surface-glass px-4 py-3 flex justify-between items-center rounded-[20px]">
+          <button onClick={() => router.push("/enrolled")} className="text-stone-400 hover:text-sage transition-all"><ChevronLeft size={24} /></button>
+          <div className="text-center">
+            <h1 className="text-sm font-bold tracking-[0.3em] uppercase">{gameInfo?.Title || "場地載入中"}</h1>
+            <p className="text-[9px] text-stone-400 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
+          </div>
+          <button onClick={() => setIsBenchOpen(true)} className="md:hidden text-sage"><Users size={20} /></button>
+          <div className="hidden md:block w-8"></div>
         </div>
-        <button onClick={() => setIsBenchOpen(true)} className="md:hidden text-sage"><Users size={20} /></button>
-        <div className="hidden md:block w-8"></div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* 左側：病友待命區 (已加回 Lv 與 場次) */}
-        <aside className={`fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 bg-white/95 backdrop-blur-lg border-r border-stone-100 p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+        <aside className={`fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 neu-page backdrop-blur-lg p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-[11px] tracking-[0.4em] text-stone-400 uppercase font-bold">待命名冊</h2>
             <button className="md:hidden" onClick={() => setIsBenchOpen(false)}><X size={20} /></button>
@@ -266,7 +268,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           
           {/* 全域待診預備區 */}
           <section className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-stone-50 relative">
+            <div className="neu-card rounded-[2rem] p-8 relative">
               <div className="absolute -top-3 left-10 px-4 py-1 bg-[#FAF9F6] border border-stone-100 rounded-full text-[10px] tracking-[0.3em] text-stone-400 uppercase font-bold">預備組 Next</div>
               
               {/* 公平/巔峰 策略切換 */}
@@ -306,7 +308,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
               const label = names[parseInt(num)-1]?.trim() || num;
 
               return (
-                <div key={num} className="bg-white rounded-[2rem] border border-stone-50 shadow-sm overflow-hidden flex flex-col group transition-all hover:shadow-md">
+                <div key={num} className="neu-card rounded-[2rem] overflow-hidden flex flex-col group transition-all">
                   <div className={`px-6 py-3 flex justify-between items-center ${match ? 'bg-blue-50/50 text-blue-600' : 'bg-stone-50/50 text-stone-400'}`}>
                     <span className="text-[10px] tracking-[0.3em] uppercase font-bold">場地 {label}</span>
                     {!match && <button onClick={() => removeCourt(num)} className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"><Trash2 size={14}/></button>}
@@ -365,7 +367,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       {/* 文青風 Modal */}
       {msg.isOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 text-center shadow-2xl border border-stone-50">
+          <div className="neu-modal w-full max-w-sm rounded-[2.5rem] p-10 text-center">
             <h2 className="text-xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
             <p className="text-sm text-stone-400 italic mb-10 leading-relaxed px-4">{msg.content}</p>
             <div className="space-y-4">

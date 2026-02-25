@@ -128,14 +128,14 @@ export default function ProfilePage() {
   };
 
   if (loading) return (
-    <div className="min-h-dvh bg-[#FAF9F6] font-serif pb-24">
+    <div className="min-h-dvh neu-page font-serif pb-24">
       <AppHeader />
       <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">讀取病歷中...</div>
     </div>
   );
 
   if (!isLoggedIn) return (
-    <div className="min-h-dvh bg-[#FAF9F6] font-serif pb-24">
+    <div className="min-h-dvh neu-page font-serif pb-24">
       <AppHeader />
       <LoginPrompt />
     </div>
@@ -318,7 +318,7 @@ export default function ProfilePage() {
   const weeklyWins = weeklyValidMatches.filter(m => m.result === "win").length;
 
   return (
-    <div className="min-h-dvh bg-[#FAF9F6] text-stone-800 font-serif pb-24 overflow-x-hidden selection:bg-sage/10">
+    <div className="min-h-dvh neu-page text-stone-800 font-serif pb-24 overflow-x-hidden selection:bg-sage/10">
       <AppHeader />
 
       <main className="max-w-2xl mx-auto px-4 md:px-8 pt-6 animate-in fade-in duration-1000">

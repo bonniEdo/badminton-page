@@ -9,6 +9,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import LoginPrompt from "../components/LoginPrompt";
+import { TabButton, Tabs } from "../components/ui";
 
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -348,44 +349,46 @@ export default function Dashboard() {
   const sortedHosted = useMemo(() => sortAndFilter(hostedSessions), [hostedSessions, showExpired]);
 
   if (!isLoggedIn) return (
-    <div className="min-h-dvh bg-paper font-serif pb-24">
+    <div className="min-h-dvh neu-page font-serif pb-24">
       <AppHeader />
       <LoginPrompt />
     </div>
   );
 
   return (
-    <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
-      <nav className="flex justify-between items-center px-4 py-3 md:px-8 md:py-6 border-b border-stone bg-white/50 backdrop-blur-sm sticky top-0 z-30">
-        <div className="flex flex-col items-start">
-          <h1 className="text-xl md:text-2xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">戒球日誌</h1>
-          <div className="hidden md:block w-12 h-[1px] bg-sage/30 my-2"></div>
-          <p className="hidden md:block text-[11px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
-        </div>
-        <Link href="/browse" className="group flex items-center gap-3 md:gap-4 transition-all">
-          <div className="flex flex-col items-end">
-            <span className="text-[11px] md:text-sm tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">勒戒看板</span>             
-            <div className="flex items-center gap-1 md:gap-2">
-              <div className="w-1 h-1 rounded-full bg-sage/40"></div>
-              <span className="text-[9px] md:text-[10px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">Search</span>
+    <div className="min-h-dvh neu-page text-ink font-serif pb-20">
+      <nav className="sticky top-0 z-30 neu-floating-header px-4 py-3 md:px-8 md:py-6">
+        <div className="neu-surface neu-surface-glass flex justify-between items-center px-4 py-3 md:px-6 md:py-4">
+          <div className="flex flex-col items-start">
+            <h1 className="text-xl md:text-2xl tracking-[0.2em] md:tracking-[0.5em] text-sage font-light">戒球日誌</h1>
+            <div className="hidden md:block w-12 h-[1px] bg-sage/30 my-2"></div>
+            <p className="hidden md:block text-[11px] tracking-[0.2em] text-gray-400 font-light opacity-70">在這裡，膩了，就是唯一的解藥。</p>
+          </div>
+          <Link href="/browse" className="group flex items-center gap-3 md:gap-4 transition-all">
+            <div className="flex flex-col items-end">
+              <span className="text-[11px] md:text-sm tracking-[0.2em] md:tracking-[0.4em] text-stone-800 font-semibold uppercase">勒戒看板</span>             
+              <div className="flex items-center gap-1 md:gap-2">
+                <div className="w-1 h-1 rounded-full bg-sage/40"></div>
+                <span className="text-[9px] md:text-[10px] tracking-[0.1em] md:tracking-[0.2em] text-sage font-light uppercase">Search</span>
+              </div>
             </div>
-          </div>
-          <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-sage/[0.03] border border-sage/[0.08] flex items-center justify-center transition-all duration-500 group-hover:bg-sage/[0.06] group-hover:scale-105 group-hover:rotate-3 shadow-sm">
-            <Search size={18} className="text-sage opacity-70" strokeWidth={1.2} />
-          </div>
-        </Link>
+            <div className="w-10 h-10 md:w-10 md:h-10 rounded-full neu-inset flex items-center justify-center transition-all duration-500 group-hover:scale-105 group-hover:rotate-3">
+              <Search size={18} className="text-sage opacity-70" strokeWidth={1.2} />
+            </div>
+          </Link>
+        </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 mt-10">
         <div className="flex justify-between items-center border-b border-stone/30">
-          <div className="flex gap-12 text-base tracking-[0.2em]">
+          <Tabs className="text-base tracking-[0.2em]">
             {[{ id: "joined", label: "已掛號" }, { id: "hosted", label: "我開立的" }].map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`pb-4 transition-all relative ${activeTab === tab.id ? "text-sage font-bold" : "text-gray-400 hover:text-stone"}`}>
+              <TabButton key={tab.id} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id as any)} className="pb-3 transition-all relative">
                 {tab.label}
                 {activeTab === tab.id && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-sage" />}
-              </button>
+              </TabButton>
             ))}
-          </div>
+          </Tabs>
 
           {/* ✅ 過期顯示開關 */}
           <button 
@@ -408,7 +411,7 @@ export default function Dashboard() {
 
                 return (
                   <div key={`${session.id}-${session.myStatus}`} onClick={() => handleOpenDetail(session)} 
-                    className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+                    className={`relative cursor-pointer neu-card p-6 border-l-4 transition-all ${
                       isCancelled 
                         ? "border-l-red-200 bg-gray-50 opacity-60 grayscale"
                         : session.isExpired 
@@ -473,7 +476,7 @@ export default function Dashboard() {
             <div
               key={s.id}
               onClick={() => handleOpenDetail(s)}
-              className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+              className={`relative cursor-pointer neu-card p-6 border-l-4 transition-all ${
                 s.isHostCanceled
                   ? "border-l-red-200 bg-gray-50 opacity-40 grayscale"
                   : s.isExpired
@@ -542,7 +545,7 @@ export default function Dashboard() {
       {/* 詳情 Modal */}
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
+          <div className={`neu-modal w-full max-w-md p-8 relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
             <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-gray-500 mb-8">
@@ -594,7 +597,7 @@ export default function Dashboard() {
       {/* 程度選擇 Modal */}
       {levelModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white border border-stone w-full max-w-sm rounded-[3rem] p-12 shadow-2xl relative text-center">
+           <div className="neu-modal w-full max-w-sm rounded-[3rem] p-12 relative text-center">
               <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8">
                  <Layout className="text-sage opacity-50" size={24} />
               </div>

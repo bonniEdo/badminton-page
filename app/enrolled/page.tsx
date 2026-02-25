@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import { Chip } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -137,16 +138,16 @@ export default function EnrolledPage() {
   }, [allSessions, showExpired, filterType]);
 
   if (loading) return (
-    <div className="min-h-dvh bg-paper flex items-center justify-center text-sage font-bold tracking-widest animate-pulse">正在調閱病歷...</div>
+    <div className="min-h-dvh neu-page flex items-center justify-center text-sage font-bold tracking-widest animate-pulse">正在調閱病歷...</div>
   );
 
   return (
-    <div className="min-h-dvh bg-paper text-stone-800 font-serif pb-20 overflow-x-hidden">
+    <div className="min-h-dvh neu-page text-stone-800 font-serif pb-20 overflow-x-hidden">
       <AppHeader />
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-8 flex flex-col gap-6">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl md:text-2xl tracking-[0.2em] text-sage font-bold">我的療程</h2>
+          <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的療程</h2>
           <button
             onClick={() => setShowExpired(!showExpired)}
             className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${showExpired ? "border-sage text-sage bg-white shadow-sm" : "border-stone/40 text-stone-500 bg-stone/5"}`}
@@ -156,16 +157,13 @@ export default function EnrolledPage() {
           </button>
         </div>
 
-        {/* 篩選與配色提示 */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {['all', 'hosted', 'enrolled'].map(k => (
-              <button key={k} onClick={() => setFilterType(k as any)}
-                className={`flex-shrink-0 px-6 py-2 rounded-full font-bold text-sm border transition-all ${filterType === k ? "bg-stone-800 text-white shadow-md" : "bg-white border-stone/30 text-stone-600"}`}>
-                {k === 'all' ? '全部' : k === 'hosted' ? '我發起' : '我報名'}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-2 pb-1 scrollbar-hide">
+          {['all', 'hosted', 'enrolled'].map(k => (
+            <Chip key={k} onClick={() => setFilterType(k as any)} active={filterType === k}
+              className={`flex-shrink-0 px-6 py-2 font-bold text-sm transition-all ${filterType === k ? "" : "text-stone-600"}`}>
+              {k === 'all' ? '全部' : k === 'hosted' ? '我發起' : '我報名'}
+            </Chip>
+          ))}
         </div>
       </div>
 
@@ -178,7 +176,7 @@ export default function EnrolledPage() {
             return (
               <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} 
                 onClick={() => setSelectedSession(session)}
-                className={`relative cursor-pointer bg-white border border-stone p-7 border-l-[6px] transition-all hover:shadow-xl rounded-2xl overflow-hidden ${
+                className={`relative cursor-pointer neu-card p-7 border-l-[6px] transition-all rounded-2xl overflow-hidden ${
                   session.isHostCanceled ? "border-l-red-300 opacity-60 bg-gray-50" :
                   session.isExpired ? "border-l-stone-300 opacity-80 bg-gray-50" :
                   session.isHosted ? "border-l-amber-500 shadow-sm" : "border-l-sage shadow-sm"

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import { Chip } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -133,6 +134,15 @@ export default function Browse() {
         return a.isExpired ? timeB - timeA : timeA - timeB;
       });
   }, [sessions, filterDate]);
+
+  const splitChipLabel = (label: string) => {
+    if (label === "全部") return { top: "ALL", bottom: "全部" };
+    const [bottom, top] = label.split(" ");
+    return { top: top || label, bottom: bottom || "" };
+  };
+
+  const allChip = dateChips.find((chip) => chip.value === null);
+  const dateOnlyChips = dateChips.filter((chip) => chip.value !== null);
 
   const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
@@ -273,36 +283,67 @@ export default function Browse() {
   };
 
   if (loading) return (
-    <div className="min-h-dvh bg-paper font-serif pb-24">
+    <div className="min-h-dvh neu-page font-serif pb-24">
       <AppHeader />
       <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Loading...</div>
     </div>
   );
 
   return (
-    <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
+    <div className="min-h-dvh neu-page text-ink font-serif pb-20">
       <AppHeader />
       <FriendLevelSelector />
 
-      <div className="max-w-4xl mx-auto px-6 mt-6">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
         <h2 className="text-base tracking-[0.2em] text-sage font-bold">勒戒看板</h2>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 mt-4">
-        <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-          {dateChips.map((chip) => (
-            <button
-              key={chip.value ?? "all"}
-              onClick={() => setFilterDate(chip.value)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-[12px] tracking-wider transition-all ${
-                filterDate === chip.value
-                  ? "bg-sage text-white shadow-sm"
-                  : "border border-stone text-ink/60 hover:border-sage/50"
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
+      <div className="max-w-4xl mx-auto px-4 md:px-6 mt-3 md:mt-4">
+        <div className="flex flex-col gap-2 pb-1">
+          {allChip && (
+            <div className="flex">
+              <Chip
+                key="all"
+                onClick={() => setFilterDate(allChip.value)}
+                active={filterDate === allChip.value}
+                className={`min-w-[74px] px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
+                  filterDate === allChip.value ? "" : "text-ink/60"
+                }`}
+              >
+                {(() => {
+                  const parts = splitChipLabel(allChip.label);
+                  return (
+                    <>
+                      <span className="text-[11px] leading-none tracking-[0.02em]">{parts.top}</span>
+                      <span className="text-[10px] leading-none tracking-[0.08em]">{parts.bottom}</span>
+                    </>
+                  );
+                })()}
+              </Chip>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {dateOnlyChips.map((chip) => (
+              <Chip
+                key={chip.value}
+                onClick={() => setFilterDate(chip.value)}
+                active={filterDate === chip.value}
+                className={`min-w-[74px] px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
+                  filterDate === chip.value ? "" : "text-ink/60"
+                }`}
+              >
+                {(() => {
+                  const parts = splitChipLabel(chip.label);
+                  return (
+                    <>
+                      <span className="text-[11px] leading-none tracking-[0.02em]">{parts.top}</span>
+                      <span className="text-[10px] leading-none tracking-[0.08em]">{parts.bottom}</span>
+                    </>
+                  );
+                })()}
+              </Chip>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -319,7 +360,7 @@ export default function Browse() {
             const isHost = currentUserId !== null && s.hostId === currentUserId;
               return (
               <div key={s.id} onClick={() => handleOpenDetail(s)}
-                className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md rounded-2xl ${
+                className={`relative cursor-pointer neu-card p-6 border-l-4 transition-all rounded-2xl ${
                   s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70"
                     : isHost ? "border-l-amber-400 shadow-sm"
                     : isJoined ? "border-l-sage shadow-sm" : "border-l-stone shadow-sm"
@@ -361,7 +402,7 @@ export default function Browse() {
 
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className="bg-white border border-stone w-full max-w-md p-8 shadow-xl relative rounded-2xl transform-gpu transition-transform duration-300 animate-in zoom-in">
+          <div className="neu-modal w-full max-w-md p-8 relative rounded-2xl transform-gpu transition-transform duration-300 animate-in zoom-in">
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage"><X size={24}/></button>
             <h2 className="text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-gray-500 mb-8">

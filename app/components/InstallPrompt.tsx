@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Download } from 'lucide-react';
+import { Fab } from './ui';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -12,8 +13,13 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   useEffect(() => {
+    const ua = navigator.userAgent || '';
+    const mobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    setIsMobileDevice(mobileUA);
+
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       (navigator as unknown as { standalone?: boolean }).standalone === true;
@@ -40,18 +46,15 @@ export default function InstallPrompt() {
     setDeferredPrompt(null);
   }, [deferredPrompt]);
 
-  if (!visible) return null;
+  if (!visible || !isMobileDevice) return null;
 
   return (
-    <button
+    <Fab
       onClick={handleInstall}
       aria-label="加到主畫面"
-      className="fixed bottom-24 right-6 z-50 flex h-14 w-14 items-center justify-center
-                 rounded-full bg-sage text-paper shadow-md shadow-sage/30
-                 transition-all duration-200 hover:opacity-90
-                 active:scale-95 md:hidden"
+      className="fixed bottom-24 right-6 z-50"
     >
       <Download size={24} strokeWidth={2} />
-    </button>
+    </Fab>
   );
 }

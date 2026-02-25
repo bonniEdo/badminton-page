@@ -9,6 +9,7 @@ import {
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import LoginPrompt from "../components/LoginPrompt";
+import { TabButton, Tabs } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -250,21 +251,21 @@ export default function ManagePage() {
   const goToNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; });
 
   if (loading) return (
-    <div className="min-h-dvh bg-paper font-serif pb-24">
+    <div className="min-h-dvh neu-page font-serif pb-24">
       <AppHeader />
       <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Loading...</div>
     </div>
   );
 
   if (!isLoggedIn) return (
-    <div className="min-h-dvh bg-paper font-serif pb-24">
+    <div className="min-h-dvh neu-page font-serif pb-24">
       <AppHeader />
       <LoginPrompt />
     </div>
   );
 
   return (
-    <div className="min-h-dvh bg-paper text-ink font-serif pb-20">
+    <div className="min-h-dvh neu-page text-ink font-serif pb-20">
       <AppHeader />
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
@@ -279,26 +280,29 @@ export default function ManagePage() {
               {showExpired ? "顯示過期" : "隱藏過期"}
             </button>
           )}
-          <div className="flex rounded-full border border-stone/30 overflow-hidden text-[11px]">
-            <button
+          <Tabs className="text-[11px]">
+            <TabButton
               onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'list' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+              active={viewMode === "list"}
+              className="flex items-center gap-1 px-2.5 py-1.5 tracking-wider"
             >
               <List size={12} />列表
-            </button>
-            <button
+            </TabButton>
+            <TabButton
               onClick={() => setViewMode('week')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all border-x border-stone/20 ${viewMode === 'week' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+              active={viewMode === "week"}
+              className="flex items-center gap-1 px-2.5 py-1.5 tracking-wider"
             >
               <CalendarRange size={12} />週
-            </button>
-            <button
+            </TabButton>
+            <TabButton
               onClick={() => setViewMode('calendar')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 tracking-wider transition-all ${viewMode === 'calendar' ? "bg-sage/10 text-sage" : "text-gray-400 hover:text-gray-500"}`}
+              active={viewMode === "calendar"}
+              className="flex items-center gap-1 px-2.5 py-1.5 tracking-wider"
             >
               <CalendarDays size={12} />月
-            </button>
-          </div>
+            </TabButton>
+          </Tabs>
         </div>
       </div>
 
@@ -307,7 +311,7 @@ export default function ManagePage() {
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {sortedHosted.map((s) => (
               <div key={s.id} onClick={() => handleOpenDetail(s)}
-                className={`relative cursor-pointer bg-white border border-stone p-6 border-l-4 transition-all hover:shadow-md ${
+                className={`relative cursor-pointer neu-card p-6 border-l-4 transition-all ${
                   s.isHostCanceled ? "border-l-red-200 bg-gray-50 opacity-40 grayscale"
                     : s.isExpired ? "border-l-gray-300 bg-gray-50/80 grayscale opacity-70" : "border-l-sage shadow-sm"
                 }`}>
@@ -464,7 +468,7 @@ export default function ManagePage() {
       {/* Detail Modal */}
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className={`bg-white border border-stone w-full max-w-md p-8 shadow-xl relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
+          <div className={`neu-modal w-full max-w-md p-8 relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
             <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-gray-500 mb-8">
@@ -511,7 +515,7 @@ export default function ManagePage() {
       {/* Level Modal */}
       {levelModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white border border-stone w-full max-w-sm rounded-[3rem] p-12 shadow-2xl text-center">
+          <div className="neu-modal w-full max-w-sm rounded-[3rem] p-12 text-center">
             <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8"><Layout className="text-sage opacity-50" size={24}/></div>
             <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">同伴的症狀</h2>
             <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響所內 AI 醫師如何為您們配對</p>

@@ -199,7 +199,7 @@ export default function LiveViewPage({
 
   if (loading)
     return (
-      <div className="min-h-dvh bg-paper font-serif pb-20">
+      <div className="min-h-dvh neu-page font-serif pb-20">
         <AppHeader />
         <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse tracking-widest text-sm">
           讀取戰場實況...
@@ -208,12 +208,12 @@ export default function LiveViewPage({
     );
 
   return (
-    <div className="min-h-dvh bg-paper font-serif pb-20">
+    <div className="min-h-dvh neu-page font-serif pb-20">
       <AppHeader />
 
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-stone px-4 py-3">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+      <div className="sticky top-0 md:top-14 z-20 neu-floating-header px-4 py-3">
+        <div className="max-w-md mx-auto neu-surface neu-surface-glass px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-1 text-stone-500 hover:text-sage transition-all group"
@@ -266,7 +266,7 @@ export default function LiveViewPage({
 
         {/* My Status */}
         {myPlayer && (
-          <div className="bg-white border border-stone rounded-2xl p-4 shadow-sm">
+          <div className="neu-card rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
@@ -323,7 +323,7 @@ export default function LiveViewPage({
 
         {/* Stats Bar */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white border border-stone rounded-xl p-3 text-center">
+          <div className="neu-card rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-sage">
               {playingCount}
             </p>
@@ -331,7 +331,7 @@ export default function LiveViewPage({
               交戰中
             </p>
           </div>
-          <div className="bg-white border border-stone rounded-xl p-3 text-center">
+          <div className="neu-card rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-stone-700">
               {idlePlayers.length}
             </p>
@@ -339,7 +339,7 @@ export default function LiveViewPage({
               待命中
             </p>
           </div>
-          <div className="bg-white border border-stone rounded-xl p-3 text-center">
+          <div className="neu-card rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-stone-400">
               {checkedInCount}/{players.length}
             </p>
@@ -369,7 +369,7 @@ export default function LiveViewPage({
         )}
 
         {matches.length === 0 && (
-          <div className="bg-white border border-stone rounded-2xl p-8 text-center shadow-sm">
+          <div className="neu-card rounded-2xl p-8 text-center">
             <Coffee size={28} className="mx-auto text-stone-300 mb-3" />
             <p className="text-sm text-stone-400 italic tracking-wider">
               目前沒有進行中的對戰
@@ -389,7 +389,7 @@ export default function LiveViewPage({
                 {idlePlayers.length} 人
               </span>
             </h2>
-            <div className="bg-white border border-stone rounded-2xl shadow-sm divide-y divide-stone/30">
+            <div className="neu-card rounded-2xl divide-y divide-stone/30">
               {idlePlayers
                 .sort(
                   (a, b) =>
@@ -473,7 +473,7 @@ function MatchCard({
   const b2 = getPlayer(match.player_b2);
 
   return (
-    <div className="bg-white border border-stone rounded-2xl shadow-sm overflow-hidden">
+    <div className="neu-card rounded-2xl overflow-hidden">
       {/* Court label + timer */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-stone/10 border-b border-stone/20">
         <span className="text-[10px] font-bold tracking-[0.15em] text-stone-500 uppercase">

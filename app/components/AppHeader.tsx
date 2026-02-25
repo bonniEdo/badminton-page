@@ -28,21 +28,24 @@ export default function AppHeader() {
   return (
     <>
       {/* Desktop Header */}
-      <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-stone hidden md:block">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
+      <nav className="sticky top-0 z-30 hidden md:block bg-transparent">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="neu-surface neu-surface-glass px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/browse" className="flex items-center gap-1.5 mr-1">
               <ShuttlecockIcon size={18} className="text-sage" />
               <span className="text-base tracking-[0.1em] text-sage font-bold">羽球勒戒所</span>
             </Link>
-            <div className="h-5 w-[1px] bg-stone/30" />
+            <div className="h-5 w-[1px] bg-stone/60" />
             <div className="flex items-center gap-1">
               {navItems.map(({ href, label, icon: Icon }) => {
                 const active = pathname === href || pathname.startsWith(href + "/");
                 return (
                   <Link key={href} href={href}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm tracking-[0.05em] transition-all duration-200 ${
-                      active ? "bg-sage/10 text-sage font-bold" : "text-stone-400 hover:text-sage"
+                      active
+                        ? "neu-inset text-sage font-bold"
+                        : "text-stone-500 hover:text-sage"
                     }`}>
                     <Icon size={16} strokeWidth={active ? 2.2 : 1.5} />
                     {label}
@@ -61,7 +64,7 @@ export default function AppHeader() {
                 {userInfo?.badminton_level ? `Lv.${Math.floor(parseFloat(userInfo.badminton_level))}` : "待診斷"}
               </span>
             </div>
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-stone-100 border border-stone/20 group-hover:ring-1 group-hover:ring-sage/30 transition-all">
+            <div className="w-9 h-9 rounded-full overflow-hidden neu-inset transition-all">
               {(userInfo?.avatarUrl || userInfo?.AvatarUrl) ? (
                 <img src={userInfo?.avatarUrl || userInfo?.AvatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -70,17 +73,18 @@ export default function AppHeader() {
             </div>
           </Link>
         </div>
+        </div>
       </nav>
 
       {/* Mobile Bottom Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-sm border-t border-stone md:hidden [transform:translate3d(0,0,0)]">
-        <div className="flex items-center justify-around h-16 px-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-transparent md:hidden [transform:translate3d(0,0,0)]">
+        <div className="mx-3 mb-2 mt-1 neu-surface neu-surface-glass rounded-[20px] flex items-center justify-around h-16 px-2">
           {bottomBarItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link key={href} href={href}
                 className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 ${
-                  active ? "text-sage" : "text-stone-400"
+                  active ? "neu-inset text-sage" : "text-stone-500"
                 }`}>
                 <Icon size={20} strokeWidth={active ? 2.2 : 1.5} />
                 <span className={`text-[10px] tracking-[0.02em] ${active ? "font-bold" : ""}`}>{label}</span>

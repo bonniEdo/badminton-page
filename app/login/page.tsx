@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import ShuttlecockIcon from "../components/ShuttlecockIcon";
+import { Button, Card } from "../components/ui";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
 
@@ -21,11 +22,11 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-dvh bg-[#FDFCFB] text-stone-700 flex flex-col font-serif">
+    <main className="min-h-dvh neu-page text-stone-700 flex flex-col font-serif">
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-xs flex flex-col items-center text-center">
+        <Card className="w-full max-w-xs flex flex-col items-center text-center p-8">
 
-          <div className="w-14 h-14 rounded-full bg-[#E5ECE3] text-[#A8B58E] flex items-center justify-center mb-8 shadow-inner">
+          <div className="w-14 h-14 rounded-full neu-inset text-[#A8B58E] flex items-center justify-center mb-8">
             <ShuttlecockIcon size={24} />
           </div>
 
@@ -40,18 +41,18 @@ export default function LoginPage() {
             <span className="w-12 h-[1px] bg-stone-100" />
           </div>
 
-          <button
+          <Button
             onClick={handleLineLogin}
             className="w-full py-4 bg-[#06C755] text-white text-[13px] tracking-[0.4em] font-bold rounded-full shadow-lg shadow-[#06C755]/20 hover:shadow-xl hover:shadow-[#06C755]/30 hover:brightness-105 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
           >
             <span className="bg-white text-[#06C755] text-[11px] px-2 py-0.5 rounded-sm font-black leading-none">LINE</span>
             領取號碼牌
-          </button>
+          </Button>
 
           <p className="mt-5 text-[12px] text-stone-300 tracking-[0.12em] italic leading-relaxed">
             透過 LINE 登入，即視為自願入所
           </p>
-        </div>
+        </Card>
       </div>
 
       <footer className="py-8 flex flex-col items-center gap-3 opacity-40">
