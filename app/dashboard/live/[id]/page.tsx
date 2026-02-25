@@ -227,12 +227,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* 左側：病友待命區 (已加回 Lv 與 場次) */}
-        <aside className={`fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 neu-page backdrop-blur-lg p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-[11px] tracking-[0.4em] text-stone-400 uppercase font-bold">待命名冊</h2>
-            <button className="md:hidden" onClick={() => setIsBenchOpen(false)}><X size={20} /></button>
-          </div>
-          <div className="space-y-2 overflow-y-auto h-[calc(100dvh-200px)] custom-scrollbar pr-2">
+        <aside className={`fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 md:bg-transparent p-4 md:p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+          <div className="neu-surface neu-surface-glass h-full rounded-2xl p-4 md:p-5">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[11px] tracking-[0.4em] text-stone-500 uppercase font-bold">待命名冊</h2>
+              <button className="md:hidden text-stone-400" onClick={() => setIsBenchOpen(false)}><X size={20} /></button>
+            </div>
+            <div className="space-y-2 overflow-y-auto h-[calc(100dvh-220px)] custom-scrollbar pr-2">
             {players.sort((a,b) => (a.status === 'playing' ? 1 : -1)).map(p => {
               const isSelected = selectedPlayerIds.includes(p.playerId);
               const isPlaying = p.status === 'playing';
@@ -242,7 +243,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   className={`p-3 rounded-xl border transition-all cursor-pointer ${
                     isSelected ? 'bg-sage border-sage text-white shadow-lg' :
                     isPlaying ? 'opacity-30 grayscale pointer-events-none' :
-                    isInNext ? 'bg-sage/5 border-sage/20 text-sage' : 'bg-white border-stone-100 hover:border-sage/30'
+                    isInNext ? 'bg-sage/10 border-sage/30 text-sage' : 'bg-paper/70 border-stone/30 hover:border-sage/30'
                   }`}>
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between items-center">
@@ -260,6 +261,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 </div>
               );
             })}
+            </div>
           </div>
         </aside>
 
