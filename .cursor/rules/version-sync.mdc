@@ -1,0 +1,20 @@
+---
+description: 前後端更新時必須同步更新 html 版本號
+alwaysApply: true
+---
+
+# 版本號同步規則
+
+每次有前端或後端更新時，必須同步更新前端版本標記：
+
+1. `app/layout.tsx` 的 `<html>` 需保留：
+   - `data-frontend-version`
+   - `data-backend-version`
+2. 版本值來源（方案 A）：
+   - 前端版本：`badminton-page/package.json` 的 `version`
+   - 後端版本：`badminton-go` 提供的 `/version` API 回傳值
+3. 若這次變更有牽涉前端或後端功能/API，交付前必須確認對應版本來源是否已更新（例如 bump package.json version）。
+
+## 交付回報要求
+
+- 回覆時明確說明本次版本號是否有更新，以及更新到什麼值。
