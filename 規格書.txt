@@ -138,7 +138,7 @@ Badminton-Rehab 前端系統規格書
 
 2) 行為
 - 送 `POST /api/games/create`
-- 成功後導向 `/schedule`
+- 成功後導向 `/enrolled`
 - 支援從其他頁複製資料（`sessionStorage.copySessionData`）
 
 6.3 我的療程 / 管理（`/enrolled`, `/dashboard`, `/schedule`）

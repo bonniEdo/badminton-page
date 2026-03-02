@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/browse", label: "勒戒看板", icon: Search },
-  { href: "/schedule", label: "排程管理", icon: CalendarDays },
   { href: "/enrolled", label: "已報名", icon: CalendarCheck },
+  { href: "/schedule", label: "排程管理", icon: CalendarDays },
 ];
 
 const bottomBarItems = [
