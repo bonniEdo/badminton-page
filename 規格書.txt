@@ -1,0 +1,345 @@
+Badminton-Rehab 前端系統規格書
+版本：目前程式碼基線（掃描日期：2026-02-25）
+專案目錄：/home/walker/project/badminton-page
+
+==================================================
+1. 系統定位與目標
+==================================================
+1) 系統名稱
+- Badminton-Rehab（戒球日誌）
+
+2) 產品定位
+- 以羽球揪團與現場對戰管理為核心的行動優先 Web App。
+- 支援「一般參與者」與「主揪（主治）」兩種使用情境：
+  - 參與者：瀏覽球局、報名、簽到、觀看即時對戰。
+  - 主揪：建立球局、管理場次、啟動/結束比賽、安排場地。
+
+3) 核心價值
+- 讓報名、排程、現場上場安排、對戰結果紀錄在同一套前端流程完成。
+- 透過即時資料刷新（WebSocket + fallback polling）提供「live board」體驗。
+
+==================================================
+2. 技術架構
+==================================================
+1) 前端框架與語言
+- Next.js App Router（`app/` 結構）
+- React 19
+- TypeScript
+
+2) UI / 樣式
+- Tailwind CSS v4
+- 自訂 Neumorphism 風格 class（`neu-*`）集中於 `app/globals.css`
+- 共用 UI primitives：Button/Card/Input/Modal/Tabs/Chip/Fab
+
+3) 認證與第三方
+- LINE LIFF SDK（`@line/liff`）
+- JWT decode（`jwt-decode`）用於前端 token 過期檢查
+
+4) 執行環境與埠
+- `npm run dev`：Next dev server at port 3001
+
+5) 重要環境變數
+- `NEXT_PUBLIC_API_URL`：後端 API Base URL
+- `NEXT_PUBLIC_LIFF_ID`：LIFF 初始化 ID（程式有使用）
+
+==================================================
+3. 路由與頁面總覽（App Router）
+==================================================
+1) 導頁/入口
+- `/`：直接 redirect 到 `/browse`
+
+2) 認證與個人初始化
+- `/login`：LINE OAuth 入口
+- `/login-success`：接收 token、同步 user、導頁
+- `/rating`：初次診斷（選類別 + 球齡），完成 profile
+
+3) 主功能頁
+- `/browse`：公開球局瀏覽與報名
+- `/create`：建立球局
+- `/schedule`：整合式排程（週/月）
+- `/enrolled`：我的療程（我發起 + 我報名）
+- `/manage`：我開立的（主揪管理）
+- `/dashboard`：進階日誌管理（joined/hosted 分頁）
+- `/profile`：個人病歷、戰績、AI 建議
+
+4) 即時頁
+- `/dashboard/live/[id]`：主揪實況主控（磁鐵排點、開打/結束）
+- `/enrolled/live/[id]`：參與者實況看板
+
+==================================================
+4. 使用者角色與權限
+==================================================
+1) 未登入訪客
+- 可瀏覽公開球局（`/browse`）與查看基本資訊。
+- 需登入後才可掛號/建立/管理。
+
+2) 已登入參與者
+- 可報名球局、攜友 +1、取消報名、當日簽到、看 live 狀態。
+
+3) 主揪（該球局 host）
+- 可建立/刪除球局、進入主控室、安排場地與對戰、結束比賽。
+
+4) 共通 token 規則
+- token 存於 `localStorage.token`
+- `AuthWatcher` 每 10 秒檢查 exp，過期即清除 token+user 並導回 `/login`
+
+==================================================
+5. 認證流程規格
+==================================================
+1) 一般流程
+- 前端呼叫 `GET /api/user/line-auth` 取得第三方登入 URL。
+- OAuth 回來到 `/login-success?token=...`。
+- 前端把 token 存 localStorage，呼叫 `GET /api/user/me` 同步 user。
+- 依 `is_profile_completed` 導向：
+  - true -> `/browse`
+  - false -> `/rating`
+
+2) LIFF 流程（LINE 內建瀏覽器）
+- `LiffProvider` 初始化 LIFF。
+- 未登入 LIFF 時觸發 `liff.login()`。
+- 取得 `idToken` 後呼叫 `POST /api/user/liff-login`。
+- 成功後寫入 token/user，依 `loginReturnPath` 或 profile 狀態導頁。
+
+3) Return Path
+- 觸發登入前，頁面會寫 `localStorage.loginReturnPath`。
+- 登入成功後優先返回原目標頁，再 fallback 到 browse/rating。
+
+==================================================
+6. 核心功能規格
+==================================================
+6.1 球局瀏覽與報名（`/browse`）
+1) 資料來源
+- active games：`GET /api/games/activegames`
+- 若已登入，再取 `GET /api/user/me` + `GET /api/games/joined`
+
+2) 篩選與排序
+- 日期篩選：全部 + 7 天 chip
+- 排序：未過期先，時間早者先
+
+3) 明細互動
+- 可看 participants（濾掉 WAITLIST）
+- 可開 Google Maps
+- 若是主揪可直接進主控室
+
+4) 掛號規則
+- 電話格式：台灣手機 `09xxxxxxxx`
+- 可掛 1 人或 2 人（含同伴）
+- 掛 2 人時需先選同伴程度（4 段，送 friendLevel）
+- 名額不足時阻擋
+
+5) 同伴機制
+- `POST /api/games/{id}/add-friend`
+- 每人上限一位同伴
+
+6.2 建立球局（`/create`）
+1) 欄位
+- title, gameDate, gameTime, endTime, location
+- courtNumber(選填), courtCount(1~6)
+- maxPlayers, price, phone, notes
+
+2) 行為
+- 送 `POST /api/games/create`
+- 成功後導向 `/manage`
+- 支援從其他頁複製資料（`sessionStorage.copySessionData`）
+
+6.3 我的療程 / 管理（`/enrolled`, `/manage`, `/dashboard`, `/schedule`）
+1) 共同能力
+- 列表/週曆/月曆視圖（依頁面不同）
+- 查看詳情、名單、費用、備註
+- 同伴 +1
+- 當日簽到（waiting_checkin 狀態）
+
+2) 取消與刪除
+- 取消報名：`DELETE /api/games/{id}/join`，支援 `cancelType=all/friend_only`
+- 刪除球局（主揪）：`DELETE /api/games/delete/{id}`
+
+3) 主揪專屬
+- 進入 live board：`/dashboard/live/{id}`
+- 複製既有球局作為新建草稿
+
+6.4 主揪實況主控（`/dashboard/live/[id]`）
+1) 即時資料
+- 初始 + refresh：`GET /api/games/{id}` + `GET /api/match/live-status/{id}`
+- WebSocket：`ws(s)://.../ws`，收到 `{type:"refresh"}` 觸發重抓
+- fallback polling：60 秒
+
+2) 預備組（next slots）
+- 全域四格（不分場地）手動排人或 AI 自動排
+- 排點策略：
+  - `fairness`：優先場次少 + 較早簽到
+  - `peak`：優先高等級 + 場次平衡
+
+3) 場地管理
+- 可動態加開場地
+- 有進行中比賽的場地不可移除
+
+4) 比賽控制
+- 開始：`POST /api/match/start`
+- 結束：`POST /api/match/finish`（A 勝 / B 勝 / none）
+- 主揪代簽到：`POST /api/match/host-checkin`
+
+6.5 參與者實況頁（`/enrolled/live/[id]`）
+1) 顯示內容
+- 我的目前狀態（waiting_checkin / idle / playing）
+- 進行中對戰卡、場邊待命、未報到名單
+
+2) 行為
+- waiting_checkin 可直接按鈕簽到：`POST /api/match/checkin`
+- 僅允許「當天球局」進入 live，非當天會導回 enrolled
+
+6.6 個人病歷與 AI 建議（`/profile`）
+1) 取得資料
+- `GET /api/user/me`
+- `GET /api/match/my-history`
+- `GET /api/games/joined`
+- `GET /api/games/mygame`
+
+2) 指標
+- 勝率、開診次數、掛號次數、出勤率、本週戰績
+
+3) AI 建議
+- 依等級產生粗略版 / 詳細版訓練與注意事項（前端內建規則）
+
+6.7 初次評分流程（`/rating`）
+1) 三步驟
+- 選症狀級距（L1-3 / 4-7 / 8-12 / 13-18）
+- 選球齡 bonus
+- 計算最終 level 並送出
+
+2) 送出
+- `POST /api/user/complete-rating`
+- 成功後更新 local user 的 `is_profile_completed=true`
+
+==================================================
+7. API 端點清單（前端實際使用）
+==================================================
+1) 使用者/認證
+- GET  `/api/user/line-auth`
+- POST `/api/user/liff-login`
+- GET  `/api/user/me`
+- POST `/api/user/complete-rating`
+
+2) 球局
+- GET    `/api/games/activegames`
+- POST   `/api/games/create`
+- GET    `/api/games/joined`
+- GET    `/api/games/mygame`
+- GET    `/api/games/{id}`
+- GET    `/api/games/{id}/players`
+- POST   `/api/games/{id}/join`
+- DELETE `/api/games/{id}/join`
+- POST   `/api/games/{id}/add-friend`
+- DELETE `/api/games/delete/{id}`
+
+3) 對戰/即時
+- GET  `/api/match/live-status/{id}`
+- POST `/api/match/checkin`
+- POST `/api/match/host-checkin`
+- POST `/api/match/start`
+- POST `/api/match/finish`
+- GET  `/api/match/my-history`
+
+4) WebSocket
+- `{API_URL}/ws`（前端會把 http(s) 轉 ws(s)）
+
+==================================================
+8. 前端資料模型（主要欄位）
+==================================================
+1) Session（常見映射）
+- id, title, date, time, endTime, location
+- maxPlayers, currentPlayers, price
+- hostId/hostName（部分頁）
+- myStatus, status, check_in_at
+- friendCount, notes
+- isExpired, isHostCanceled
+- courtCount, courtNumber
+
+2) Player（live status）
+- playerId, displayName
+- status: waiting_checkin | idle | playing
+- level, games_played, verified_matches
+- check_in_at, isHost
+
+3) Match（live）
+- id, court_number
+- player_a1, player_a2, player_b1, player_b2
+- match_status, start_time
+
+==================================================
+9. 狀態與儲存策略
+==================================================
+1) localStorage
+- `token`：JWT
+- `user`：目前使用者資料
+- `loginReturnPath`：登入後回跳頁
+
+2) sessionStorage
+- `copySessionData`：複製球局草稿
+
+3) 前端登入判斷
+- 多頁以 `localStorage.token` 是否存在決定可否使用功能
+- 未登入頁通常顯示 `LoginPrompt`
+
+==================================================
+10. PWA 與安裝機制
+==================================================
+1) Manifest
+- `public/manifest.json` 已設定 standalone 與 icon
+
+2) Service Worker
+- `public/sw.js`
+- install 時預快取 `/`、`/manifest.json`
+- fetch 策略：network first + cache fallback
+
+3) 安裝提示
+- `InstallPrompt` 監聽 `beforeinstallprompt`
+- 僅行動裝置且非 standalone 顯示浮動安裝按鈕
+
+==================================================
+11. 設計系統與 UI 規範（實作現況）
+==================================================
+1) 主題色
+- paper / ink / sage / stone / alert（對應 CSS 變數）
+
+2) 字體
+- Noto Serif TC 為主
+
+3) 共用元件
+- Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab
+- 以 `neu-*` class 套用視覺一致性
+
+==================================================
+12. 非功能性需求（目前可觀察）
+==================================================
+1) 行動優先
+- 多數頁面為 mobile-first，桌面補強（例如 AppHeader desktop nav）
+
+2) 錯誤處理
+- 以 modal / alert 為主，部分 API 錯誤採 console + 提示文案
+
+3) 效能/即時
+- live 頁使用 WS 推播 + 60s fallback 輪詢
+
+==================================================
+13. 已知限制與注意事項
+==================================================
+1) 環境變數樣板
+- `.env.local.example` 僅列出 `NEXT_PUBLIC_API_URL`，但系統也依賴 `NEXT_PUBLIC_LIFF_ID`。
+
+2) client-side auth 為主
+- 目前以 localStorage token 為核心，不是 server session 機制。
+
+3) 程式碼重複
+- `dashboard` / `schedule` / `manage` / `enrolled` 存在大量近似流程與 UI，可評估抽共用 hook/service。
+
+4) 非登入情境
+- 雖能瀏覽部分公開資訊，但進階流程依賴 token，若後端權限策略變更需同步調整前端守衛。
+
+==================================================
+14. 結論
+==================================================
+本系統目前已具備「揪團建立 -> 報名/簽到 -> 現場即時排戰 -> 歷史與個人分析」完整前端閉環，
+且有 LIFF、PWA、WebSocket 即時機制。若下一步要走向產品化，建議優先做：
+1) API schema 型別化（集中 model 定義）
+2) 認證與錯誤流程標準化
+3) 重複頁面邏輯抽象化（降低維護成本）
