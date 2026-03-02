@@ -59,7 +59,7 @@ export default function CreatePage() {
     });
     if (res.ok) {
       setMsg({ isOpen: true, title: "開診成功", content: "新療程已記錄在案。", type: "success" });
-      setTimeout(() => router.push("/manage"), 1500);
+      setTimeout(() => router.push("/schedule"), 1500);
     } else {
       const err = await res.json();
       setMsg({ isOpen: true, title: "開診失敗", content: err.message, type: "error" });
