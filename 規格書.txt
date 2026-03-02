@@ -58,7 +58,6 @@ Badminton-Rehab 前端系統規格書
 - `/create`：建立球局
 - `/schedule`：整合式排程（週/月）
 - `/enrolled`：我的療程（我發起 + 我報名）
-- `/manage`：我開立的（主揪管理）
 - `/dashboard`：進階日誌管理（joined/hosted 分頁）
 - `/profile`：個人病歷、戰績、AI 建議
 
@@ -139,10 +138,10 @@ Badminton-Rehab 前端系統規格書
 
 2) 行為
 - 送 `POST /api/games/create`
-- 成功後導向 `/manage`
+- 成功後導向 `/schedule`
 - 支援從其他頁複製資料（`sessionStorage.copySessionData`）
 
-6.3 我的療程 / 管理（`/enrolled`, `/manage`, `/dashboard`, `/schedule`）
+6.3 我的療程 / 管理（`/enrolled`, `/dashboard`, `/schedule`）
 1) 共同能力
 - 列表/週曆/月曆視圖（依頁面不同）
 - 查看詳情、名單、費用、備註
@@ -330,7 +329,7 @@ Badminton-Rehab 前端系統規格書
 - 目前以 localStorage token 為核心，不是 server session 機制。
 
 3) 程式碼重複
-- `dashboard` / `schedule` / `manage` / `enrolled` 存在大量近似流程與 UI，可評估抽共用 hook/service。
+- `dashboard` / `schedule` / `enrolled` 存在大量近似流程與 UI，可評估抽共用 hook/service。
 
 4) 非登入情境
 - 雖能瀏覽部分公開資訊，但進階流程依賴 token，若後端權限策略變更需同步調整前端守衛。
