@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../../../components/AppHeader";
+import PageLoading from "../../../components/PageLoading";
 
 const isBrowserProduction =
   typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -202,15 +203,7 @@ export default function LiveViewPage({
     return names[idx]?.trim() || courtNum;
   };
 
-  if (loading)
-    return (
-      <div className="min-h-dvh neu-page font-serif pb-20">
-        <AppHeader />
-        <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse tracking-widest text-sm">
-          讀取戰場實況...
-        </div>
-      </div>
-    );
+  if (loading) return <PageLoading message="讀取戰場實況..." showHeader />;
 
   return (
     <div className="min-h-dvh neu-page font-serif pb-20">

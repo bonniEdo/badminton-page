@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import PageLoading from "../components/PageLoading";
 import { Chip } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -149,9 +150,7 @@ export default function EnrolledPage() {
     return showExpired ? [...active.filter(filterFn), ...expired.filter(filterFn)] : active.filter(filterFn);
   }, [allSessions, showExpired, filterType]);
 
-  if (loading) return (
-    <div className="min-h-dvh neu-page flex items-center justify-center text-sage font-bold tracking-widest animate-pulse">正在調閱病歷...</div>
-  );
+  if (loading) return <PageLoading message="正在調閱病歷..." showHeader />;
 
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif pb-20 overflow-x-hidden">

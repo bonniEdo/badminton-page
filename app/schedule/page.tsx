@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import { TabButton, Tabs } from "../components/ui";
 
@@ -346,12 +347,7 @@ export default function SchedulePage() {
     return "text-sage";
   };
 
-  if (loading) return (
-    <div className="min-h-dvh neu-page font-serif pb-24">
-      <AppHeader />
-      <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">Loading...</div>
-    </div>
-  );
+  if (loading) return <PageLoading message="載入中..." showHeader />;
 
   if (!isLoggedIn) return (
     <div className="min-h-dvh neu-page font-serif pb-24">

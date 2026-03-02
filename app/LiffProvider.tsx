@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import liff from '@line/liff';
 import { useRouter, usePathname } from 'next/navigation';
+import PageLoading from './components/PageLoading';
 
 const PUBLIC_PATHS = ['/', '/login', '/login-success', '/browse'];
 
@@ -96,22 +97,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
     }
   }, [pathname]);
 
-  if (isLiffLoading) {
-    return (
-      <main className="min-h-dvh neu-page flex flex-col items-center justify-center p-6 text-center font-serif">
-        <div className="animate-in fade-in duration-700 space-y-6">
-          <h1 className="text-4xl font-light tracking-[0.5em] text-sage">勒戒中心</h1>
-          <div className="space-y-2">
-            <p className="text-2xl text-ink">身分識別中 ...</p>
-            <p className="text-base text-gray-400 italic">「 勒戒通道即將開啟。 」</p>
-          </div>
-          <div className="flex justify-center mt-8">
-            <div className="w-12 h-[1px] bg-sage animate-pulse"></div>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  if (isLiffLoading) return <PageLoading message="身分識別中..." showHeader={false} />;
 
   return <>{children}</>;
 }

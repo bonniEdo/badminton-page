@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import PageLoading from "../components/PageLoading";
 
 // 設定 API URL (與 LoginPage 一致)
 const isDev = process.env.NODE_ENV === 'development';
@@ -91,7 +92,7 @@ function LoginSuccessContent() {
 // Next.js 要求使用 useSearchParams 時必須包在 Suspense 裡
 export default function LoginSuccessPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<PageLoading message="載入中..." showHeader={false} />}>
       <LoginSuccessContent />
     </Suspense>
   );

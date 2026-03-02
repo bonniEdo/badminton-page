@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
+import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -127,12 +128,7 @@ export default function ProfilePage() {
     router.replace("/login");
   };
 
-  if (loading) return (
-    <div className="min-h-dvh neu-page font-serif pb-24">
-      <AppHeader />
-      <div className="flex items-center justify-center h-[60dvh] italic text-sage animate-pulse">讀取病歷中...</div>
-    </div>
-  );
+  if (loading) return <PageLoading message="讀取病歷中..." showHeader />;
 
   if (!isLoggedIn) return (
     <div className="min-h-dvh neu-page font-serif pb-24">
