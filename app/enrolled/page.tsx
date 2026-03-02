@@ -52,7 +52,7 @@ export default function EnrolledPage() {
     currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
     friendCount: Number(g.FriendCount || 0), phone: g.Phone || g.HostContact, notes: g.Notes,
     isExpired: !!g.isExpired, isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
-    status: g.status || 'waiting_checkin', check_in_at: g.check_in_at || null,
+    status: g.status ?? '', check_in_at: g.check_in_at ?? null,
     isHosted,
   });
 
@@ -88,13 +88,25 @@ export default function EnrolledPage() {
     try {
       const res = await fetch(`${API_URL}/api/match/checkin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({ gameId: checkInModal.session.id })
       });
-      if ((await res.json()).success) {
+      const json = await res.json();
+      if (json.success) {
         setCheckInModal({ isOpen: false, session: null });
         setMsg({ isOpen: true, title: "簽到成功", content: "已記錄在冊。請靜候安排上場。", type: "success" });
         fetchData(true);
+      } else {
+        setMsg({
+          isOpen: true,
+          title: "簽到失敗",
+          content: json.message || "目前不符合簽到條件",
+          type: "error"
+        });
       }
     } catch (error) { console.error(error); }
   };
@@ -177,13 +189,13 @@ export default function EnrolledPage() {
               <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} 
                 onClick={() => setSelectedSession(session)}
                 className={`relative cursor-pointer neu-card p-7 border-l-[6px] transition-all rounded-2xl overflow-hidden ${
-                  session.isHostCanceled ? "border-l-red-300 opacity-60 bg-gray-50" :
-                  session.isExpired ? "border-l-stone-300 opacity-80 bg-gray-50" :
-                  session.isHosted ? "border-l-amber-500 shadow-sm" : "border-l-sage shadow-sm"
+                  session.isHostCanceled ? "border-l-red-300 opacity-60 grayscale-[0.2]" :
+                  session.isExpired ? "border-l-stone-300 opacity-80 grayscale-[0.2]" :
+                  session.isHosted ? "border-l-amber-500" : "border-l-sage"
                 }`}>
                 
                 <div className="absolute top-0 right-0">
-                  <div className={`text-white text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-2xl ${session.isExpired ? 'bg-stone-400' : session.isHosted ? 'bg-amber-500' : 'bg-sage'}`}>
+                  <div className={`text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-2xl neu-status-chip ${session.isExpired ? 'text-stone-500' : session.isHosted ? 'text-amber-700' : 'text-sage'}`}>
                     {session.isExpired ? '已結束' : session.isHosted ? '主治中' : '在場邊休息'}
                   </div>
                 </div>
@@ -200,7 +212,7 @@ export default function EnrolledPage() {
                   </div>
                 </div>
 
-                <div className="text-[15px] text-stone-700 space-y-3 font-serif">
+                <div className="text-[15px] text-stone-700 space-y-3 font-serif p-4">
                   <p className="flex items-center gap-3"><Calendar size={16} className="text-stone-400"/> {session.date}</p>
                   <p className="flex items-center gap-3"><Clock size={16} className="text-stone-400"/> {session.time} - {session.endTime}</p>
                   <p className="flex items-center gap-3"><MapPin size={16} className="text-stone-400"/> {session.location}</p>
@@ -211,11 +223,11 @@ export default function EnrolledPage() {
                   {!session.isExpired && isToday && (
                     needsCheckIn ? (
                       <button onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
-                        className="w-full py-3.5 bg-[#D6C58D] text-white text-sm tracking-[0.4em] hover:bg-[#C4B37A] transition-all rounded-xl font-bold shadow-sm">
+                        className="w-full py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.4em] rounded-xl font-bold">
                         簽到：我到了
                       </button>
                     ) : hasCheckedIn && !session.isHosted ? (
-                      <div className="w-full py-3.5 bg-stone-100 text-stone-400 text-sm tracking-[0.4em] rounded-xl font-bold flex items-center justify-center gap-2">
+                      <div className="w-full py-3.5 neu-soft-panel text-stone-500 text-sm tracking-[0.4em] rounded-xl font-bold flex items-center justify-center gap-2">
                         <CheckCircle size={16} /> 已經報到
                       </div>
                     ) : null
@@ -223,8 +235,8 @@ export default function EnrolledPage() {
                   
                   {!session.isExpired && (
                     <button onClick={(e) => { e.stopPropagation(); router.push(session.isHosted ? `/dashboard/live/${session.id}` : `/enrolled/live/${session.id}`); }}
-                      className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] border transition-all rounded-xl font-bold ${
-                        session.isHosted ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-stone-50 text-stone-800 border-stone-200"
+                      className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] transition-all rounded-xl font-bold neu-btn ${
+                        session.isHosted ? "text-amber-800" : "text-stone-800"
                       }`}>
                       {session.isHosted ? <><Settings2 size={16} /> 進入主控室 (磁鐵板)</> : <><Activity size={16} /> 查看對戰實況</>}
                     </button>
@@ -242,7 +254,7 @@ export default function EnrolledPage() {
       {/* 詳細 Modal */}
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md p-10 shadow-2xl relative animate-in zoom-in duration-200 rounded-3xl border border-stone">
+          <div className="neu-modal w-full max-w-md p-10 relative animate-in zoom-in duration-200 rounded-3xl">
             <div className="absolute top-6 right-6 flex items-center gap-3">
               {selectedSession.isHosted && !selectedSession.isExpired && (
                 <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-stone-300 hover:text-sage transition-colors"><Copy size={20}/></button>
@@ -250,7 +262,7 @@ export default function EnrolledPage() {
               <button onClick={() => setSelectedSession(null)} className="text-stone-400 hover:text-stone-800 transition-colors"><X size={32}/></button>
             </div>
             <h2 className="text-2xl mb-8 tracking-[0.3em] text-sage font-bold border-b border-stone/10 pb-5">{selectedSession.title}</h2>
-            <div className="space-y-6 text-lg text-stone-800 mb-10 font-serif">
+            <div className="space-y-6 text-lg text-stone-800 mb-10 font-serif p-5">
               <p className="flex items-center gap-4"><Calendar size={20} className="text-stone-400"/> {selectedSession.date} ({selectedSession.time})</p>
               <p className="flex items-center gap-4"><MapPin size={20} className="text-stone-400"/> {selectedSession.location}</p>
               <p className="flex items-center gap-4 font-medium"><Banknote size={20} className="text-stone-400"/> ${selectedSession.price}</p>
@@ -258,14 +270,14 @@ export default function EnrolledPage() {
             </div>
             <div className="space-y-4 pt-4 border-t border-stone/5">
               <button onClick={() => { setSelectedSession(null); router.push(selectedSession.isHosted ? `/dashboard/live/${selectedSession.id}` : `/enrolled/live/${selectedSession.id}`); }}
-                className={`w-full py-5 text-sm tracking-[0.3em] uppercase transition-all font-bold flex items-center justify-center gap-3 rounded-2xl shadow-md ${selectedSession.isHosted ? "bg-amber-500 text-white shadow-amber-200" : "bg-stone-800 text-white shadow-stone-200"}`}>
+                className={`w-full py-5 text-sm tracking-[0.3em] uppercase transition-all font-bold flex items-center justify-center gap-3 rounded-2xl neu-btn ${selectedSession.isHosted ? "text-amber-800" : "text-stone-800"}`}>
                 {selectedSession.isHosted ? <><Settings2 size={20} /> 進入主控室 (磁鐵板)</> : <><Activity size={20} /> 查看對戰實況</>}
               </button>
-              {!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && (
-                <button onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })} className="w-full py-5 bg-[#D6C58D] text-white text-sm tracking-[0.3em] font-bold rounded-2xl shadow-md uppercase">簽到：我到了</button>
+              {!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
+                <button onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })} className="w-full py-5 neu-btn neu-btn-primary text-sm tracking-[0.3em] font-bold rounded-2xl uppercase">簽到：我到了</button>
               )}
               {selectedSession.isHosted && !selectedSession.isExpired && (
-                <button onClick={() => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="w-full py-4 text-red-500 text-xs tracking-[0.3em] font-bold uppercase rounded-2xl hover:bg-red-50 transition-all">終止此療程</button>
+                <button onClick={() => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="w-full py-4 neu-btn text-red-500 text-xs tracking-[0.3em] font-bold uppercase rounded-2xl">終止此療程</button>
               )}
             </div>
           </div>

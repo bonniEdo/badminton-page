@@ -405,7 +405,7 @@ export default function Browse() {
           <div className="neu-modal w-full max-w-md p-8 relative rounded-2xl transform-gpu transition-transform duration-300 animate-in zoom-in">
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-gray-300 hover:text-sage"><X size={24}/></button>
             <h2 className="text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 text-sage">{selectedSession.title}</h2>
-            <div className="space-y-4 text-sm text-gray-500 mb-8">
+            <div className="space-y-4 text-sm text-gray-500 mb-8 neu-soft-panel p-4">
               <p className="flex items-center gap-3 italic"><CalendarClock size={14}/>{selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/>{selectedSession.location}</a>
               <p className="flex items-center gap-3 font-bold text-sage"><CircleDollarSign size={14}/> 費用: ${selectedSession.price}</p>
@@ -425,7 +425,7 @@ export default function Browse() {
                           if (p.FriendCount > 0) list.push({ ...p, Display: `${p.Username} +1` });
                           return list;
                         }).map((p, i) => (
-                          <div key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border text-sage border-sage/20 bg-sage/5 transition-all">
+                          <div key={i} className="flex items-center gap-1.5 px-3 py-1 text-[11px] text-sage neu-pill transition-all">
                             <User size={10} /><span>{p.Display}</span>
                           </div>
                         ))
@@ -436,7 +436,7 @@ export default function Browse() {
                   )}
                 </div>
               </div>
-              {selectedSession.notes && <div className="p-3 bg-stone/5 border-l-2 border-stone-200 text-sm italic leading-relaxed whitespace-pre-wrap">{selectedSession.notes}</div>}
+              {selectedSession.notes && <div className="p-3 neu-soft-panel text-sm italic leading-relaxed whitespace-pre-wrap">{selectedSession.notes}</div>}
             </div>
 
             {(() => {
@@ -447,12 +447,12 @@ export default function Browse() {
             })() ? (
               <button
                 onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                className="w-full py-3 bg-sage text-white text-[11px] tracking-widest uppercase hover:bg-sage/90 transition-all font-serif"
+                className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase font-serif"
               >
                 進入主控室
               </button>
             ) : selectedSession.isExpired ? (
-              <div className="py-3 text-center text-gray-400 text-[11px] font-bold border border-stone/30 bg-stone/5 tracking-widest uppercase">療程已結束</div>
+              <div className="py-3 text-center text-gray-400 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">療程已結束</div>
             ) : !isLoggedIn ? (
               <button
                 onClick={handleLineLogin}
@@ -466,22 +466,22 @@ export default function Browse() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">掛號人數</label>
-                    <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-sm focus:outline-none rounded-sm">
+                    <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="neu-input text-sm">
                       <option value={1}>1 人 (我)</option>
                       <option value={2}>2 人 (+朋友)</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">聯絡電話</label>
-                    <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="w-full bg-sage/5 border border-sage/10 p-2 text-sm focus:outline-none rounded-sm" placeholder="0912..." />
+                    <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="neu-input text-sm" placeholder="0912..." />
                   </div>
                 </div>
-                <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 bg-sage text-white text-[11px] tracking-widest uppercase hover:bg-sage/90 transition-all disabled:opacity-50 font-serif">確認掛號</button>
+                <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase disabled:opacity-50 font-serif">確認掛號</button>
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="py-3 text-center text-orange-400 text-[11px] font-bold border border-orange-100 bg-orange-50/50 tracking-widest uppercase">掛號成功</div>
-                <button onClick={handleAddFriend} className="w-full py-2 border border-sage text-sage text-[11px] tracking-widest uppercase hover:bg-sage/5 transition font-serif">
+                <div className="py-3 text-center text-orange-500 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">掛號成功</div>
+                <button onClick={handleAddFriend} className="w-full py-2 neu-btn text-sage text-[11px] tracking-widest uppercase font-serif">
                   + 攜友入所 (限一位)
                 </button>
               </div>

@@ -84,7 +84,7 @@ export default function SchedulePage() {
     currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? g.CurrentPlayers ?? 0),
     friendCount: Number(g.FriendCount || 0), phone: g.Phone || g.HostContact, notes: g.Notes,
     isExpired: !!g.isExpired, isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
-    status: g.status || 'waiting_checkin', check_in_at: g.check_in_at || null,
+    status: g.status ?? '', check_in_at: g.check_in_at ?? null,
     isHosted,
   });
 
@@ -134,7 +134,11 @@ export default function SchedulePage() {
     try {
       const res = await fetch(`${API_URL}/api/match/checkin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({ gameId: checkInModal.session.id })
       });
       const json = await res.json();
@@ -333,13 +337,13 @@ export default function SchedulePage() {
   const goToPrevWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 7); return d; });
   const goToNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; });
 
-  const getSessionStyle = (session: Session, variant: 'week' | 'calendar') => {
+  const getSessionStyle = (session: Session) => {
     const isCancelled = session.isHostCanceled;
-    if (isCancelled) return "bg-red-50 text-red-300 line-through";
-    if (session.isExpired) return "bg-gray-50 text-gray-400";
-    if (session.isHosted) return "bg-amber-50 text-amber-700 hover:bg-amber-100/60";
-    if (session.myStatus === 'WAITLIST') return "bg-orange-50 text-orange-600 hover:bg-orange-100/60";
-    return "bg-sage/10 text-sage hover:bg-sage/20";
+    if (isCancelled) return "text-alert/70 line-through";
+    if (session.isExpired) return "text-stone-400";
+    if (session.isHosted) return "text-amber-700";
+    if (session.myStatus === 'WAITLIST') return "text-orange-600";
+    return "text-sage";
   };
 
   if (loading) return (
@@ -418,7 +422,7 @@ export default function SchedulePage() {
                           <button
                             key={session.id}
                             onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[9px] md:text-[11px] leading-tight transition-colors border-l-2 ${borderColor} ${getSessionStyle(session, 'week')}`}
+                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[9px] md:text-[11px] leading-tight transition-all border-l-2 neu-soft-panel hover:brightness-[1.02] ${borderColor} ${getSessionStyle(session)}`}
                           >
                             <div className="font-bold truncate">{session.time}</div>
                             <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
@@ -479,7 +483,7 @@ export default function SchedulePage() {
                           <button
                             key={session.id}
                             onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-colors border-l-2 ${borderColor} ${getSessionStyle(session, 'calendar')}`}
+                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-all border-l-2 neu-soft-panel hover:brightness-[1.02] ${borderColor} ${getSessionStyle(session)}`}
                           >
                             <span className="md:hidden">{session.time}</span>
                             <span className="hidden md:inline">{session.time} {session.title}</span>
@@ -511,9 +515,9 @@ export default function SchedulePage() {
               )}
               <button onClick={() => setSelectedSession(null)} className="text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
             </div>
-            {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
-              <div className="inline-block bg-amber-400 text-white text-[10px] px-2.5 py-0.5 font-bold tracking-wider rounded-full mb-3">主揪</div>
-            )}
+              {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
+                <div className="inline-block neu-status-chip text-amber-700 text-[10px] font-bold tracking-wider mb-3">主揪</div>
+              )}
             <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-gray-500 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
@@ -526,7 +530,7 @@ export default function SchedulePage() {
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
-              <div className="mt-4 p-3 bg-stone/5 border-l-2 border-stone-200 text-sm italic text-gray-500 leading-relaxed whitespace-pre-wrap">
+              <div className="mt-4 p-3 neu-soft-panel text-sm italic text-gray-500 leading-relaxed whitespace-pre-wrap">
                 <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
                 {selectedSession.notes}
               </div>
@@ -536,7 +540,7 @@ export default function SchedulePage() {
               <div className="max-h-32 overflow-y-auto">
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
-                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] border ${p.Status === 'WAITLIST' ? 'text-stone-500 border-dashed border-stone-200' : 'text-sage border-sage/20 bg-sage/5'}`}>
+                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
                       <User size={10}/><span>{p.Username}</span>
                     </div>
                   ))}
@@ -548,26 +552,26 @@ export default function SchedulePage() {
                 {selectedSession.isHosted && selectedSession.date === todayStr && (
                   <button
                     onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                    className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                    className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif">
                     <Zap size={14} fill="currentColor" /> 進入實況看板
                   </button>
                 )}
                 {selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
                   <button
                     onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })}
-                    className="w-full py-4 bg-sage text-white text-[11px] tracking-[0.3em] uppercase hover:bg-sage/90 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                    className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif">
                     <MapPin size={14} /> 我到了，報到
                   </button>
                 )}
                 {!selectedSession.isHosted && selectedSession.date === todayStr && (
                   <button
                     onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
-                    className="w-full py-4 bg-stone-800 text-white text-[11px] tracking-[0.3em] uppercase hover:bg-stone-700 transition-all font-bold flex items-center justify-center gap-2 font-serif">
+                    className="w-full py-4 neu-btn text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif">
                     <Activity size={14} /> 對戰實況
                   </button>
                 )}
                 <button onClick={handleAddFriendClick}
-                  className="w-full py-4 border border-sage text-sage text-[11px] tracking-[0.3em] uppercase hover:bg-sage hover:text-white transition-all font-bold flex items-center justify-center gap-2">
+                  className="w-full py-4 neu-btn text-sage text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2">
                   <PlusCircle size={14}/> ＋ 攜友入所 (限一位)
                 </button>
               </div>

@@ -116,11 +116,16 @@ export default function LiveViewPage({
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({ gameId }),
       });
       const json = await res.json();
-      if (json.success) await fetchData();
+      if (json.success) {
+        await fetchData();
+      } else {
+        alert(json.message || "報到失敗");
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -308,7 +313,7 @@ export default function LiveViewPage({
                 </p>
               </div>
             </div>
-            {myPlayer.status === "waiting_checkin" && (
+            {myPlayer.status === "waiting_checkin" && !myPlayer.check_in_at && (
               <button
                 onClick={executeCheckIn}
                 disabled={checkingIn}

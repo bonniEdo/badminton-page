@@ -147,8 +147,8 @@ export default function Dashboard() {
         notes: g.Notes,
         isExpired: !!g.isExpired,
         isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
-        status: g.status || 'waiting_checkin',
-        check_in_at: g.check_in_at || null
+        status: g.status ?? '',
+        check_in_at: g.check_in_at ?? null
       }));
 
       if (jsonHosted.success) setHostedSessions(mapData(jsonHosted.data));
@@ -169,7 +169,8 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({ gameId: checkInModal.session.id })
       });
@@ -407,7 +408,7 @@ export default function Dashboard() {
               {sortedJoined.map((session) => {
                 const isCancelled = session.isHostCanceled;
                 const isToday = session.date === todayStr;
-                const needsCheckIn = session.status === 'waiting_checkin';
+                const needsCheckIn = session.status === 'waiting_checkin' && !session.check_in_at;
 
                 return (
                   <div key={`${session.id}-${session.myStatus}`} onClick={() => handleOpenDetail(session)} 
