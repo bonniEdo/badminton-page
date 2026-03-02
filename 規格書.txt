@@ -42,6 +42,10 @@ Badminton-Rehab 前端系統規格書
 - `NEXT_PUBLIC_API_URL`：後端 API Base URL
 - `NEXT_PUBLIC_LIFF_ID`：LIFF 初始化 ID（程式有使用）
 
+6) 版本號標記（html tag）
+- `<html data-frontend-version>`：取自前端 `package.json` 的 `version`
+- `<html data-backend-version>`：由前端呼叫後端 `/version` 後寫入
+
 ==================================================
 3. 路由與頁面總覽（App Router）
 ==================================================
@@ -322,8 +326,10 @@ Badminton-Rehab 前端系統規格書
 ==================================================
 13. 已知限制與注意事項
 ==================================================
-1) 環境變數樣板
-- `.env.local.example` 僅列出 `NEXT_PUBLIC_API_URL`，但系統也依賴 `NEXT_PUBLIC_LIFF_ID`。
+1) 版本號維護
+- 前端在 `<html>` 提供 `data-frontend-version` 與 `data-backend-version`。
+- 每次前端更新需同步調整前端 `package.json` 的 `version`。
+- 每次後端更新需同步調整後端版本來源（目前由 `/version` 回傳 `package.json` 的 `version`）。
 
 2) client-side auth 為主
 - 目前以 localStorage token 為核心，不是 server session 機制。

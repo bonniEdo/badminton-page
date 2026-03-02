@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Serif_TC } from "next/font/google";
+import fs from "node:fs";
+import path from "node:path";
 import "./globals.css";
 import AuthWatcher from "./AuthWatcher";
 import LiffProvider from './LiffProvider';
 import ServiceWorkerRegister from './components/ServiceWorkerRegister';
 import InstallPrompt from './components/InstallPrompt';
+import BackendVersionTag from "./components/BackendVersionTag";
 
 const notoSerifTC = Noto_Serif_TC({
   subsets: ["latin"],
@@ -52,17 +55,34 @@ export const metadata: Metadata = {
   },
 };
 
+const readFrontendVersion = (): string => {
+  try {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageRaw = fs.readFileSync(packageJsonPath, "utf-8");
+    const packageJson = JSON.parse(packageRaw) as { version?: string };
+    return packageJson.version || "dev";
+  } catch {
+    return "dev";
+  }
+};
+
+const FRONTEND_VERSION = readFrontendVersion();
 
 export default function RootLayout({  children,
   }: Readonly<{
     children: React.ReactNode;
   }>) {
   return (
-    <html lang="zh-Hant">
+    <html
+      lang="zh-Hant"
+      data-frontend-version={FRONTEND_VERSION}
+      data-backend-version="unknown"
+    >
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className={`${notoSerifTC.variable} antialiased`}>
+        <BackendVersionTag />
         <ServiceWorkerRegister />
         <InstallPrompt />
         <LiffProvider>
