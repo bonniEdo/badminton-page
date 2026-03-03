@@ -44,7 +44,7 @@ export default function LoginPrompt() {
   const handleFbLogin = async () => {
     try {
       // 這裡對應後端即將建立的 API 路徑
-      const res = await fetch(`${API_URL}/api/user/fb-auth`, {
+      const res = await fetch(`${API_URL}/api/user/facebook-auth`, {
         headers: { "ngrok-skip-browser-warning": "true" },
       });
       const data = await res.json();
