@@ -341,7 +341,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                             onConfirm: (win: any) => executeFinishMatch(match.id, win),
                             onCancel: () => executeFinishMatch(match.id, 'none')
                           });
-                        }} className="w-full py-3.5 bg-stone-900 text-white text-[11px] tracking-[0.4em] uppercase font-bold rounded-2xl shadow-xl active:scale-95 transition-all">結束對話</button>
+                        }} className="w-full py-3.5 bg-stone-900 text-white text-[11px] tracking-[0.4em] uppercase font-bold rounded-2xl shadow-xl active:scale-95 transition-all">結束對戰</button>
                       </div>
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center py-6 space-y-6 border-2 border-dashed border-stone-50 rounded-[1.5rem]">

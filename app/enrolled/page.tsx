@@ -237,7 +237,7 @@ export default function EnrolledPage() {
                       className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] transition-all rounded-xl font-bold neu-btn ${
                         session.isHosted ? "text-amber-800" : "text-stone-800"
                       }`}>
-                      {session.isHosted ? <><Settings2 size={16} /> 進入主控室 (磁鐵板)</> : <><Activity size={16} /> 查看對戰實況</>}
+                      {session.isHosted ? <><Settings2 size={16} /> 進入主控室 </> : <><Activity size={16} /> 查看對戰實況</>}
                     </button>
                   )}
                 </div>
@@ -270,7 +270,7 @@ export default function EnrolledPage() {
             <div className="space-y-4 pt-4 border-t border-stone/5">
               <button onClick={() => { setSelectedSession(null); router.push(selectedSession.isHosted ? `/dashboard/live/${selectedSession.id}` : `/enrolled/live/${selectedSession.id}`); }}
                 className={`w-full py-5 text-sm tracking-[0.3em] uppercase transition-all font-bold flex items-center justify-center gap-3 rounded-2xl neu-btn ${selectedSession.isHosted ? "text-amber-800" : "text-stone-800"}`}>
-                {selectedSession.isHosted ? <><Settings2 size={20} /> 進入主控室 (磁鐵板)</> : <><Activity size={20} /> 查看對戰實況</>}
+                {selectedSession.isHosted ? <><Settings2 size={20} /> 進入主控室 </> : <><Activity size={20} /> 查看對戰實況</>}
               </button>
               {!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
                 <button onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })} className="w-full py-5 neu-btn neu-btn-primary text-sm tracking-[0.3em] font-bold rounded-2xl uppercase">簽到：我到了</button>
