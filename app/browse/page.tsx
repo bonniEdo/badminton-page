@@ -439,49 +439,70 @@ export default function Browse() {
               const userStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
               const currentUserId = userStr ? JSON.parse(userStr)?.id : null;
               const isHost = isLoggedIn && currentUserId && currentUserId === selectedSession.hostId;
-              return isHost;
-            })() ? (
-              <button
-                onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase font-serif"
-              >
-                進入主控室
-              </button>
-            ) : selectedSession.isExpired ? (
-              <div className="py-3 text-center text-gray-400 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">療程已結束</div>
-            ) : !isLoggedIn ? (
-              <button
-                onClick={handleLineLogin}
-                className="w-full py-4 bg-[#06C755] text-white text-[12px] tracking-[0.3em] font-bold rounded-full shadow-lg shadow-[#06C755]/20 hover:shadow-xl hover:shadow-[#06C755]/30 hover:brightness-105 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
-              >
-                <span className="bg-white text-[#06C755] text-[11px] px-2 py-0.5 rounded-sm font-black leading-none">LINE</span>
-                入所掛號
-              </button>
-            ) : !joinedIds.includes(selectedSession.id) ? (
-              <form onSubmit={submitJoin} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">掛號人數</label>
-                    <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="neu-input text-sm">
-                      <option value={1}>1 人 (我)</option>
-                      <option value={2}>2 人 (+朋友)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">聯絡電話</label>
-                    <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="neu-input text-sm" placeholder="0912..." />
-                  </div>
+              const isJoined = joinedIds.includes(selectedSession.id);
+
+              // 1. 如果過期
+              if (selectedSession.isExpired) {
+                return <div className="py-3 text-center text-gray-400 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">療程已結束</div>;
+              }
+
+              // 2. 如果未登入
+              if (!isLoggedIn) {
+                return (
+                  <button
+                    onClick={handleLineLogin}
+                    className="w-full py-4 bg-[#06C755] text-white text-[12px] tracking-[0.3em] font-bold rounded-full shadow-lg shadow-[#06C755]/20 hover:shadow-xl hover:shadow-[#06C755]/30 hover:brightness-105 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
+                  >
+                    <span className="bg-white text-[#06C755] text-[11px] px-2 py-0.5 rounded-sm font-black leading-none">LINE</span>
+                    入所掛號
+                  </button>
+                );
+              }
+
+              // 3. 已經登入後的邏輯 (主揪 或 已加入者)
+              return (
+                <div className="space-y-3">
+                  {/* 如果是主揪，顯示主控室按鈕 */}
+                  {isHost && (
+                    <button
+                      onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
+                      className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase font-serif"
+                    >
+                      進入主控室
+                    </button>
+                  )}
+
+                  {/* 如果是主揪 或 已經掛號的人，顯示攜友按鈕 */}
+                  {(isHost || isJoined) ? (
+                    <div className="space-y-3">
+                      {!isHost && <div className="py-2 text-center text-orange-500 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">掛號成功</div>}
+                      <button onClick={handleAddFriend} className="w-full py-2 neu-btn text-sage text-[11px] tracking-widest uppercase font-serif">
+                        + 攜友入所 (限一位)
+                      </button>
+                    </div>
+                  ) : (
+                    /* 如果還沒掛號，顯示掛號表單 */
+                    <form onSubmit={submitJoin} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">掛號人數</label>
+                          <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="neu-input text-sm">
+                            <option value={1}>1 人 (我)</option>
+                            <option value={2}>2 人 (+朋友)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">聯絡電話</label>
+                          <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="neu-input text-sm" placeholder="0912..." />
+                        </div>
+                      </div>
+                      <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase disabled:opacity-50 font-serif">確認掛號</button>
+                    </form>
+                  )}
                 </div>
-                <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase disabled:opacity-50 font-serif">確認掛號</button>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="py-3 text-center text-orange-500 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">掛號成功</div>
-                <button onClick={handleAddFriend} className="w-full py-2 neu-btn text-sage text-[11px] tracking-widest uppercase font-serif">
-                  + 攜友入所 (限一位)
-                </button>
-              </div>
-            )}
+              );
+            })()}
+
           </div>
         </div>
       )}
