@@ -132,7 +132,7 @@ export default function EnrolledPage() {
     if (res.ok) {
       setDeleteConfirm({ isOpen: false, id: null });
       fetchData(true);
-      setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在病歷裡就好了。", type: "success" });
+      setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在記憶裡就好了。", type: "success" });
     }
   };
 

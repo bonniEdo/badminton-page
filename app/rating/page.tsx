@@ -153,7 +153,7 @@ export default function RatingWizardPage() {
         onClose={() => setIsAlertOpen(false)}
         onConfirm={confirmSkip}
         title="試圖逃跑？"
-        message="暫緩診斷將無法精準媒合病友，確定要先進入嗎？"
+        message="暫緩診斷將無法精準媒合球友，確定要先進入嗎？"
       />
 
       <div className="w-full max-w-sm relative py-12">
@@ -176,7 +176,7 @@ export default function RatingWizardPage() {
               <span className="text-[11px] tracking-[0.5em] text-[#A8B58E] font-medium uppercase block mb-6 italic">Admission 01</span>
               <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">病 徵</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-sm text-stone-500 tracking-[0.2em] italic">請如實告知症狀，方便醫師對症下藥</p>
+              <p className="text-sm text-stone-500 tracking-[0.2em] italic">請如實告知症狀，方便指派球友協助治療</p>
             </div>
             <div className="space-y-4">
               {categories.map((cat) => {

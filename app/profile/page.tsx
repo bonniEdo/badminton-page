@@ -128,7 +128,7 @@ export default function ProfilePage() {
     router.replace("/login");
   };
 
-  if (loading) return <PageLoading message="讀取病歷中..." showHeader />;
+  if (loading) return <PageLoading message="檢閱球癮中..." showHeader />;
 
   if (!isLoggedIn) return (
     <div className="min-h-dvh neu-page font-serif pb-24">
@@ -349,12 +349,12 @@ export default function ProfilePage() {
         {/* 個人資訊 */}
         <section className="mb-12">
           <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2 mb-6 px-1">
-            <Activity className="w-3 h-3 text-sage/60" /> 病歷概覽
+            <Activity className="w-3 h-3 text-sage/60" /> 歷史概覽
           </h3>
           <div className="grid grid-cols-4 gap-3">
             {[
               { label: "對戰勝率", value: `${winRate}%` },
-              { label: "開診次數", value: `${myGames.length}` },
+              { label: "揪打次數", value: `${myGames.length}` },
               { label: "掛號次數", value: `${signups.length}` },
               { label: "出勤率", value: pastSignups.length > 0 ? `${attendanceRate}%` : "—" },
             ].map((item, i) => (

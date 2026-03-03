@@ -197,7 +197,7 @@ export default function SchedulePage() {
       setDeleteConfirm({ isOpen: false, id: null });
       if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
       fetchData(true);
-      setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在病歷裡就好了。", type: "success" });
+      setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在回憶裡就好了。", type: "success" });
     }
   };
 
