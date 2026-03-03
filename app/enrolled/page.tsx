@@ -195,7 +195,7 @@ export default function EnrolledPage() {
                 
                 <div className="absolute top-0 right-0">
                   <div className={`text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-2xl neu-status-chip ${session.isExpired ? 'text-stone-500' : session.isHosted ? 'text-amber-700' : 'text-sage'}`}>
-                    {session.isExpired ? '已結束' : session.isHosted ? '主治中' : '在場邊休息'}
+                    {session.isExpired ? '已結束' : session.isHosted ? '主揪管理' : '場邊休息'}
                   </div>
                 </div>
 
