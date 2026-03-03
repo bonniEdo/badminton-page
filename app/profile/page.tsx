@@ -23,7 +23,6 @@ export default function ProfilePage() {
   const [myGames, setMyGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(5);
- 
 
   // ✅ 修正：取得本地 YYYY-MM-DD 字串（解決時差偏移）
   const getLocalDateString = (d: Date) => {
@@ -109,7 +108,8 @@ export default function ProfilePage() {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
       const dateStr = getLocalDateString(d);
-      const hasGame = signups.some(s => s.GameDateTime?.startsWith(dateStr));
+      const hasGame = signups.some(s => s.GameDateTime?.startsWith(dateStr)) || myGames.some(g => g.GameDateTime?.startsWith(dateStr));
+
       const isRealToday = dateStr === todayStr;
 
       days.push({
