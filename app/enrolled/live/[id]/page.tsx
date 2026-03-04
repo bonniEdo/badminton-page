@@ -13,8 +13,10 @@ const isBrowserProduction =
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   (isBrowserProduction ? "" : "http://localhost:3000");
-const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
-
+const WS_URL = API_URL
+  ? API_URL.replace(/^http/, 'ws').replace(/^https/, 'wss') + '/ws'
+  : (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws';
+  
 interface Player {
   playerId: number;
   displayName: string;
@@ -77,8 +79,8 @@ export default function LiveViewPage({
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const [resGame, resStatus] = await Promise.all([
-        fetch(`${API_URL}/api/games/${gameId}`, { headers }),
-        fetch(`${API_URL}/api/match/live-status/${gameId}`, { headers }),
+        fetch(`${API_URL}/api/games/${gameId}`, { headers, cache: "no-store" }),
+        fetch(`${API_URL}/api/match/live-status/${gameId}`, { headers, cache: "no-store" }),
       ]);
 
       const jsonGame = await resGame.json();
@@ -139,7 +141,7 @@ export default function LiveViewPage({
   useEffect(() => {
     fetchData();
 
-    const fallbackInterval = setInterval(fetchData, 60000);
+    const fallbackInterval = setInterval(fetchData, 5000);
     const tickInterval = setInterval(() => setNow(Date.now()), 1000);
 
     let reconnectTimer: ReturnType<typeof setTimeout>;
