@@ -6,7 +6,6 @@ import "./globals.css";
 import AuthWatcher from "./AuthWatcher";
 import LiffProvider from './LiffProvider';
 import ServiceWorkerRegister from './components/ServiceWorkerRegister';
-import InstallPrompt from './components/InstallPrompt';
 import BackendVersionTag from "./components/BackendVersionTag";
 
 const notoSerifTC = Noto_Serif_TC({
@@ -84,7 +83,6 @@ export default function RootLayout({  children,
       <body className={`${notoSerifTC.variable} antialiased`}>
         <BackendVersionTag />
         <ServiceWorkerRegister />
-        <InstallPrompt />
         <LiffProvider>
           <AuthWatcher>
             {children}
