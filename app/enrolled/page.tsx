@@ -129,17 +129,28 @@ export default function EnrolledPage() {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
+
     if (res.ok) {
+      // 1. 手動更新前端 State，讓它立刻從畫面上消失
+      setAllSessions(prev => prev.filter(s => s.id !== deleteConfirm.id));
+      
       setDeleteConfirm({ isOpen: false, id: null });
-      fetchData(true);
       setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在記憶裡就好了。", type: "success" });
+      
+      // 2. 靜默更新完整資料
+      fetchData(true);
     }
   };
 
   const sortedSessions = useMemo(() => {
     const sortByTime = (a: Session, b: Session) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
-    const active = allSessions.filter(s => !s.isExpired).sort(sortByTime);
-    const expired = allSessions.filter(s => s.isExpired).sort(sortByTime);
+    const active = allSessions
+      .filter(s => !s.isExpired && !s.isHostCanceled) // 排除過期且排除已取消
+      .sort(sortByTime);
+      
+    const expired = allSessions
+      .filter(s => s.isExpired && !s.isHostCanceled) // 歷史紀錄通常也不想看到被取消的
+      .sort(sortByTime);
 
     const filterFn = (s: Session) => {
       if (filterType === 'hosted') return s.isHosted;
