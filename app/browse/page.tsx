@@ -247,7 +247,7 @@ export default function Browse() {
       setSelectedSession(prev => prev ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : null);
       fetchData(true);
       fetchParticipants(selectedSession.id);
-      setMsg({ isOpen: true, title: "攜友入所", content: "已為同伴辦理入所手續。", type: "success" });
+      setMsg({ isOpen: true, title: "+ 朋友", content: "已為同伴辦理入所手續。", type: "success" });
     } else {
       setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
     }
@@ -535,7 +535,7 @@ export default function Browse() {
                     <div className="space-y-3">
                       {!isHost && <div className="py-2 text-center text-orange-500 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">掛號成功</div>}
                       <button onClick={handleAddFriend} className="w-full py-2 neu-btn text-sage text-[11px] tracking-widest uppercase font-serif">
-                        + 攜友入所 (限一位)
+                        + 朋友 (限一位)
                       </button>
                     </div>
                   ) : (
