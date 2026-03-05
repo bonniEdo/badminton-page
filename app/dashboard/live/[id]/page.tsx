@@ -29,6 +29,8 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
   // --- 核心邏輯：全域預備組 (不分場地) ---
   const [nextSlots, setNextSlots] = useState<(number | null)[]>([null, null, null, null]);
+  const [isSyncingNextGroup, setIsSyncingNextGroup] = useState(false);
+  const [nextGroupLoaded, setNextGroupLoaded] = useState(false);
   const [globalStrategy, setGlobalStrategy] = useState<Strategy>("fairness");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
   const [swappingSlotIdx, setSwappingSlotIdx] = useState<number | null>(null);
@@ -41,6 +43,11 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
   const gameInfoRef = useRef(gameInfo);
   gameInfoRef.current = gameInfo;
+  const nextSlotsRef = useRef(nextSlots);
+  nextSlotsRef.current = nextSlots;
+  const nextGroupLoadedRef = useRef(nextGroupLoaded);
+  nextGroupLoadedRef.current = nextGroupLoaded;
+  const fetchDataRef = useRef<() => Promise<void>>(async () => {});
 
   const fetchData = useCallback(async () => {
     if (!gameId || gameId === 'undefined') { router.replace('/enrolled'); return; }
@@ -63,10 +70,68 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       if (jsonStatus.success) {
         setPlayers(jsonStatus.data.players);
         setMatches(jsonStatus.data.matches);
+        const serverSlots = jsonStatus.data?.nextGroup?.slotPlayerIds;
+        if (Array.isArray(serverSlots) && serverSlots.length === 4) {
+          const next = serverSlots.map((id: number | null) => id ?? null);
+          const isDifferent = JSON.stringify(nextSlotsRef.current) !== JSON.stringify(next);
+          if (isDifferent || !nextGroupLoadedRef.current) {
+            setNextSlots(next);
+          }
+        }
+        nextGroupLoadedRef.current = true;
+        setNextGroupLoaded(true);
       }
     } catch (e) { console.error(e); router.replace('/enrolled'); }
     finally { setLoading(false); }
   }, [gameId, router]);
+  fetchDataRef.current = fetchData;
+
+  const syncNextGroup = useCallback(async (slots: (number | null)[]) => {
+    if (!gameId || gameId === 'undefined') return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setIsSyncingNextGroup(true);
+    try {
+      const res = await fetch(`${API_URL}/api/match/next-group`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ gameId, slots })
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        setMsg({
+          isOpen: true,
+          title: "同步失敗",
+          content: json.message || "預備組儲存失敗，請稍後再試。",
+          type: "info",
+          teamANames: "",
+          teamBNames: "",
+          onConfirm: null,
+          onCancel: null
+        });
+        await fetchDataRef.current();
+      }
+    } catch (_) {
+      setMsg({
+        isOpen: true,
+        title: "同步失敗",
+        content: "預備組同步中斷，已嘗試重新整理資料。",
+        type: "info",
+        teamANames: "",
+        teamBNames: "",
+        onConfirm: null,
+        onCancel: null
+      });
+      await fetchDataRef.current();
+    } finally {
+      setIsSyncingNextGroup(false);
+    }
+  }, [gameId]);
 
   const wsRef = useRef<WebSocket | null>(null);
   useEffect(() => {
@@ -90,6 +155,15 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     connectWs();
     return () => { clearInterval(fallbackInterval); wsRef.current?.close(); };
   }, [gameId, fetchData]);
+
+  useEffect(() => {
+    if (!nextGroupLoaded) return;
+    const timer = setTimeout(() => {
+      syncNextGroup(nextSlots);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [nextSlots, nextGroupLoaded, syncNextGroup]);
 
   // --- 場地增減 ---
   const addCourt = () => setCourtCount(prev => prev + 1);
@@ -298,6 +372,9 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   <button onClick={() => setNextSlots([null,null,null,null])} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-50 text-stone-300 border border-stone-100 hover:text-red-400 transition-all" title="清空位置"><RotateCcw size={20}/></button>
                 </div>
               </div>
+              {isSyncingNextGroup && (
+                <p className="text-[10px] text-stone-400 text-center mt-3 italic">預備組同步中...</p>
+              )}
             </div>
           </section>
 
