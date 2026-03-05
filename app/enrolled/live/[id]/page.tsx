@@ -20,6 +20,7 @@ const WS_URL = API_URL
   
 interface Player {
   playerId: number;
+  userId?: number | null;
   displayName: string;
   avatarUrl?: string | null;
   status: "idle" | "playing" | "waiting_checkin";
@@ -54,6 +55,7 @@ interface GameInfo {
 interface NextGroupPlayer {
   slot: number;
   playerId: number;
+  userId?: number | null;
   displayName: string;
   avatarUrl?: string | null;
   level: number;
@@ -515,7 +517,7 @@ export default function LiveViewPage({
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" />
+                    <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
                     <span className="text-sm text-stone-400">
                       {p.displayName}
                       {p.playerId === myPlayerId && (
@@ -640,7 +642,7 @@ function TeamPlayerBadge({
     <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
       isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
     }`}>
-      <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" />
+      <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
       <span className={`text-sm font-bold truncate max-w-[100px] ${isMe ? "text-sage" : "text-stone-800"}`}>
         {player.displayName}
       </span>
@@ -681,7 +683,7 @@ function NextGroupSlotPill({
     <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full border min-h-[44px] ${
       isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
     }`}>
-      <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" />
+      <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
       <span className={`text-sm font-bold truncate ${isMe ? "text-sage" : "text-stone-800"}`}>
         {player.displayName}
       </span>
@@ -711,7 +713,7 @@ function PlayerRow({
       className={`flex items-center justify-between px-4 py-3 ${isMe ? "bg-sage/5" : ""}`}
     >
       <div className="flex items-center gap-2.5">
-        <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" />
+        <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
         <span
           className={`text-sm ${isMe ? "text-sage font-bold" : "text-stone-700"}`}
         >

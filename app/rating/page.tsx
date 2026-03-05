@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { UserCheck, ChevronLeft, Sparkles } from "lucide-react";
 import ShuttlecockIcon from "../components/ShuttlecockIcon";
 
+const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
+
 const CustomAlert = ({ isOpen, onClose, onConfirm, title, message }: any) => {
   if (!isOpen) return null;
   return (
@@ -118,7 +121,7 @@ export default function RatingWizardPage() {
   const handleFinish = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/complete-rating`, {
+      const res = await fetch(`${API_URL}/api/user/complete-rating`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(formData),

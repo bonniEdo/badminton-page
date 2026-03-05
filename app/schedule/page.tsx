@@ -23,7 +23,13 @@ interface Session {
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
   isHosted?: boolean;
 }
-interface Participant { Username: string; Status: string; FriendCount?: number; AvatarUrl?: string | null; }
+interface Participant {
+  Username: string;
+  Status: string;
+  FriendCount?: number;
+  AvatarUrl?: string | null;
+  UserId?: number | null;
+}
 
 export default function SchedulePage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
@@ -538,7 +544,7 @@ export default function SchedulePage() {
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
                     <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
-                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" />
+                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" playerUserId={p.UserId ?? null} />
                       <span>{p.Username}</span>
                     </div>
                   ))}

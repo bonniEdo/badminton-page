@@ -1,0 +1,179 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  onOpenPlayerProfile,
+  type OpenPlayerProfileDetail,
+} from "./playerProfileModalBus";
+
+type PublicPlayerProfile = {
+  id: number;
+  username: string;
+  avatarUrl?: string | null;
+  level: number;
+  winRate: number;
+};
+
+const isBrowserProduction =
+  typeof window !== "undefined" && window.location.hostname !== "localhost";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (isBrowserProduction ? "" : "http://localhost:3000");
+
+const CARD_WIDTH = 220;
+const CARD_OFFSET_Y = 10;
+
+export default function PlayerProfileModalHost() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [trigger, setTrigger] = useState<OpenPlayerProfileDetail | null>(null);
+  const [profile, setProfile] = useState<PublicPlayerProfile | null>(null);
+  const cacheRef = useRef<Record<number, PublicPlayerProfile>>({});
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return onOpenPlayerProfile(async (detail) => {
+      setTrigger(detail);
+      setProfile(null);
+      setError("");
+      setIsOpen(true);
+
+      const cached = cacheRef.current[detail.userId];
+      if (cached) {
+        setProfile(cached);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const headers: Record<string, string> = {
+          "ngrok-skip-browser-warning": "true",
+        };
+        const token = localStorage.getItem("token");
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const res = await fetch(`${API_URL}/api/user/public/${detail.userId}`, {
+          headers,
+          cache: "no-store",
+        });
+        const json = await res.json();
+        if (!json.success || !json.data) {
+          throw new Error(json.message || "Failed to load player profile");
+        }
+
+        const slimProfile: PublicPlayerProfile = {
+          id: json.data.id,
+          username: json.data.username,
+          avatarUrl: json.data.avatarUrl,
+          level: Number(json.data.level || 1),
+          winRate: Number(json.data.winRate || 0),
+        };
+
+        cacheRef.current[detail.userId] = slimProfile;
+        setProfile(slimProfile);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load player profile");
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const close = () => setIsOpen(false);
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (cardRef.current?.contains(target)) return;
+      setIsOpen(false);
+    };
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => {
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [isOpen]);
+
+  const displayName = useMemo(() => {
+    if (profile?.username) return profile.username;
+    return trigger?.fallbackName || "Player";
+  }, [profile?.username, trigger?.fallbackName]);
+
+  if (!isOpen || !trigger || typeof document === "undefined") return null;
+
+  const viewportWidth = window.innerWidth;
+  const anchorCenterX = trigger.anchorRect.left + trigger.anchorRect.width / 2;
+  const left = Math.min(
+    Math.max(8, anchorCenterX - CARD_WIDTH / 2),
+    viewportWidth - CARD_WIDTH - 8
+  );
+  const top = trigger.anchorRect.bottom + CARD_OFFSET_Y;
+  const arrowX = Math.min(Math.max(anchorCenterX - left, 14), CARD_WIDTH - 14);
+  const levelText = `Lv.${Math.floor(profile?.level || 1)}`;
+  const winRateText = `${profile?.winRate ?? 0}%`;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[130] pointer-events-none">
+      <div
+        ref={cardRef}
+        className="absolute pointer-events-auto rounded-2xl border border-[#d9d4c8]/80 bg-[#faf8f2]/95 backdrop-blur-md shadow-[0_18px_30px_rgba(52,59,47,0.2)] p-3"
+        style={{ top, left, width: CARD_WIDTH }}
+      >
+        <div
+          className="absolute -top-1.5 w-3 h-3 rotate-45 border-l border-t border-[#d9d4c8]/80 bg-[#faf8f2]/95"
+          style={{ left: arrowX - 6 }}
+        />
+        <div className="flex items-center gap-2.5">
+          <StaticAvatar
+            avatarUrl={profile?.avatarUrl || trigger.fallbackAvatarUrl}
+            name={displayName}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-semibold text-stone-800 truncate">{displayName}</p>
+            {isLoading ? (
+              <p className="text-[11px] text-stone-400">載入中...</p>
+            ) : error ? (
+              <p className="text-[11px] text-red-500 truncate">{error}</p>
+            ) : (
+              <div className="mt-1 flex items-center justify-between">
+                <span className="text-[12px] text-sage font-semibold">{levelText}</span>
+                <span className="text-[12px] text-stone-600">勝率 {winRateText}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function StaticAvatar({
+  avatarUrl,
+  name,
+}: {
+  avatarUrl?: string | null;
+  name: string;
+}) {
+  const fallback = name?.trim()?.charAt(0)?.toUpperCase() || "?";
+  if (avatarUrl) {
+    return (
+      <span className="inline-flex shrink-0 rounded-full border border-[#cfc8ba] p-[1px] shadow-sm">
+        <img src={avatarUrl} alt={name} className="w-12 h-12 rounded-full object-cover bg-white" />
+      </span>
+    );
+  }
+  return (
+    <span className="w-12 h-12 inline-flex items-center justify-center shrink-0 rounded-full border border-[#cfc8ba] bg-[#f4f1e8] text-stone-600 font-semibold shadow-sm">
+      {fallback}
+    </span>
+  );
+}
+

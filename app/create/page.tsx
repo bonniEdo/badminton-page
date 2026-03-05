@@ -89,7 +89,7 @@ export default function CreatePage() {
 
           <div className="grid grid-cols-2 gap-6">
             <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">日期</label><Input required type="date" min={todayStr} value={newSession.gameDate} onChange={(e) => setNewSession({ ...newSession, gameDate: e.target.value })} /></div>
-            <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">收治上限</label><Input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} /></div>
+            <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">人數上限</label><Input required type="number" value={newSession.maxPlayers} onChange={(e) => setNewSession({ ...newSession, maxPlayers: e.target.value })} /></div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">

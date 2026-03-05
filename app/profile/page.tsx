@@ -208,6 +208,7 @@ export default function ProfilePage() {
 
   const handleCropPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!sourceImage) return;
+    e.preventDefault();
     setIsDraggingCrop(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     dragOriginRef.current = { panX: cropPanX, panY: cropPanY };
@@ -216,15 +217,22 @@ export default function ProfilePage() {
 
   const handleCropPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDraggingCrop) return;
+    e.preventDefault();
     const crop = getCropRender(sourceSize, CROP_VIEW_SIZE, cropZoom, cropPanX, cropPanY);
     const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
 
+    // Convert pointer movement to normalized pan based on crop viewport size,
+    // so drag speed stays natural regardless of source image dimensions.
+    const viewportHalf = Math.max(1, CROP_VIEW_SIZE / 2);
+    const panDeltaX = deltaX / viewportHalf;
+    const panDeltaY = deltaY / viewportHalf;
+
     const nextPanX = crop.maxPanX > 0
-      ? Math.max(-1, Math.min(1, dragOriginRef.current.panX + deltaX / crop.maxPanX))
+      ? Math.max(-1, Math.min(1, dragOriginRef.current.panX + panDeltaX))
       : 0;
     const nextPanY = crop.maxPanY > 0
-      ? Math.max(-1, Math.min(1, dragOriginRef.current.panY + deltaY / crop.maxPanY))
+      ? Math.max(-1, Math.min(1, dragOriginRef.current.panY + panDeltaY))
       : 0;
 
     setCropPanX(nextPanX);

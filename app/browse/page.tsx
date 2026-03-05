@@ -23,7 +23,14 @@ interface Session {
   isExpired: boolean; friendCount: number; badminton_level?: string; courtCount: number; courtNumber?: string;
 }
 
-interface Participant { Username: string; Status: string; FriendCount: number; AvatarUrl?: string | null; }
+interface Participant {
+  Username: string;
+  Status: string;
+  FriendCount: number;
+  AvatarUrl?: string | null;
+  UserId?: number | null;
+  IsVirtual?: boolean;
+}
 
 export default function Browse() {
   const router = useRouter();
@@ -51,6 +58,7 @@ export default function Browse() {
   }, []);
 
   const fetchData = async (silent = false, loggedIn?: boolean) => {
+    let loadingSettled = false;
     try {
       if (!silent) setLoading(true);
       const token = localStorage.getItem("token");
@@ -73,25 +81,33 @@ export default function Browse() {
         })));
       }
 
+      // Render board as soon as game list is ready, do auth-related refresh in background.
+      if (!silent) {
+        setLoading(false);
+        loadingSettled = true;
+      }
+
       if (isAuth && token) {
-        const [resUser, resJoined] = await Promise.all([
+        Promise.all([
           fetch(`${API_URL}/api/user/me`, { headers }).then(res => res.json()),
           fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json())
-        ]);
+        ]).then(([resUser, resJoined]) => {
+          if (resUser.success && resUser.user) {
+            localStorage.setItem("user", JSON.stringify(resUser.user));
+            setCurrentUserId(resUser.user.id ?? null);
+          }
 
-        if (resUser.success && resUser.user) {
-          localStorage.setItem("user", JSON.stringify(resUser.user));
-          setCurrentUserId(resUser.user.id ?? null);
-        }
-
-        if (resJoined.success) {
-          setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
-        }
+          if (resJoined.success) {
+            setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
+          }
+        }).catch((err) => {
+          console.error("Fetch Auth Meta Error:", err);
+        });
       }
     } catch (e) {
       console.error("Fetch Data Error:", e);
     } finally {
-      setLoading(false);
+      if (!loadingSettled) setLoading(false);
     }
   };
 
@@ -403,7 +419,7 @@ export default function Browse() {
                   <div>
                     <span className="text-[11px] text-gray-400 tracking-widest uppercase block mb-1">主揪</span>
                     <div className="flex items-center gap-2 mb-1">
-                      <AvatarBadge avatarUrl={s.hostAvatarUrl} name={s.hostName} size="xs" />
+                      <AvatarBadge avatarUrl={s.hostAvatarUrl} name={s.hostName} size="xs" playerUserId={s.hostId} />
                       <span className="text-[13px] text-stone-700 font-semibold">{s.hostName}</span>
                     </div>
                     <h3 className={`text-xl tracking-wide pr-4 ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
@@ -451,11 +467,11 @@ export default function Browse() {
                       {participants.length > 0 ? (
                         participants.flatMap(p => {
                           const list = [{ ...p, Display: p.Username }];
-                          if (p.FriendCount > 0) list.push({ ...p, Display: `${p.Username} +1` });
+                          if (p.FriendCount > 0) list.push({ ...p, Display: `${p.Username} +1`, UserId: null });
                           return list;
                         }).map((p, i) => (
                           <div key={i} className="flex items-center gap-1.5 px-3 py-1 text-[11px] text-sage neu-pill transition-all">
-                            <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Display} size="xs" />
+                            <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Display} size="xs" playerUserId={p.UserId ?? null} />
                             <span>{p.Display}</span>
                           </div>
                         ))
