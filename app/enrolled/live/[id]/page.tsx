@@ -420,43 +420,31 @@ export default function LiveViewPage({
                 你是下一組，請在場邊準備
               </div>
             )}
-            <div className="grid grid-cols-2 gap-2.5">
-              {nextGroupSlots.map((playerId, idx) => {
-                const player = nextGroupPlayers.find((p) => p.playerId === playerId && p.slot === idx + 1);
-                const isMe = !!myPlayerId && playerId === myPlayerId;
-                const teamLabel = idx <= 1 ? "A 隊" : "B 隊";
-                return (
-                  <div
-                    key={idx}
-                    className={`rounded-xl border px-3 py-2 min-h-[56px] flex flex-col justify-center ${
-                      player
-                        ? "bg-white/70 border-sage/20"
-                        : "bg-stone/5 border-stone/20 border-dashed"
-                    } ${isMe ? "ring-2 ring-sage/40 bg-sage/10" : ""}`}
-                  >
-                    <span className="text-[9px] text-stone-400 tracking-wide mb-0.5">
-                      {teamLabel} #{idx + 1}
-                    </span>
-                    {player ? (
-                      <>
-                        <span className="text-sm font-bold text-stone-800 truncate flex items-center gap-1.5">
-                          {player.displayName}
-                          {isMe && (
-                            <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full">
-                              我
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-[10px] text-sage font-serif italic">
-                          Lv.{Math.floor(player.level)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-[11px] text-stone-300 italic">待安排</span>
-                    )}
+            <div className="space-y-3">
+              {[
+                { label: "A 隊", slots: [0, 1], teamStyle: "border-sage/25 bg-sage/5", labelStyle: "text-sage" },
+                { label: "B 隊", slots: [2, 3], teamStyle: "border-[#D8D2C6] bg-[#F1EEE7]", labelStyle: "text-stone-600" }
+              ].map((team) => (
+                <div key={team.label} className={`rounded-xl border p-3 ${team.teamStyle}`}>
+                  <div className={`text-[10px] font-bold tracking-[0.2em] mb-2.5 ${team.labelStyle}`}>
+                    {team.label}
                   </div>
-                );
-              })}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {team.slots.map((slotIdx) => {
+                      const playerId = nextGroupSlots[slotIdx];
+                      const player = nextGroupPlayers.find((p) => p.playerId === playerId && p.slot === slotIdx + 1);
+                      const isMe = !!myPlayerId && playerId === myPlayerId;
+                      return (
+                        <NextGroupSlotPill
+                          key={slotIdx}
+                          player={player || null}
+                          isMe={isMe}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -589,12 +577,9 @@ function MatchCard({
       </div>
 
       <div className="p-4">
-        {/* Team A */}
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-[9px] font-bold tracking-[0.3em] text-sage uppercase w-6 shrink-0">
-            A
-          </span>
-          <div className="flex-1 flex items-center gap-2 flex-wrap">
+        <div className="rounded-xl border border-sage/30 bg-sage/5 p-3">
+          <div className="text-[10px] font-bold tracking-[0.2em] text-sage mb-2">A 隊</div>
+          <div className="flex items-center gap-2 flex-wrap">
             {[a1, a2].map(
               (p, i) =>
                 p && (
@@ -609,18 +594,18 @@ function MatchCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 px-6">
-          <div className="flex-1 h-[1px] bg-stone/20" />
-          <span className="text-[10px] text-stone-300 italic">vs</span>
-          <div className="flex-1 h-[1px] bg-stone/20" />
+        <div className="relative my-3">
+          <div className="h-[1px] bg-stone/20" />
+          <div className="absolute inset-0 flex items-center justify-center -translate-y-1/2 top-1/2">
+            <span className="px-3 py-0.5 rounded-full bg-[#FAF9F6] border border-stone/20 text-[11px] tracking-[0.22em] text-stone-500 uppercase font-bold">
+              VS
+            </span>
+          </div>
         </div>
 
-        {/* Team B */}
-        <div className="flex items-center gap-3 mt-3">
-          <span className="text-[9px] font-bold tracking-[0.3em] text-stone-500 uppercase w-6 shrink-0">
-            B
-          </span>
-          <div className="flex-1 flex items-center gap-2 flex-wrap">
+        <div className="rounded-xl border border-[#D8D2C6] bg-[#F1EEE7] p-3 mt-3">
+          <div className="text-[10px] font-bold tracking-[0.2em] text-stone-600 mb-2">B 隊</div>
+          <div className="flex items-center gap-2 flex-wrap">
             {[b1, b2].map(
               (p, i) =>
                 p && (
@@ -650,9 +635,9 @@ function TeamPlayerBadge({
 }) {
   return (
     <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
-      isMe ? "bg-sage/10 border-sage/30" : "bg-stone/5 border-stone/20"
+      isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
     }`}>
-      <span className="text-sm font-bold text-stone-800 truncate max-w-[100px]">
+      <span className={`text-sm font-bold truncate max-w-[100px] ${isMe ? "text-sage" : "text-stone-800"}`}>
         {player.displayName}
       </span>
       {isMe && (
@@ -667,6 +652,40 @@ function TeamPlayerBadge({
         />
       )}
       <span className="text-[10px] text-sage italic font-serif font-bold">
+        L{Math.floor(player.level)}
+      </span>
+    </div>
+  );
+}
+
+function NextGroupSlotPill({
+  player,
+  isMe,
+}: {
+  player: NextGroupPlayer | null;
+  isMe: boolean;
+}) {
+  if (!player) {
+    return (
+      <div className="flex items-center rounded-full border border-dashed border-stone/25 bg-white/45 px-4 py-2 min-h-[44px]">
+        <span className="text-[11px] text-stone-300 italic">待安排</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full border min-h-[44px] ${
+      isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
+    }`}>
+      <span className={`text-sm font-bold truncate ${isMe ? "text-sage" : "text-stone-800"}`}>
+        {player.displayName}
+      </span>
+      {isMe && (
+        <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold">
+          我
+        </span>
+      )}
+      <span className={`text-[10px] italic font-serif font-bold ml-auto ${isMe ? "text-sage" : "text-stone-500"}`}>
         L{Math.floor(player.level)}
       </span>
     </div>
