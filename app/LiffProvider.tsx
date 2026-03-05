@@ -70,7 +70,9 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
                 localStorage.setItem('user', JSON.stringify(data.user));
                 const returnPath = localStorage.getItem('loginReturnPath');
                 localStorage.removeItem('loginReturnPath');
-                const target = returnPath || (data.user.is_profile_completed ? '/browse' : '/rating');
+                const target = data.user.is_profile_completed
+                  ? (returnPath || '/browse')
+                  : '/rating';
                 router.replace(target);
                 return;
               }
