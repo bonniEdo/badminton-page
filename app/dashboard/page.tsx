@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import LoginPrompt from "../components/LoginPrompt";
 import { TabButton, Tabs } from "../components/ui";
+import AvatarBadge from "../components/AvatarBadge";
 
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -574,7 +575,7 @@ export default function Dashboard() {
                           ? 'text-stone-500 border-dashed border-stone-200' 
                           : 'text-sage border-sage/20 bg-sage/5'}`}
                     >
-                      <AvatarDot avatarUrl={p.AvatarUrl} name={p.Username} />
+                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" />
                       <span>{p.Username}</span> 
                     </div>
                   ))}
@@ -674,17 +675,6 @@ export default function Dashboard() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
       `}</style>
-    </div>
-  );
-}
-
-function AvatarDot({ avatarUrl, name }: { avatarUrl?: string | null; name: string }) {
-  if (avatarUrl) {
-    return <img src={avatarUrl} alt={name} className="w-5 h-5 rounded-full object-cover border border-stone/20 shrink-0" />;
-  }
-  return (
-    <div className="w-5 h-5 rounded-full bg-stone/10 text-stone-500 border border-stone/20 flex items-center justify-center text-[9px] shrink-0">
-      {name?.trim()?.charAt(0)?.toUpperCase() || "球"}
     </div>
   );
 }

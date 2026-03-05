@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../../../components/AppHeader";
+import AvatarBadge from "../../../components/AvatarBadge";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -321,21 +322,10 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     return (
       <div className="flex items-center justify-between w-full px-1 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <AvatarDot avatarUrl={p.avatarUrl} name={p.displayName} />
+          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" />
           <span className={`text-[14px] font-bold truncate ${isNext ? 'text-stone-700' : 'text-stone-900'}`}>{p.displayName}</span>
         </div>
         <span className="text-[10px] font-serif italic text-sage opacity-70">L{Math.floor(p.level)}</span>
-      </div>
-    );
-  };
-
-  const AvatarDot = ({ avatarUrl, name }: { avatarUrl?: string | null; name: string }) => {
-    if (avatarUrl) {
-      return <img src={avatarUrl} alt={name} className="w-6 h-6 rounded-full object-cover border border-stone/20 shrink-0" />;
-    }
-    return (
-      <div className="w-6 h-6 rounded-full bg-stone/10 text-stone-500 border border-stone/20 flex items-center justify-center text-[10px] shrink-0">
-        {name?.trim()?.charAt(0)?.toUpperCase() || "球"}
       </div>
     );
   };
@@ -380,7 +370,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2 min-w-0">
-                          <AvatarDot avatarUrl={p.avatarUrl} name={p.displayName} />
+                          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" />
                           <span className="text-[14px] font-bold truncate">{p.displayName}</span>
                         </div>
                         {p.status === 'waiting_checkin' && (

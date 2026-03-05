@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import { Chip } from "../components/ui";
+import AvatarBadge from "../components/AvatarBadge";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -402,7 +403,7 @@ export default function Browse() {
                   <div>
                     <span className="text-[11px] text-gray-400 tracking-widest uppercase block mb-1">主揪</span>
                     <div className="flex items-center gap-2 mb-1">
-                      <AvatarDot avatarUrl={s.hostAvatarUrl} name={s.hostName} size="sm" />
+                      <AvatarBadge avatarUrl={s.hostAvatarUrl} name={s.hostName} size="xs" />
                       <span className="text-[13px] text-stone-700 font-semibold">{s.hostName}</span>
                     </div>
                     <h3 className={`text-xl tracking-wide pr-4 ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
@@ -454,7 +455,7 @@ export default function Browse() {
                           return list;
                         }).map((p, i) => (
                           <div key={i} className="flex items-center gap-1.5 px-3 py-1 text-[11px] text-sage neu-pill transition-all">
-                            <AvatarDot avatarUrl={p.AvatarUrl} name={p.Display} size="sm" />
+                            <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Display} size="xs" />
                             <span>{p.Display}</span>
                           </div>
                         ))
@@ -588,29 +589,6 @@ export default function Browse() {
           <Plus size={24} strokeWidth={2} />
         </Link>
       )}
-    </div>
-  );
-}
-
-function AvatarDot({
-  avatarUrl,
-  name,
-  size = "md",
-}: {
-  avatarUrl?: string | null;
-  name: string;
-  size?: "sm" | "md";
-}) {
-  const cls = size === "sm" ? "w-5 h-5" : "w-7 h-7";
-  const fallback = name?.trim()?.charAt(0)?.toUpperCase() || "球";
-
-  if (avatarUrl) {
-    return <img src={avatarUrl} alt={name} className={`${cls} rounded-full object-cover border border-stone/20 shrink-0`} />;
-  }
-
-  return (
-    <div className={`${cls} rounded-full bg-stone/10 text-stone-500 border border-stone/20 flex items-center justify-center text-[9px] shrink-0`}>
-      {fallback}
     </div>
   );
 }

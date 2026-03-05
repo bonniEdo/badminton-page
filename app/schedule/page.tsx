@@ -11,6 +11,7 @@ import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import { TabButton, Tabs } from "../components/ui";
+import AvatarBadge from "../components/AvatarBadge";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -537,7 +538,7 @@ export default function SchedulePage() {
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
                     <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
-                      <AvatarDot avatarUrl={p.AvatarUrl} name={p.Username} />
+                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" />
                       <span>{p.Username}</span>
                     </div>
                   ))}
@@ -666,17 +667,6 @@ export default function SchedulePage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function AvatarDot({ avatarUrl, name }: { avatarUrl?: string | null; name: string }) {
-  if (avatarUrl) {
-    return <img src={avatarUrl} alt={name} className="w-5 h-5 rounded-full object-cover border border-stone/20 shrink-0" />;
-  }
-  return (
-    <div className="w-5 h-5 rounded-full bg-stone/10 text-stone-500 border border-stone/20 flex items-center justify-center text-[9px] shrink-0">
-      {name?.trim()?.charAt(0)?.toUpperCase() || "球"}
     </div>
   );
 }
