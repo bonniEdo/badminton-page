@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import LoginPrompt from "../components/LoginPrompt";
 import { TabButton, Tabs } from "../components/ui";
+import AvatarBadge from "../components/AvatarBadge";
 
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -42,6 +43,7 @@ interface Participant {
   Username: string;
   Status: string;
   FriendCount?: number; 
+  AvatarUrl?: string | null;
 }
 
 export default function Dashboard() {
@@ -573,7 +575,7 @@ export default function Dashboard() {
                           ? 'text-stone-500 border-dashed border-stone-200' 
                           : 'text-sage border-sage/20 bg-sage/5'}`}
                     >
-                      <User size={10} /> 
+                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" />
                       <span>{p.Username}</span> 
                     </div>
                   ))}

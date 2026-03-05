@@ -11,6 +11,7 @@ import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import { TabButton, Tabs } from "../components/ui";
+import AvatarBadge from "../components/AvatarBadge";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -22,7 +23,7 @@ interface Session {
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
   isHosted?: boolean;
 }
-interface Participant { Username: string; Status: string; FriendCount?: number; }
+interface Participant { Username: string; Status: string; FriendCount?: number; AvatarUrl?: string | null; }
 
 export default function SchedulePage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
@@ -537,7 +538,8 @@ export default function SchedulePage() {
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
                     <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
-                      <User size={10}/><span>{p.Username}</span>
+                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" />
+                      <span>{p.Username}</span>
                     </div>
                   ))}
                 </div>
