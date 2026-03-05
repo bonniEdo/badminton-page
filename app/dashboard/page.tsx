@@ -44,6 +44,7 @@ interface Participant {
   Status: string;
   FriendCount?: number; 
   AvatarUrl?: string | null;
+  UserId?: number | null;
 }
 
 export default function Dashboard() {
@@ -575,7 +576,7 @@ export default function Dashboard() {
                           ? 'text-stone-500 border-dashed border-stone-200' 
                           : 'text-sage border-sage/20 bg-sage/5'}`}
                     >
-                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" />
+                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" playerUserId={p.UserId ?? null} />
                       <span>{p.Username}</span> 
                     </div>
                   ))}

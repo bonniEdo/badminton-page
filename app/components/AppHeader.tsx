@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, CalendarDays, CalendarCheck, User, CheckCircle } from "lucide-react";
 import ShuttlecockIcon from "./ShuttlecockIcon";
 import { useEffect, useState } from "react";
+import PlayerProfileModalHost from "./PlayerProfileModalHost";
 
 const navItems = [
   { href: "/browse", label: "勒戒看板", icon: Search },
@@ -27,6 +28,7 @@ export default function AppHeader() {
 
   return (
     <>
+      <PlayerProfileModalHost />
       {/* Desktop Header */}
       <nav className="sticky top-0 z-30 hidden md:block bg-transparent">
         <div className="max-w-4xl mx-auto px-4 py-3">

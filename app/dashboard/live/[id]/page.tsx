@@ -380,7 +380,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     return (
       <div className="flex items-center justify-between w-full px-1 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" />
+          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
           <span className={`text-[14px] font-bold truncate ${isNext ? 'text-stone-700' : 'text-stone-900'}`}>{p.displayName}</span>
         </div>
         <span className="text-[10px] font-serif italic text-sage opacity-70">L{Math.floor(p.level)}</span>
@@ -428,7 +428,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2 min-w-0">
-                          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" />
+                          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
                           <span className="text-[14px] font-bold truncate">{p.displayName}</span>
                         </div>
                         {p.status === 'waiting_checkin' && (
