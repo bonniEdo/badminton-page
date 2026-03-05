@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronLeft, CheckCircle, Camera, Target,
   Activity, Dumbbell, Settings, MapPin, LogOut, User,
@@ -13,6 +13,7 @@ import LoginPrompt from "../components/LoginPrompt";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
+const CROP_VIEW_SIZE = 216;
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -23,6 +24,18 @@ export default function ProfilePage() {
   const [myGames, setMyGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [sourceImage, setSourceImage] = useState<string | null>(null);
+  const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropPanX, setCropPanX] = useState(0);
+  const [cropPanY, setCropPanY] = useState(0);
+  const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+  const [sourceSize, setSourceSize] = useState({ width: 0, height: 0 });
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const dragOriginRef = useRef({ panX: 0, panY: 0 });
 
   // ✅ 修正：取得本地 YYYY-MM-DD 字串（解決時差偏移）
   const getLocalDateString = (d: Date) => {
@@ -127,6 +140,208 @@ export default function ProfilePage() {
     localStorage.clear();
     router.replace("/login");
   };
+
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("檔案讀取失敗"));
+      reader.readAsDataURL(file);
+    });
+
+  const getImageSize = (src: string): Promise<{ width: number; height: number }> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.width, height: img.height });
+      img.onerror = () => reject(new Error("圖片載入失敗"));
+      img.src = src;
+    });
+
+  const buildCroppedAvatar = (
+    src: string,
+    imgSize: { width: number; height: number },
+    zoom: number,
+    panX: number,
+    panY: number,
+    outSize = 720
+  ): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = outSize;
+        canvas.height = outSize;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("無法裁切圖片"));
+
+        const crop = getCropRender(imgSize, outSize, zoom, panX, panY);
+
+        ctx.drawImage(img, crop.x, crop.y, crop.drawW, crop.drawH);
+        resolve(canvas.toDataURL("image/jpeg", 0.86));
+      };
+      img.onerror = () => reject(new Error("圖片載入失敗"));
+      img.src = src;
+    });
+
+  const getCropRender = (
+    imgSize: { width: number; height: number },
+    boxSize: number,
+    zoom: number,
+    panX: number,
+    panY: number
+  ) => {
+    const safeW = Math.max(1, imgSize.width || 1);
+    const safeH = Math.max(1, imgSize.height || 1);
+    const baseScale = Math.max(boxSize / safeW, boxSize / safeH);
+    const finalScale = baseScale * zoom;
+    const drawW = safeW * finalScale;
+    const drawH = safeH * finalScale;
+    const maxPanX = Math.max(0, (drawW - boxSize) / 2);
+    const maxPanY = Math.max(0, (drawH - boxSize) / 2);
+    const centerX = (boxSize - drawW) / 2;
+    const centerY = (boxSize - drawH) / 2;
+    const x = centerX + panX * maxPanX;
+    const y = centerY + panY * maxPanY;
+
+    return { drawW, drawH, x, y, maxPanX, maxPanY };
+  };
+
+  const handleCropPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!sourceImage) return;
+    setIsDraggingCrop(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    dragOriginRef.current = { panX: cropPanX, panY: cropPanY };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handleCropPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingCrop) return;
+    const crop = getCropRender(sourceSize, CROP_VIEW_SIZE, cropZoom, cropPanX, cropPanY);
+    const deltaX = e.clientX - dragStartRef.current.x;
+    const deltaY = e.clientY - dragStartRef.current.y;
+
+    const nextPanX = crop.maxPanX > 0
+      ? Math.max(-1, Math.min(1, dragOriginRef.current.panX + deltaX / crop.maxPanX))
+      : 0;
+    const nextPanY = crop.maxPanY > 0
+      ? Math.max(-1, Math.min(1, dragOriginRef.current.panY + deltaY / crop.maxPanY))
+      : 0;
+
+    setCropPanX(nextPanX);
+    setCropPanY(nextPanY);
+  };
+
+  const handleCropPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDraggingCrop(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const uploadAvatarDataUrl = async (avatarDataUrl: string) => {
+    setIsAvatarUploading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/user/avatar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ avatarDataUrl }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || "頭貼更新失敗");
+        return;
+      }
+
+      setUserInfo(data.user);
+      const userStr = localStorage.getItem("user");
+      const localUser = userStr ? JSON.parse(userStr) : {};
+      localStorage.setItem("user", JSON.stringify({ ...localUser, ...data.user }));
+    } catch (_) {
+      alert("頭貼更新失敗，請稍後再試");
+    } finally {
+      setIsAvatarUploading(false);
+    }
+  };
+
+  const handleSelectAvatar = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("請選擇圖片檔");
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert("圖片太大，請選擇 8MB 以內圖片");
+      return;
+    }
+
+    try {
+      const imageSrc = await readFileAsDataUrl(file);
+      const size = await getImageSize(imageSrc);
+      setSourceImage(imageSrc);
+      setSourceSize(size);
+      setCropPreviewUrl(null);
+      setCropZoom(1);
+      setCropPanX(0);
+      setCropPanY(0);
+      setCropOpen(true);
+    } catch (err) {
+      alert("圖片處理失敗，請換一張圖再試");
+    }
+  };
+
+  const handleApplyCrop = async () => {
+    if (!sourceImage) return;
+    try {
+      const avatarDataUrl = await buildCroppedAvatar(sourceImage, sourceSize, cropZoom, cropPanX, cropPanY);
+      setCropOpen(false);
+      await uploadAvatarDataUrl(avatarDataUrl);
+    } catch (_) {
+      alert("裁切失敗，請再試一次");
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!cropOpen || !sourceImage) return;
+
+    (async () => {
+      try {
+        const preview = await buildCroppedAvatar(
+          sourceImage,
+          sourceSize,
+          cropZoom,
+          cropPanX,
+          cropPanY,
+          CROP_VIEW_SIZE
+        );
+        if (!cancelled) setCropPreviewUrl(preview);
+      } catch (_) {
+        if (!cancelled) setCropPreviewUrl(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cropOpen, sourceImage, sourceSize, cropZoom, cropPanX, cropPanY]);
 
   if (loading) return <PageLoading message="檢閱球癮中..." showHeader />;
 
@@ -316,6 +531,62 @@ export default function ProfilePage() {
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif pb-24 overflow-x-hidden selection:bg-sage/10">
       <AppHeader />
+      {cropOpen && sourceImage && (
+        <div className="fixed inset-0 z-[120] bg-black/45 backdrop-blur-sm p-4 flex items-center justify-center">
+          <div className="w-full max-w-sm neu-card rounded-[2rem] p-5">
+            <p className="text-[10px] tracking-[0.3em] text-stone-500 uppercase font-bold mb-3">調整頭貼位置</p>
+            <div className="mx-auto w-56 h-56 rounded-full border-4 border-white shadow-md bg-stone-100 flex items-center justify-center">
+              <div
+                className={`relative rounded-full overflow-hidden ${isDraggingCrop ? "cursor-grabbing" : "cursor-grab"}`}
+                style={{ width: CROP_VIEW_SIZE, height: CROP_VIEW_SIZE, touchAction: "none" }}
+                onPointerDown={handleCropPointerDown}
+                onPointerMove={handleCropPointerMove}
+                onPointerUp={handleCropPointerUp}
+                onPointerCancel={handleCropPointerUp}
+              >
+                {cropPreviewUrl ? (
+                  <img src={cropPreviewUrl} className="w-full h-full select-none pointer-events-none" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[11px] text-stone-400 italic">
+                    產生預覽中...
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="text-[10px] text-stone-500 uppercase tracking-[0.2em]">縮放</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={2.5}
+                  step={0.01}
+                  value={cropZoom}
+                  onChange={(e) => setCropZoom(Number(e.target.value))}
+                  className="w-full accent-[#8F9B74]"
+                />
+              </label>
+              <p className="text-[11px] text-stone-400 italic">用手指或滑鼠直接拖曳圖片調整位置</p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                className="py-3 rounded-xl border border-stone-200 text-stone-500 text-[11px] tracking-[0.2em] uppercase font-bold"
+                onClick={() => setCropOpen(false)}
+              >
+                取消
+              </button>
+              <button
+                className="py-3 rounded-xl bg-sage text-white text-[11px] tracking-[0.2em] uppercase font-bold"
+                onClick={handleApplyCrop}
+              >
+                套用
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-2xl mx-auto px-4 md:px-8 pt-6 animate-in fade-in duration-1000">
 
@@ -332,12 +603,30 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+            <button
+              onClick={handleSelectAvatar}
+              disabled={isAvatarUploading}
+              className="absolute -bottom-1 -left-1 bg-white rounded-full border-4 border-[#FAF9F6] shadow-md p-2 z-10 text-sage hover:text-stone-700 transition-colors disabled:opacity-50"
+              title="上傳頭貼"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
             {isVerified && (
               <div className="absolute -bottom-1 -right-1 bg-white rounded-full border-4 border-[#FAF9F6] shadow-md p-0.5 z-10">
                 <CheckCircle className="w-7 h-7 text-blue-500 fill-blue-50" strokeWidth={2.5} />
               </div>
             )}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/jpg"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
           </div>
+          {isAvatarUploading && (
+            <p className="mt-3 text-[11px] text-stone-400 italic">頭貼更新中...</p>
+          )}
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-stone-900 uppercase">{userInfo?.username}</h2>

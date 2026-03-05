@@ -39,15 +39,15 @@ function LoginSuccessContent() {
             const nextParam = searchParams.get("next");
             const returnPath = localStorage.getItem("loginReturnPath");
             
-            let targetPath = "/browse"; 
             const isFinished = isProfileCompletedParam === "true" || data.user.is_profile_completed === true;
+            let targetPath = "/browse";
 
-            if (nextParam) {
+            if (!isFinished) {
+              targetPath = "/rating";
+            } else if (nextParam) {
               targetPath = nextParam;
             } else if (returnPath) {
               targetPath = returnPath;
-            } else if (!isFinished) {
-              targetPath = "/rating"; 
             }
 
             localStorage.removeItem("loginReturnPath");
