@@ -51,6 +51,7 @@ export default function Browse() {
   }, []);
 
   const fetchData = async (silent = false, loggedIn?: boolean) => {
+    let loadingSettled = false;
     try {
       if (!silent) setLoading(true);
       const token = localStorage.getItem("token");
@@ -73,25 +74,33 @@ export default function Browse() {
         })));
       }
 
+      // Render board as soon as game list is ready, do auth-related refresh in background.
+      if (!silent) {
+        setLoading(false);
+        loadingSettled = true;
+      }
+
       if (isAuth && token) {
-        const [resUser, resJoined] = await Promise.all([
+        Promise.all([
           fetch(`${API_URL}/api/user/me`, { headers }).then(res => res.json()),
           fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json())
-        ]);
+        ]).then(([resUser, resJoined]) => {
+          if (resUser.success && resUser.user) {
+            localStorage.setItem("user", JSON.stringify(resUser.user));
+            setCurrentUserId(resUser.user.id ?? null);
+          }
 
-        if (resUser.success && resUser.user) {
-          localStorage.setItem("user", JSON.stringify(resUser.user));
-          setCurrentUserId(resUser.user.id ?? null);
-        }
-
-        if (resJoined.success) {
-          setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
-        }
+          if (resJoined.success) {
+            setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
+          }
+        }).catch((err) => {
+          console.error("Fetch Auth Meta Error:", err);
+        });
       }
     } catch (e) {
       console.error("Fetch Data Error:", e);
     } finally {
-      setLoading(false);
+      if (!loadingSettled) setLoading(false);
     }
   };
 

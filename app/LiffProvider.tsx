@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
 import liff from '@line/liff';
@@ -6,6 +6,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import PageLoading from './components/PageLoading';
 
 const PUBLIC_PATHS = ['/', '/login', '/login-success', '/browse'];
+const isBrowserProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? '' : 'http://localhost:3000');
 
 export default function LiffProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,17 +16,38 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
   const [isLiffLoading, setIsLiffLoading] = useState(true);
   const hasInitialized = useRef(false);
 
+  const resolveMeAndRedirect = async (token: string) => {
+    const res = await fetch(`${API_URL}/api/user/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+    const data = await res.json();
+    if (!data.success || !data.user) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.replace('/login');
+      return;
+    }
+
+    localStorage.setItem('user', JSON.stringify(data.user));
+    const returnPath = localStorage.getItem('loginReturnPath');
+    localStorage.removeItem('loginReturnPath');
+
+    const target = data.user.is_profile_completed
+      ? (returnPath || '/browse')
+      : '/rating';
+    router.replace(target);
+  };
+
   useEffect(() => {
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
 
     if (!isLineBrowser) {
       const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
-      
       if (token && pathname === '/login') {
-        const user = userStr ? JSON.parse(userStr) : {};
-        const target = user.is_profile_completed ? '/browse' : '/rating';
-        router.replace(target);
+        resolveMeAndRedirect(token).finally(() => setIsLiffLoading(false));
       } else {
         setIsLiffLoading(false);
       }
@@ -34,19 +57,15 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || "" })
+    liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || '' })
       .then(async () => {
         const token = localStorage.getItem('token');
-        const userStr = localStorage.getItem('user');
 
         if (token) {
           if (pathname === '/login') {
-            const user = userStr ? JSON.parse(userStr) : {};
-            const target = user.is_profile_completed ? '/browse' : '/rating';
-            router.replace(target);
-          } else {
-            setIsLiffLoading(false);
+            await resolveMeAndRedirect(token);
           }
+          setIsLiffLoading(false);
           return;
         }
 
@@ -59,25 +78,19 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
           const idToken = liff.getIDToken();
           if (idToken) {
             try {
-              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/liff-login`, {
+              const res = await fetch(`${API_URL}/api/user/liff-login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
                 body: JSON.stringify({ idToken })
               });
               const data = await res.json();
-              if (data.success) {
+              if (data.success && data.token) {
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                const returnPath = localStorage.getItem('loginReturnPath');
-                localStorage.removeItem('loginReturnPath');
-                const target = data.user.is_profile_completed
-                  ? (returnPath || '/browse')
-                  : '/rating';
-                router.replace(target);
+                await resolveMeAndRedirect(data.token);
                 return;
               }
-            } catch (e) {
-              /* fall through */
+            } catch (_) {
+              // fall through
             }
           }
         }
@@ -89,7 +102,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    
+
     if (token && pathname !== '/login') {
       setIsLiffLoading(false);
     }
