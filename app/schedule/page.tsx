@@ -22,7 +22,7 @@ interface Session {
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
   isHosted?: boolean;
 }
-interface Participant { Username: string; Status: string; FriendCount?: number; }
+interface Participant { Username: string; Status: string; FriendCount?: number; AvatarUrl?: string | null; }
 
 export default function SchedulePage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
@@ -537,7 +537,8 @@ export default function SchedulePage() {
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
                     <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
-                      <User size={10}/><span>{p.Username}</span>
+                      <AvatarDot avatarUrl={p.AvatarUrl} name={p.Username} />
+                      <span>{p.Username}</span>
                     </div>
                   ))}
                 </div>
@@ -665,6 +666,17 @@ export default function SchedulePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function AvatarDot({ avatarUrl, name }: { avatarUrl?: string | null; name: string }) {
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name} className="w-5 h-5 rounded-full object-cover border border-stone/20 shrink-0" />;
+  }
+  return (
+    <div className="w-5 h-5 rounded-full bg-stone/10 text-stone-500 border border-stone/20 flex items-center justify-center text-[9px] shrink-0">
+      {name?.trim()?.charAt(0)?.toUpperCase() || "球"}
     </div>
   );
 }

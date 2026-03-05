@@ -20,6 +20,7 @@ const WS_URL = API_URL
 interface Player {
   playerId: number;
   displayName: string;
+  avatarUrl?: string | null;
   status: "idle" | "playing" | "waiting_checkin";
   enrollStatus: string;
   level: number;
@@ -53,6 +54,7 @@ interface NextGroupPlayer {
   slot: number;
   playerId: number;
   displayName: string;
+  avatarUrl?: string | null;
   level: number;
   isHost: boolean;
 }
@@ -512,7 +514,7 @@ export default function LiveViewPage({
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <User size={14} className={p.playerId === myPlayerId ? "text-sage" : "text-stone-300"} />
+                    <AvatarDot avatarUrl={p.avatarUrl} name={p.displayName} size="sm" />
                     <span className="text-sm text-stone-400">
                       {p.displayName}
                       {p.playerId === myPlayerId && (
@@ -637,6 +639,7 @@ function TeamPlayerBadge({
     <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
       isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
     }`}>
+      <AvatarDot avatarUrl={player.avatarUrl} name={player.displayName} size="sm" />
       <span className={`text-sm font-bold truncate max-w-[100px] ${isMe ? "text-sage" : "text-stone-800"}`}>
         {player.displayName}
       </span>
@@ -677,6 +680,7 @@ function NextGroupSlotPill({
     <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full border min-h-[44px] ${
       isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
     }`}>
+      <AvatarDot avatarUrl={player.avatarUrl} name={player.displayName} size="sm" />
       <span className={`text-sm font-bold truncate ${isMe ? "text-sage" : "text-stone-800"}`}>
         {player.displayName}
       </span>
@@ -706,7 +710,7 @@ function PlayerRow({
       className={`flex items-center justify-between px-4 py-3 ${isMe ? "bg-sage/5" : ""}`}
     >
       <div className="flex items-center gap-2.5">
-        <User size={14} className={isMe ? "text-sage" : "text-stone-400"} />
+        <AvatarDot avatarUrl={player.avatarUrl} name={player.displayName} size="sm" />
         <span
           className={`text-sm ${isMe ? "text-sage font-bold" : "text-stone-700"}`}
         >
@@ -732,6 +736,28 @@ function PlayerRow({
           Lv.{Math.floor(player.level)}
         </span>
       </div>
+    </div>
+  );
+}
+
+function AvatarDot({
+  avatarUrl,
+  name,
+  size = "md",
+}: {
+  avatarUrl?: string | null;
+  name: string;
+  size?: "sm" | "md";
+}) {
+  const cls = size === "sm" ? "w-6 h-6" : "w-8 h-8";
+  const fallback = name?.trim()?.charAt(0)?.toUpperCase() || "球";
+
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name} className={`${cls} rounded-full object-cover border border-stone/20 shrink-0`} />;
+  }
+  return (
+    <div className={`${cls} rounded-full bg-stone/10 text-stone-500 border border-stone/20 flex items-center justify-center text-[10px] shrink-0`}>
+      {fallback}
     </div>
   );
 }

@@ -17,12 +17,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "
 const TW_MOBILE_REGEX = /^09\d{8}$/;
 
 interface Session {
-  id: number; hostId: number; hostName: string; title: string; date: string; time: string; endTime: string;
+  id: number; hostId: number; hostName: string; hostAvatarUrl?: string | null; title: string; date: string; time: string; endTime: string;
   location: string; currentPlayers: number; maxPlayers: number; price: number; notes: string;
   isExpired: boolean; friendCount: number; badminton_level?: string; courtCount: number; courtNumber?: string;
 }
 
-interface Participant { Username: string; Status: string; FriendCount: number; }
+interface Participant { Username: string; Status: string; FriendCount: number; AvatarUrl?: string | null; }
 
 export default function Browse() {
   const router = useRouter();
@@ -61,7 +61,7 @@ export default function Browse() {
 
       if (gamesRes.success && gamesRes.data) {
         setSessions((gamesRes.data || []).map((g: any) => ({
-          id: g.GameId, hostId: g.HostID, hostName: g.hostName, title: g.Title,
+          id: g.GameId, hostId: g.HostID, hostName: g.hostName, hostAvatarUrl: g.hostAvatarUrl || null, title: g.Title,
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
           endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "",
@@ -400,7 +400,11 @@ export default function Browse() {
                 </div>
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <span className="text-[11px] text-gray-400 tracking-widest uppercase block mb-1">主揪：{s.hostName}</span>
+                    <span className="text-[11px] text-gray-400 tracking-widest uppercase block mb-1">主揪</span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <AvatarDot avatarUrl={s.hostAvatarUrl} name={s.hostName} size="sm" />
+                      <span className="text-[13px] text-stone-700 font-semibold">{s.hostName}</span>
+                    </div>
                     <h3 className={`text-xl tracking-wide pr-4 ${s.isExpired ? "text-gray-400" : ""}`}>{s.title}</h3>
                   </div>
                 </div>
@@ -450,7 +454,8 @@ export default function Browse() {
                           return list;
                         }).map((p, i) => (
                           <div key={i} className="flex items-center gap-1.5 px-3 py-1 text-[11px] text-sage neu-pill transition-all">
-                            <User size={10} /><span>{p.Display}</span>
+                            <AvatarDot avatarUrl={p.AvatarUrl} name={p.Display} size="sm" />
+                            <span>{p.Display}</span>
                           </div>
                         ))
                       ) : (
@@ -583,6 +588,29 @@ export default function Browse() {
           <Plus size={24} strokeWidth={2} />
         </Link>
       )}
+    </div>
+  );
+}
+
+function AvatarDot({
+  avatarUrl,
+  name,
+  size = "md",
+}: {
+  avatarUrl?: string | null;
+  name: string;
+  size?: "sm" | "md";
+}) {
+  const cls = size === "sm" ? "w-5 h-5" : "w-7 h-7";
+  const fallback = name?.trim()?.charAt(0)?.toUpperCase() || "球";
+
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name} className={`${cls} rounded-full object-cover border border-stone/20 shrink-0`} />;
+  }
+
+  return (
+    <div className={`${cls} rounded-full bg-stone/10 text-stone-500 border border-stone/20 flex items-center justify-center text-[9px] shrink-0`}>
+      {fallback}
     </div>
   );
 }
