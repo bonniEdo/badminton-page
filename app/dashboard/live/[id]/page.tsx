@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { 
   Users, Clock, RotateCcw, Zap, User, X, Check, Plus, 
   MapPin, Calendar, LayoutGrid, ChevronLeft, CheckCircle, Info, ArrowRightLeft,
-  CircleDollarSign, Crown, Trash2, HeartPulse, Sparkles
+  CircleDollarSign, Crown, Trash2, HeartPulse, Sparkles, Pencil
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../../../components/AppHeader";
@@ -26,9 +26,12 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   
   const [isBenchOpen, setIsBenchOpen] = useState(false);
   const [courtCount, setCourtCount] = useState(0); 
+  const [courtLabels, setCourtLabels] = useState<string[]>([]);
 
   // --- 核心邏輯：全域預備組 (不分場地) ---
   const [nextSlots, setNextSlots] = useState<(number | null)[]>([null, null, null, null]);
+  const [isSyncingNextGroup, setIsSyncingNextGroup] = useState(false);
+  const [nextGroupLoaded, setNextGroupLoaded] = useState(false);
   const [globalStrategy, setGlobalStrategy] = useState<Strategy>("fairness");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
   const [swappingSlotIdx, setSwappingSlotIdx] = useState<number | null>(null);
@@ -41,6 +44,11 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
   const gameInfoRef = useRef(gameInfo);
   gameInfoRef.current = gameInfo;
+  const nextSlotsRef = useRef(nextSlots);
+  nextSlotsRef.current = nextSlots;
+  const nextGroupLoadedRef = useRef(nextGroupLoaded);
+  nextGroupLoadedRef.current = nextGroupLoaded;
+  const fetchDataRef = useRef<() => Promise<void>>(async () => {});
 
   const fetchData = useCallback(async () => {
     if (!gameId || gameId === 'undefined') { router.replace('/enrolled'); return; }
@@ -56,17 +64,83 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
       if (!gameInfoRef.current) {
         setGameInfo(jsonGame.data);
-        setCourtCount(jsonGame.data.CourtCount || 1);
+        const initialCount = Number(jsonGame.data.CourtCount) || 1;
+        const initialNames = String(jsonGame.data.CourtNumber || "")
+          .split(",")
+          .map((v: string) => v.trim())
+          .filter(Boolean);
+        const normalizedNames = Array.from({ length: initialCount }, (_, i) => initialNames[i] || `${i + 1}`);
+
+        setCourtCount(initialCount);
+        setCourtLabels(normalizedNames);
       }
 
       const jsonStatus = await resStatus.json();
       if (jsonStatus.success) {
         setPlayers(jsonStatus.data.players);
         setMatches(jsonStatus.data.matches);
+        const serverSlots = jsonStatus.data?.nextGroup?.slotPlayerIds;
+        if (Array.isArray(serverSlots) && serverSlots.length === 4) {
+          const next = serverSlots.map((id: number | null) => id ?? null);
+          const isDifferent = JSON.stringify(nextSlotsRef.current) !== JSON.stringify(next);
+          if (isDifferent || !nextGroupLoadedRef.current) {
+            setNextSlots(next);
+          }
+        }
+        nextGroupLoadedRef.current = true;
+        setNextGroupLoaded(true);
       }
     } catch (e) { console.error(e); router.replace('/enrolled'); }
     finally { setLoading(false); }
   }, [gameId, router]);
+  fetchDataRef.current = fetchData;
+
+  const syncNextGroup = useCallback(async (slots: (number | null)[]) => {
+    if (!gameId || gameId === 'undefined') return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setIsSyncingNextGroup(true);
+    try {
+      const res = await fetch(`${API_URL}/api/match/next-group`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ gameId, slots })
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        setMsg({
+          isOpen: true,
+          title: "同步失敗",
+          content: json.message || "預備組儲存失敗，請稍後再試。",
+          type: "info",
+          teamANames: "",
+          teamBNames: "",
+          onConfirm: null,
+          onCancel: null
+        });
+        await fetchDataRef.current();
+      }
+    } catch (_) {
+      setMsg({
+        isOpen: true,
+        title: "同步失敗",
+        content: "預備組同步中斷，已嘗試重新整理資料。",
+        type: "info",
+        teamANames: "",
+        teamBNames: "",
+        onConfirm: null,
+        onCancel: null
+      });
+      await fetchDataRef.current();
+    } finally {
+      setIsSyncingNextGroup(false);
+    }
+  }, [gameId]);
 
   const wsRef = useRef<WebSocket | null>(null);
   useEffect(() => {
@@ -91,14 +165,58 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     return () => { clearInterval(fallbackInterval); wsRef.current?.close(); };
   }, [gameId, fetchData]);
 
+  useEffect(() => {
+    if (!nextGroupLoaded) return;
+    const timer = setTimeout(() => {
+      syncNextGroup(nextSlots);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [nextSlots, nextGroupLoaded, syncNextGroup]);
+
   // --- 場地增減 ---
-  const addCourt = () => setCourtCount(prev => prev + 1);
+  const addCourt = () => {
+    setCourtCount((prev) => {
+      const next = prev + 1;
+      setCourtLabels((labels) => {
+        const copy = [...labels];
+        if (!copy[next - 1]) copy[next - 1] = `${next}`;
+        return copy;
+      });
+      return next;
+    });
+  };
+
   const removeCourt = (num: string) => {
     if (matches.some(m => m.court_number === num)) {
       setMsg({ isOpen: true, title: "提示", content: "該場地有球局進行中，無法移除。", type: "info", teamANames:"", teamBNames:"", onConfirm:null, onCancel:null });
       return;
     }
-    setCourtCount(prev => Math.max(1, prev - 1));
+    setCourtCount(prev => {
+      const nextCount = Math.max(1, prev - 1);
+      setCourtLabels(labels => labels.slice(0, nextCount));
+      return nextCount;
+    });
+  };
+
+  const editCourtLabel = (num: string) => {
+    const index = Number(num) - 1;
+    if (index < 0) return;
+
+    const currentLabel = courtLabels[index] || num;
+    const input = window.prompt(`請輸入場地 ${num} 的名稱`, currentLabel);
+    if (input === null) return;
+    const trimmed = input.trim();
+    if (!trimmed) {
+      setMsg({ isOpen: true, title: "提示", content: "場地名稱不可為空白", type: "info", teamANames:"", teamBNames:"", onConfirm:null, onCancel:null });
+      return;
+    }
+
+    setCourtLabels((labels) => {
+      const copy = [...labels];
+      copy[index] = trimmed;
+      return copy;
+    });
   };
 
   // --- 磁鐵與智慧配對 ---
@@ -298,6 +416,9 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   <button onClick={() => setNextSlots([null,null,null,null])} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-50 text-stone-300 border border-stone-100 hover:text-red-400 transition-all" title="清空位置"><RotateCcw size={20}/></button>
                 </div>
               </div>
+              {isSyncingNextGroup && (
+                <p className="text-[10px] text-stone-400 text-center mt-3 italic">預備組同步中...</p>
+              )}
             </div>
           </section>
 
@@ -306,15 +427,23 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             {Array.from({ length: courtCount }, (_, i) => (i + 1).toString()).map(num => {
               const match = matches.find(m => m.court_number === num);
               const isFull = nextSlots.every(s => s !== null);
-              const names = gameInfo?.CourtNumber?.split(',') || [];
-              const label = names[parseInt(num)-1]?.trim() || num;
+              const label = courtLabels[parseInt(num) - 1] || num;
 
               return (
                 <div key={num} className="neu-card rounded-[2rem] overflow-hidden flex flex-col group transition-all">
                   <div className={`px-6 py-3 flex justify-between items-center ${match ? 'bg-blue-50/50 text-blue-600' : 'bg-stone-50/50 text-stone-400'}`}>
                     <span className="text-[10px] tracking-[0.3em] uppercase font-bold">場地 {label}</span>
-                    {!match && <button onClick={() => removeCourt(num)} className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"><Trash2 size={14}/></button>}
-                    {match && <HeartPulse size={14} className="animate-pulse" />}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => editCourtLabel(num)}
+                        className="opacity-0 group-hover:opacity-100 hover:text-sage transition-all"
+                        title="修改場地名稱"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      {!match && <button onClick={() => removeCourt(num)} className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"><Trash2 size={14}/></button>}
+                      {match && <HeartPulse size={14} className="animate-pulse" />}
+                    </div>
                   </div>
 
                   <div className="p-8 flex-1 flex flex-col justify-between gap-8">

@@ -13,8 +13,10 @@ const isBrowserProduction =
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   (isBrowserProduction ? "" : "http://localhost:3000");
-const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
-
+const WS_URL = API_URL
+  ? API_URL.replace(/^http/, 'ws').replace(/^https/, 'wss') + '/ws'
+  : (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws';
+  
 interface Player {
   playerId: number;
   displayName: string;
@@ -47,6 +49,14 @@ interface GameInfo {
   CourtNumber?: string;
 }
 
+interface NextGroupPlayer {
+  slot: number;
+  playerId: number;
+  displayName: string;
+  level: number;
+  isHost: boolean;
+}
+
 export default function LiveViewPage({
   params,
 }: {
@@ -63,6 +73,8 @@ export default function LiveViewPage({
   const [now, setNow] = useState(Date.now());
   const [myPlayerId, setMyPlayerId] = useState<number | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [nextGroupSlots, setNextGroupSlots] = useState<(number | null)[]>([null, null, null, null]);
+  const [nextGroupPlayers, setNextGroupPlayers] = useState<NextGroupPlayer[]>([]);
 
   const gameInfoRef = useRef(gameInfo);
   gameInfoRef.current = gameInfo;
@@ -77,8 +89,8 @@ export default function LiveViewPage({
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const [resGame, resStatus] = await Promise.all([
-        fetch(`${API_URL}/api/games/${gameId}`, { headers }),
-        fetch(`${API_URL}/api/match/live-status/${gameId}`, { headers }),
+        fetch(`${API_URL}/api/games/${gameId}`, { headers, cache: "no-store" }),
+        fetch(`${API_URL}/api/match/live-status/${gameId}`, { headers, cache: "no-store" }),
       ]);
 
       const jsonGame = await resGame.json();
@@ -95,6 +107,13 @@ export default function LiveViewPage({
       if (jsonStatus.success) {
         setPlayers(jsonStatus.data.players);
         setMatches(jsonStatus.data.matches);
+        const nextGroup = jsonStatus.data?.nextGroup;
+        if (Array.isArray(nextGroup?.slotPlayerIds) && nextGroup.slotPlayerIds.length === 4) {
+          setNextGroupSlots(nextGroup.slotPlayerIds.map((id: number | null) => id ?? null));
+        } else {
+          setNextGroupSlots([null, null, null, null]);
+        }
+        setNextGroupPlayers(Array.isArray(nextGroup?.players) ? nextGroup.players : []);
         if (jsonStatus.data.myPlayerId) {
           setMyPlayerId(jsonStatus.data.myPlayerId);
         }
@@ -139,7 +158,7 @@ export default function LiveViewPage({
   useEffect(() => {
     fetchData();
 
-    const fallbackInterval = setInterval(fetchData, 60000);
+    const fallbackInterval = setInterval(fetchData, 5000);
     const tickInterval = setInterval(() => setNow(Date.now()), 1000);
 
     let reconnectTimer: ReturnType<typeof setTimeout>;
@@ -194,6 +213,16 @@ export default function LiveViewPage({
 
   const myPlayer = myPlayerId
     ? players.find((p) => p.playerId === myPlayerId)
+    : null;
+  const isMyTurnNext = myPlayerId ? nextGroupSlots.includes(myPlayerId) : false;
+  const myNextSlot = myPlayerId ? nextGroupSlots.findIndex((id) => id === myPlayerId) : -1;
+  const myNextTeam = myNextSlot >= 0 ? (myNextSlot <= 1 ? "A" : "B") : null;
+  const myTeamMateSlot = myNextSlot >= 0
+    ? (myNextSlot % 2 === 0 ? myNextSlot + 1 : myNextSlot - 1)
+    : -1;
+  const myTeamMateId = myTeamMateSlot >= 0 ? nextGroupSlots[myTeamMateSlot] : null;
+  const myTeamMate = myTeamMateId
+    ? nextGroupPlayers.find((p) => p.playerId === myTeamMateId)
     : null;
 
   const getCourtLabel = (courtNum: string) => {
@@ -287,6 +316,9 @@ export default function LiveViewPage({
                 <div>
                   <p className="text-sm font-bold text-stone-800">
                     {myPlayer.displayName}
+                    <span className="ml-2 text-[10px] text-sage/70 font-medium">
+                      # {myPlayer.playerId}
+                    </span>
                   </p>
                   <p className="text-[11px] text-stone-400 italic">
                     {myPlayer.status === "playing"
@@ -315,6 +347,16 @@ export default function LiveViewPage({
                 <MapPin size={14} />
                 {checkingIn ? "報到中..." : "我到了，報到"}
               </button>
+            )}
+            {isMyTurnNext && (
+              <div className="mt-3 rounded-xl bg-sage/10 border border-sage/20 px-3 py-2">
+                <p className="text-[11px] text-sage font-bold tracking-[0.08em]">
+                  你在下一組 {myNextTeam} 隊
+                </p>
+                <p className="text-[11px] text-stone-500 mt-1">
+                  隊友：{myTeamMate ? myTeamMate.displayName : "待安排"}
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -361,10 +403,51 @@ export default function LiveViewPage({
                 isVerified={isVerified}
                 formatDuration={formatDuration}
                 getCourtLabel={getCourtLabel}
+                myPlayerId={myPlayerId}
               />
             ))}
           </div>
         )}
+
+        {/* Next Group */}
+        <div className="space-y-3">
+          <h2 className="text-[11px] tracking-[0.2em] text-stone-400 uppercase font-bold flex items-center gap-2">
+            <Zap size={12} className="text-sage" /> 下一組預備
+          </h2>
+          <div className={`neu-card rounded-2xl p-4 ${isMyTurnNext ? "ring-2 ring-sage/30 bg-sage/5" : ""}`}>
+            {isMyTurnNext && (
+              <div className="mb-3 text-[11px] text-sage font-bold tracking-[0.12em]">
+                你是下一組，請在場邊準備
+              </div>
+            )}
+            <div className="space-y-3">
+              {[
+                { label: "A 隊", slots: [0, 1], teamStyle: "border-sage/25 bg-sage/5", labelStyle: "text-sage" },
+                { label: "B 隊", slots: [2, 3], teamStyle: "border-[#D8D2C6] bg-[#F1EEE7]", labelStyle: "text-stone-600" }
+              ].map((team) => (
+                <div key={team.label} className={`rounded-xl border p-3 ${team.teamStyle}`}>
+                  <div className={`text-[10px] font-bold tracking-[0.2em] mb-2.5 ${team.labelStyle}`}>
+                    {team.label}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {team.slots.map((slotIdx) => {
+                      const playerId = nextGroupSlots[slotIdx];
+                      const player = nextGroupPlayers.find((p) => p.playerId === playerId && p.slot === slotIdx + 1);
+                      const isMe = !!myPlayerId && playerId === myPlayerId;
+                      return (
+                        <NextGroupSlotPill
+                          key={slotIdx}
+                          player={player || null}
+                          isMe={isMe}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {matches.length === 0 && (
           <div className="neu-card rounded-2xl p-8 text-center">
@@ -424,12 +507,17 @@ export default function LiveViewPage({
               {waitingPlayers.map((p) => (
                 <div
                   key={p.playerId}
-                  className="flex items-center justify-between px-4 py-3 opacity-50"
+                  className={`flex items-center justify-between px-4 py-3 opacity-50 ${
+                    p.playerId === myPlayerId ? "bg-sage/5" : ""
+                  }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <User size={14} className="text-stone-300" />
+                    <User size={14} className={p.playerId === myPlayerId ? "text-sage" : "text-stone-300"} />
                     <span className="text-sm text-stone-400">
                       {p.displayName}
+                      {p.playerId === myPlayerId && (
+                        <span className="text-[9px] ml-1.5 text-sage/80 font-bold">( 我 )</span>
+                      )}
                     </span>
                   </div>
                   <span className="text-[10px] text-stone-300 italic font-serif">
@@ -458,12 +546,14 @@ function MatchCard({
   isVerified,
   formatDuration,
   getCourtLabel,
+  myPlayerId,
 }: {
   match: Match;
   getPlayer: (id: number) => Player | undefined;
   isVerified: (p: Player) => boolean;
   formatDuration: (startTime: string) => string;
   getCourtLabel: (courtNum: string) => string;
+  myPlayerId: number | null;
 }) {
   const a1 = getPlayer(match.player_a1);
   const a2 = getPlayer(match.player_a2);
@@ -487,12 +577,9 @@ function MatchCard({
       </div>
 
       <div className="p-4">
-        {/* Team A */}
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-[9px] font-bold tracking-[0.3em] text-sage uppercase w-6 shrink-0">
-            A
-          </span>
-          <div className="flex-1 flex items-center gap-2 flex-wrap">
+        <div className="rounded-xl border border-sage/30 bg-sage/5 p-3">
+          <div className="text-[10px] font-bold tracking-[0.2em] text-sage mb-2">A 隊</div>
+          <div className="flex items-center gap-2 flex-wrap">
             {[a1, a2].map(
               (p, i) =>
                 p && (
@@ -500,24 +587,25 @@ function MatchCard({
                     key={i}
                     player={p}
                     verified={isVerified(p)}
+                    isMe={p.playerId === myPlayerId}
                   />
                 )
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3 px-6">
-          <div className="flex-1 h-[1px] bg-stone/20" />
-          <span className="text-[10px] text-stone-300 italic">vs</span>
-          <div className="flex-1 h-[1px] bg-stone/20" />
+        <div className="relative my-3">
+          <div className="h-[1px] bg-stone/20" />
+          <div className="absolute inset-0 flex items-center justify-center -translate-y-1/2 top-1/2">
+            <span className="px-3 py-0.5 rounded-full bg-[#FAF9F6] border border-stone/20 text-[11px] tracking-[0.22em] text-stone-500 uppercase font-bold">
+              VS
+            </span>
+          </div>
         </div>
 
-        {/* Team B */}
-        <div className="flex items-center gap-3 mt-3">
-          <span className="text-[9px] font-bold tracking-[0.3em] text-stone-500 uppercase w-6 shrink-0">
-            B
-          </span>
-          <div className="flex-1 flex items-center gap-2 flex-wrap">
+        <div className="rounded-xl border border-[#D8D2C6] bg-[#F1EEE7] p-3 mt-3">
+          <div className="text-[10px] font-bold tracking-[0.2em] text-stone-600 mb-2">B 隊</div>
+          <div className="flex items-center gap-2 flex-wrap">
             {[b1, b2].map(
               (p, i) =>
                 p && (
@@ -525,6 +613,7 @@ function MatchCard({
                     key={i}
                     player={p}
                     verified={isVerified(p)}
+                    isMe={p.playerId === myPlayerId}
                   />
                 )
             )}
@@ -538,15 +627,24 @@ function MatchCard({
 function TeamPlayerBadge({
   player,
   verified,
+  isMe,
 }: {
   player: Player;
   verified: boolean;
+  isMe: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone/5 border border-stone/20">
-      <span className="text-sm font-bold text-stone-800 truncate max-w-[100px]">
+    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
+      isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
+    }`}>
+      <span className={`text-sm font-bold truncate max-w-[100px] ${isMe ? "text-sage" : "text-stone-800"}`}>
         {player.displayName}
       </span>
+      {isMe && (
+        <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold">
+          我
+        </span>
+      )}
       {verified && (
         <CheckCircle
           size={10}
@@ -554,6 +652,40 @@ function TeamPlayerBadge({
         />
       )}
       <span className="text-[10px] text-sage italic font-serif font-bold">
+        L{Math.floor(player.level)}
+      </span>
+    </div>
+  );
+}
+
+function NextGroupSlotPill({
+  player,
+  isMe,
+}: {
+  player: NextGroupPlayer | null;
+  isMe: boolean;
+}) {
+  if (!player) {
+    return (
+      <div className="flex items-center rounded-full border border-dashed border-stone/25 bg-white/45 px-4 py-2 min-h-[44px]">
+        <span className="text-[11px] text-stone-300 italic">待安排</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full border min-h-[44px] ${
+      isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
+    }`}>
+      <span className={`text-sm font-bold truncate ${isMe ? "text-sage" : "text-stone-800"}`}>
+        {player.displayName}
+      </span>
+      {isMe && (
+        <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold">
+          我
+        </span>
+      )}
+      <span className={`text-[10px] italic font-serif font-bold ml-auto ${isMe ? "text-sage" : "text-stone-500"}`}>
         L{Math.floor(player.level)}
       </span>
     </div>
