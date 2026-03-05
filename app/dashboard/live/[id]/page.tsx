@@ -34,6 +34,8 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   const [isSyncingNextGroup, setIsSyncingNextGroup] = useState(false);
   const [nextGroupLoaded, setNextGroupLoaded] = useState(false);
   const [globalStrategy, setGlobalStrategy] = useState<Strategy>("fairness");
+  const [teammatePairCounts, setTeammatePairCounts] = useState<Record<string, number>>({});
+  const [pairingSeedBase, setPairingSeedBase] = useState<string>("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
   const [swappingSlotIdx, setSwappingSlotIdx] = useState<number | null>(null);
 
@@ -80,6 +82,8 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       if (jsonStatus.success) {
         setPlayers(jsonStatus.data.players);
         setMatches(jsonStatus.data.matches);
+        setTeammatePairCounts(jsonStatus.data?.pairingAssist?.teammatePairCounts || {});
+        setPairingSeedBase(`${gameId}:${jsonStatus.data?.pairingAssist?.latestFinishedMatchId || 0}`);
         const serverSlots = jsonStatus.data?.nextGroup?.slotPlayerIds;
         if (Array.isArray(serverSlots) && serverSlots.length === 4) {
           const next = serverSlots.map((id: number | null) => id ?? null);
@@ -221,6 +225,19 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   };
 
   // --- 磁鐵與智慧配對 ---
+  const getPairKey = (id1: number, id2: number) => {
+    return id1 < id2 ? `${id1}-${id2}` : `${id2}-${id1}`;
+  };
+
+  const getSeededUnit = (seed: string) => {
+    let hash = 2166136261;
+    for (let i = 0; i < seed.length; i++) {
+      hash ^= seed.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) / 4294967296;
+  };
+
   const handleBenchPlayerClick = (playerId: number) => {
     const inNextIdx = nextSlots.indexOf(playerId);
     if (inNextIdx !== -1) {
@@ -277,8 +294,49 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     }
 
     const selected4 = pool.slice(0, 4);
-    const ranked4 = [...selected4].sort((a, b) => b.level - a.level);
-    setNextSlots([ranked4[0].playerId, ranked4[3].playerId, ranked4[1].playerId, ranked4[2].playerId]);
+    const pairings = [
+      [0, 1, 2, 3],
+      [0, 2, 1, 3],
+      [0, 3, 1, 2]
+    ];
+
+    const REPEAT_TEAMMATE_WEIGHT = 1.2;
+    const scoredPairings = pairings.map((p, idx) => {
+      const a1 = selected4[p[0]];
+      const a2 = selected4[p[1]];
+      const b1 = selected4[p[2]];
+      const b2 = selected4[p[3]];
+
+      const teamALevel = a1.level + a2.level;
+      const teamBLevel = b1.level + b2.level;
+      const balancePenalty = Math.abs(teamALevel - teamBLevel);
+
+      const repeatPenalty =
+        ((teammatePairCounts[getPairKey(a1.playerId, a2.playerId)] || 0) +
+          (teammatePairCounts[getPairKey(b1.playerId, b2.playerId)] || 0)) *
+        REPEAT_TEAMMATE_WEIGHT;
+
+      const total = balancePenalty + repeatPenalty;
+      const randomTieBreak = getSeededUnit(`${pairingSeedBase}:${selected4.map(p0 => p0.playerId).join("-")}:${idx}`);
+
+      return { p, total, randomTieBreak };
+    });
+
+    const EPS = 1e-6;
+    scoredPairings.sort((x, y) => {
+      if (Math.abs(x.total - y.total) <= EPS) {
+        return y.randomTieBreak - x.randomTieBreak;
+      }
+      return x.total - y.total;
+    });
+
+    const best = scoredPairings[0].p;
+    setNextSlots([
+      selected4[best[0]].playerId,
+      selected4[best[1]].playerId,
+      selected4[best[2]].playerId,
+      selected4[best[3]].playerId
+    ]);
   };
 
   const executeStartMatch = async (courtNum: string) => {
