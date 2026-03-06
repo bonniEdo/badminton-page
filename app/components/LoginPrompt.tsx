@@ -14,7 +14,7 @@ export default function LoginPrompt() {
     localStorage.setItem("loginReturnPath", pathname);
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
     if (isLineBrowser) {
-      router.push("/login");
+      router.replace("/login");
       return;
     }
     try {

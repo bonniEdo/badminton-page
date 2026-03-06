@@ -103,9 +103,14 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const isLineBrowser = /Line/i.test(window.navigator.userAgent);
 
     if (token && pathname !== '/login') {
       setIsLiffLoading(false);
+    }
+
+    if (!token && isLineBrowser && pathname === '/login') {
+      return;
     }
 
     if (!token && PUBLIC_PATHS.includes(pathname)) {

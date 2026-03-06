@@ -172,7 +172,7 @@ export default function Browse() {
     localStorage.setItem("loginReturnPath", "/browse");
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
     if (isLineBrowser) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
     try {
