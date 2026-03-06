@@ -7,6 +7,7 @@ import {
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
+import LoginPrompt from "../components/LoginPrompt";
 import { Chip } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -162,6 +163,20 @@ export default function EnrolledPage() {
   }, [allSessions, showExpired, filterType]);
 
   if (loading) return <PageLoading message="正在調閱病歷..." showHeader />;
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-dvh neu-page text-stone-800 font-serif pb-20 overflow-x-hidden">
+        <AppHeader />
+        <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6">
+          <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的療程</h2>
+        </div>
+        <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
+          <LoginPrompt />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif pb-20 overflow-x-hidden">
