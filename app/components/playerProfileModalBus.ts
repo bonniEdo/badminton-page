@@ -1,7 +1,8 @@
 "use client";
 
 export type OpenPlayerProfileDetail = {
-  userId: number;
+  mode: "profile" | "login_prompt";
+  userId?: number;
   fallbackName: string;
   fallbackAvatarUrl?: string | null;
   anchorRect: {

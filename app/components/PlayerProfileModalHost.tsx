@@ -40,6 +40,17 @@ export default function PlayerProfileModalHost() {
       setError("");
       setIsOpen(true);
 
+      if (detail.mode === "login_prompt") {
+        setIsLoading(false);
+        return;
+      }
+
+      if (!detail.userId) {
+        setIsLoading(false);
+        setError("無法取得球員資訊");
+        return;
+      }
+
       const cached = cacheRef.current[detail.userId];
       if (cached) {
         setProfile(cached);
@@ -118,6 +129,7 @@ export default function PlayerProfileModalHost() {
   const arrowX = Math.min(Math.max(anchorCenterX - left, 14), CARD_WIDTH - 14);
   const levelText = `Lv.${Math.floor(profile?.level || 1)}`;
   const winRateText = `${profile?.winRate ?? 0}%`;
+  const isLoginPrompt = trigger.mode === "login_prompt";
 
   return createPortal(
     <div className="fixed inset-0 z-[130] pointer-events-none">
@@ -137,7 +149,22 @@ export default function PlayerProfileModalHost() {
           />
           <div className="min-w-0 flex-1">
             <p className="text-[14px] font-semibold text-stone-800 truncate">{displayName}</p>
-            {isLoading ? (
+            {isLoginPrompt ? (
+              <div className="mt-1">
+                <p className="text-[11px] text-stone-500">請先登入才能查看更多</p>
+                <button
+                  type="button"
+                  className="mt-2 inline-flex items-center rounded-lg border border-[#c9c2b3] bg-white/80 px-2.5 py-1 text-[11px] text-stone-700 hover:bg-white transition-colors"
+                  onClick={() => {
+                    const returnPath = `${window.location.pathname}${window.location.search}`;
+                    localStorage.setItem("loginReturnPath", returnPath);
+                    window.location.href = "/login";
+                  }}
+                >
+                  前往登入
+                </button>
+              </div>
+            ) : isLoading ? (
               <p className="text-[11px] text-stone-400">載入中...</p>
             ) : error ? (
               <p className="text-[11px] text-red-500 truncate">{error}</p>
