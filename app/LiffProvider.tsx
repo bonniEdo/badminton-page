@@ -54,6 +54,10 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
       return;
     }
 
+    if (pathname === '/login') {
+      setIsLiffLoading(true);
+    }
+
     if (!liffInitPromiseRef.current) {
       liffInitPromiseRef.current = liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || '' });
     }
