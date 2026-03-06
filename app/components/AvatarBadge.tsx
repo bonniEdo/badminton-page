@@ -57,8 +57,28 @@ export default function AvatarBadge({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        const token = localStorage.getItem("token");
         const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+        if (!token) {
+          emitOpenPlayerProfile({
+            mode: "login_prompt",
+            fallbackName: name,
+            fallbackAvatarUrl: avatarUrl,
+            anchorRect: {
+              left: rect.left,
+              top: rect.top,
+              width: rect.width,
+              height: rect.height,
+              bottom: rect.bottom,
+              right: rect.right,
+            },
+          });
+          return;
+        }
+
         emitOpenPlayerProfile({
+          mode: "profile",
           userId: Number(playerUserId),
           fallbackName: name,
           fallbackAvatarUrl: avatarUrl,
