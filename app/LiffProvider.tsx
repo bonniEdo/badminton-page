@@ -14,7 +14,7 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
   const pathname = usePathname();
 
   const [isLiffLoading, setIsLiffLoading] = useState(true);
-  const hasInitialized = useRef(false);
+  const liffInitPromiseRef = useRef<Promise<void> | null>(null);
 
   const resolveMeAndRedirect = async (token: string) => {
     const res = await fetch(`${API_URL}/api/user/me`, {
@@ -54,10 +54,11 @@ export default function LiffProvider({ children }: { children: React.ReactNode }
       return;
     }
 
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
+    if (!liffInitPromiseRef.current) {
+      liffInitPromiseRef.current = liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || '' });
+    }
 
-    liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || '' })
+    liffInitPromiseRef.current
       .then(async () => {
         const token = localStorage.getItem('token');
 
