@@ -995,7 +995,7 @@ export default function ProfilePage() {
         {/* 底部按鈕 */}
         <section className="flex flex-col gap-4">
           <button onClick={handleLogout} className="w-full py-5 border border-sage-100 text-sage-300 text-[10px] tracking-[0.6em] uppercase font-bold rounded-3xl hover:bg-sage-300 transition-all">
-            離所登記 
+            Logout 
           </button>
         </section>
 
