@@ -80,6 +80,20 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
       const jsonStatus = await resStatus.json();
       if (jsonStatus.success) {
+        if (jsonStatus.data?.autoClosed) {
+          setMsg({
+            isOpen: true,
+            title: "已收診",
+            content: "最後一場結束超過 10 分鐘，主控板已自動關閉。",
+            type: "info",
+            teamANames: "",
+            teamBNames: "",
+            onConfirm: () => router.replace("/enrolled"),
+            onCancel: null
+          });
+          return;
+        }
+
         setPlayers(jsonStatus.data.players);
         setMatches(jsonStatus.data.matches);
         setTeammatePairCounts(jsonStatus.data?.pairingAssist?.teammatePairCounts || {});
@@ -373,6 +387,60 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     if ((await res.json()).success) fetchData();
   };
 
+  const executeCloseGame = async () => {
+    if (matches.length > 0) {
+      setMsg({
+        isOpen: true,
+        title: "尚有對戰中",
+        content: "請先結束所有場地對戰，再關閉球團。",
+        type: "info",
+        teamANames: "",
+        teamBNames: "",
+        onConfirm: null,
+        onCancel: null
+      });
+      return;
+    }
+
+    if (!window.confirm("確認要關閉本場球團嗎？關閉後將退出主控板。")) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/games/delete/${gameId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setMsg({
+          isOpen: true,
+          title: "關閉失敗",
+          content: json.message || "無法關閉球團，請稍後再試。",
+          type: "info",
+          teamANames: "",
+          teamBNames: "",
+          onConfirm: null,
+          onCancel: null
+        });
+        return;
+      }
+      router.replace("/enrolled");
+    } catch (_) {
+      setMsg({
+        isOpen: true,
+        title: "關閉失敗",
+        content: "網路中斷，關閉球團失敗。",
+        type: "info",
+        teamANames: "",
+        teamBNames: "",
+        onConfirm: null,
+        onCancel: null
+      });
+    }
+  };
+
   const MagnetPlayer = ({ playerId, isNext = false }: { playerId: number | null, isNext?: boolean }) => {
     if (!playerId) return <div className="text-[11px] text-stone-300 italic flex items-center gap-1">待指派</div>;
     const p = players.find(player => player.playerId === playerId);
@@ -400,8 +468,12 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             <h1 className="text-sm font-bold tracking-[0.3em] uppercase">{gameInfo?.Title || "場地載入中"}</h1>
             <p className="text-[9px] text-stone-400 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
           </div>
-          <button onClick={() => setIsBenchOpen(true)} className="md:hidden text-sage"><Users size={20} /></button>
-          <div className="hidden md:block w-8"></div>
+          <div className="flex items-center gap-2">
+            <button onClick={executeCloseGame} className="text-[9px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border border-red-200 text-red-400 hover:bg-red-50 transition-all">
+              關閉球團
+            </button>
+            <button onClick={() => setIsBenchOpen(true)} className="md:hidden text-sage"><Users size={20} /></button>
+          </div>
         </div>
       </div>
 

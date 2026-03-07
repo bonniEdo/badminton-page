@@ -62,6 +62,17 @@ interface NextGroupPlayer {
   isHost: boolean;
 }
 
+interface LiveStatusData {
+  players: Player[];
+  matches: Match[];
+  myPlayerId?: number | null;
+  nextGroup?: {
+    slotPlayerIds?: (number | null)[];
+    players?: NextGroupPlayer[];
+  };
+  autoClosed?: boolean;
+}
+
 export default function LiveViewPage({
   params,
 }: {
@@ -110,17 +121,24 @@ export default function LiveViewPage({
 
       const jsonStatus = await resStatus.json();
       if (jsonStatus.success) {
-        setPlayers(jsonStatus.data.players);
-        setMatches(jsonStatus.data.matches);
-        const nextGroup = jsonStatus.data?.nextGroup;
+        const statusData = (jsonStatus.data || {}) as LiveStatusData;
+        if (statusData.autoClosed) {
+          alert("最後一場結束超過 10 分鐘，本場實況已關閉。");
+          router.replace("/enrolled");
+          return;
+        }
+
+        setPlayers(statusData.players || []);
+        setMatches(statusData.matches || []);
+        const nextGroup = statusData.nextGroup;
         if (Array.isArray(nextGroup?.slotPlayerIds) && nextGroup.slotPlayerIds.length === 4) {
           setNextGroupSlots(nextGroup.slotPlayerIds.map((id: number | null) => id ?? null));
         } else {
           setNextGroupSlots([null, null, null, null]);
         }
         setNextGroupPlayers(Array.isArray(nextGroup?.players) ? nextGroup.players : []);
-        if (jsonStatus.data.myPlayerId) {
-          setMyPlayerId(jsonStatus.data.myPlayerId);
+        if (statusData.myPlayerId) {
+          setMyPlayerId(statusData.myPlayerId);
         }
       }
     } catch (e) {
