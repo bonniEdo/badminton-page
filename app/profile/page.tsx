@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
+import AvatarBadge from "../components/AvatarBadge";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -535,6 +536,25 @@ export default function ProfilePage() {
     return isValid && d && d >= weekStartStr && d <= weekEndStr;
   });
   const weeklyWins = weeklyValidMatches.filter(m => m.result === "win").length;
+  const firstPlayer = (players: any[] | undefined, fallbackNames?: string[]) => {
+    if (Array.isArray(players) && players.length > 0) return players[0];
+    const fallbackName = Array.isArray(fallbackNames) && fallbackNames.length > 0 ? fallbackNames[0] : "無";
+    return { playerId: null, userId: null, displayName: fallbackName, avatarUrl: null };
+  };
+  const fixedTwoPlayers = (players: any[] | undefined, fallbackNames?: string[]) => {
+    const result = Array.isArray(players) ? players.slice(0, 2) : [];
+    const fallback = Array.isArray(fallbackNames) ? fallbackNames.slice(0, 2) : [];
+    while (result.length < 2) {
+      const idx = result.length;
+      result.push({
+        playerId: null,
+        userId: null,
+        displayName: fallback[idx] || "無",
+        avatarUrl: null,
+      });
+    }
+    return result;
+  };
 
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif pb-24 overflow-x-hidden selection:bg-sage/10">
@@ -929,6 +949,37 @@ export default function ProfilePage() {
                             <MapPin size={13} className="text-sage/40" /> 
                             {m.location}
                           </p>
+                            <div className="mt-1.5">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="rounded-lg border border-sage/20 bg-sage/10 px-2 py-2 min-h-[70px] flex flex-col">
+                                <p className="text-[9px] tracking-[0.18em] text-sage/90 font-black mb-1">夥伴</p>
+                                {(() => {
+                                  const p = firstPlayer(m.teammatePlayers, m.teammateNames);
+                                  return (
+                                    <div className="flex items-center gap-1.5 my-auto min-w-0">
+                                      <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="xs" playerUserId={p.userId ?? null} />
+                                      <p className="text-[10px] md:text-[11px] text-stone-700 font-semibold leading-snug line-clamp-2 break-words">
+                                        {p.displayName}
+                                      </p>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                              <div className="rounded-lg border border-rose-100/80 bg-rose-50/35 px-2 py-2 min-h-[70px] flex flex-col">
+                                <p className="text-[9px] tracking-[0.18em] text-rose-500/90 font-black mb-1">敵人</p>
+                                <div className="space-y-1.5 my-auto">
+                                  {fixedTwoPlayers(m.opponentPlayers, m.opponentNames).map((p, nameIdx) => (
+                                    <div key={`${m.match_id}-op-${nameIdx}`} className="flex items-center gap-1.5 min-w-0">
+                                      <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="xs" playerUserId={p.userId ?? null} />
+                                      <p className="text-[10px] md:text-[11px] text-stone-700 font-semibold leading-snug line-clamp-1 break-words">
+                                        {p.displayName}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
