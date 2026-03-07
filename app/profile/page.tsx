@@ -920,18 +920,26 @@ export default function ProfilePage() {
                     >
                       {/* 左側勝負索引邊條 (隱藏式設計) */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all duration-500 opacity-0 group-hover:opacity-100 ${
-                        m.result === 'win' ? 'bg-sage' : 'bg-stone-200'
+                        m.result === 'win' ? 'bg-sage' : m.result === 'loss' ? 'bg-stone-200' : 'bg-amber-200'
                       }`}></div>
 
                       {/* 左側核心內容 */}
                       <div className="flex items-center gap-5 md:gap-6">
                         {/* 勝負圖示：圓形背景 */}
                         <div className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center border transition-all duration-500 ${
-                          m.result === 'win' 
-                            ? 'border-sage/20 bg-sage text-white shadow-lg shadow-sage/20' 
-                            : 'border-white bg-white/40 text-stone-300 group-hover:bg-white'
+                          m.result === 'win'
+                            ? 'border-sage/20 bg-sage text-white shadow-lg shadow-sage/20'
+                            : m.result === 'loss'
+                              ? 'border-white bg-white/40 text-stone-300 group-hover:bg-white'
+                              : 'border-amber-100 bg-amber-50/80 text-amber-500'
                         }`}>
-                          {m.result === 'win' ? <Trophy size={20} strokeWidth={1.5} /> : <XCircle size={20} strokeWidth={1.5} />}
+                          {m.result === 'win' ? (
+                            <Trophy size={20} strokeWidth={1.5} />
+                          ) : m.result === 'loss' ? (
+                            <XCircle size={20} strokeWidth={1.5} />
+                          ) : (
+                            <Swords size={20} strokeWidth={1.5} />
+                          )}
                         </div>
                         
                         <div className="flex flex-col gap-1.5">
@@ -940,9 +948,13 @@ export default function ProfilePage() {
                               Court {m.court_number}
                             </h4>
                             <span className={`text-[8px] md:text-[9px] uppercase tracking-[0.2em] font-black px-2.5 py-1 rounded-full ${
-                              m.result === 'win' ? 'bg-sage/10 text-sage' : 'bg-stone-200/50 text-stone-400'
+                              m.result === 'win'
+                                ? 'bg-sage/10 text-sage'
+                                : m.result === 'loss'
+                                  ? 'bg-stone-200/50 text-stone-400'
+                                  : 'bg-amber-100/70 text-amber-600'
                             }`}>
-                              {m.result === 'win' ? 'Victory' : 'Defeat'}
+                              {m.result === 'win' ? 'Victory' : m.result === 'loss' ? 'Defeat' : 'No Rating'}
                             </span>
                           </div>
                           <p className="text-[10px] md:text-[12px] text-stone-400 font-medium tracking-wide flex items-center gap-1.5 mt-0.5">
