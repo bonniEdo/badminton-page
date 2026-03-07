@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { CheckCircle } from "lucide-react";
 import {
   onOpenPlayerProfile,
   type OpenPlayerProfileDetail,
@@ -13,6 +14,7 @@ type PublicPlayerProfile = {
   avatarUrl?: string | null;
   level: number;
   winRate: number;
+  verifiedMatches: number;
 };
 
 const isBrowserProduction =
@@ -81,6 +83,7 @@ export default function PlayerProfileModalHost() {
           avatarUrl: json.data.avatarUrl,
           level: Number(json.data.level || 1),
           winRate: Number(json.data.winRate || 0),
+          verifiedMatches: Number(json.data.verified_matches || 0),
         };
 
         cacheRef.current[detail.userId] = slimProfile;
@@ -129,6 +132,7 @@ export default function PlayerProfileModalHost() {
   const arrowX = Math.min(Math.max(anchorCenterX - left, 14), CARD_WIDTH - 14);
   const levelText = `Lv.${Math.floor(profile?.level || 1)}`;
   const winRateText = `${profile?.winRate ?? 0}%`;
+  const isVerified = (profile?.verifiedMatches || 0) >= 3;
   const isLoginPrompt = trigger.mode === "login_prompt";
 
   return createPortal(
@@ -148,7 +152,12 @@ export default function PlayerProfileModalHost() {
             name={displayName}
           />
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-semibold text-stone-800 truncate">{displayName}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[14px] font-semibold text-stone-800 truncate">{displayName}</p>
+              {!isLoginPrompt && isVerified && (
+                <CheckCircle size={14} className="text-blue-500 fill-blue-50 shrink-0" />
+              )}
+            </div>
             {isLoginPrompt ? (
               <div className="mt-1">
                 <p className="text-[11px] text-stone-500">請先登入才能查看更多</p>
@@ -203,4 +212,3 @@ function StaticAvatar({
     </span>
   );
 }
-
