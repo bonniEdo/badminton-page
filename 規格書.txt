@@ -317,6 +317,8 @@ Badminton-Rehab 前端系統規格書
 - `SessionCard` 於日期資訊上方顯示團主頭貼與名稱（有提供主揪資料時）
 - `SessionCard` 已取消 enrolled/browse 分支元件與 SharedSessionCardData，統一單一元件實作
 - 在 `browse` 由主揪檢視卡片時，提供：進入主控室、複製療程、終止療程
+- 在 `enrolled` 由主揪檢視卡片時，右上角標籤文案統一為「我開的」
+- 在 `enrolled` 若 joined/mygame 缺少主揪資料，前端會以 `activegames` 補齊主揪名稱與頭貼
 - 以 `neu-*` class 套用一致視覺（低圓角、`border-2`、預設無陰影）
 
 ==================================================

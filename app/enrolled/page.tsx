@@ -22,6 +22,18 @@ interface Session {
   isHosted?: boolean;
 }
 
+interface CurrentUser {
+  id?: number;
+  username?: string;
+  avatarUrl?: string | null;
+}
+
+interface ActiveGameHostMeta {
+  hostId?: number;
+  hostName?: string;
+  hostAvatarUrl?: string | null;
+}
+
 export default function EnrolledPage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
   const router = useRouter();
@@ -46,8 +58,22 @@ export default function EnrolledPage() {
     }
   }, []);
 
-  const mapSession = (g: any, isHosted: boolean): Session => ({
-    id: g.GameId, hostId: g.HostID, hostName: g.hostName ?? g.HostName, hostAvatarUrl: g.hostAvatarUrl ?? g.HostAvatarUrl ?? null, title: g.Title ?? "未命名療程",
+  const mapSession = (
+    g: any,
+    isHosted: boolean,
+    fallbackUser?: CurrentUser | null,
+    hostMetaByGameId?: Record<number, ActiveGameHostMeta>
+  ): Session => ({
+    ...(() => {
+      const gameHostMeta = hostMetaByGameId?.[Number(g.GameId)] || {};
+      return {
+        hostId: g.HostID ?? gameHostMeta.hostId ?? (isHosted ? fallbackUser?.id : undefined),
+        hostName: g.hostName ?? g.HostName ?? g.host_name ?? g.HostUsername ?? g.HostUserName ?? g.Username ?? gameHostMeta.hostName ?? (isHosted ? fallbackUser?.username : undefined),
+        hostAvatarUrl: g.hostAvatarUrl ?? g.HostAvatarUrl ?? g.host_avatar_url ?? g.AvatarUrl ?? gameHostMeta.hostAvatarUrl ?? (isHosted ? fallbackUser?.avatarUrl : null),
+      };
+    })(),
+    id: g.GameId,
+    title: g.Title ?? "未命名療程",
     date: (g.GameDateTime ?? "").slice(0, 10),
     time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
     endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定場所",
@@ -65,20 +91,51 @@ export default function EnrolledPage() {
       const token = localStorage.getItem("token");
       if (!token) return;
       const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "ngrok-skip-browser-warning": "true" };
-      const [resJoined, resHosted] = await Promise.all([
+      const [resJoined, resHosted, resMe, resActive] = await Promise.all([
         fetch(`${API_URL}/api/games/joined`, { headers }),
         fetch(`${API_URL}/api/games/mygame`, { headers }),
+        fetch(`${API_URL}/api/user/me`, { headers }),
+        fetch(`${API_URL}/api/games/activegames`, { headers }),
       ]);
+      const jsonMe = resMe.ok ? await resMe.json() : { success: false };
+      let resolvedUser: CurrentUser | null = null;
+      if (jsonMe.success && jsonMe.user) {
+        const me: CurrentUser = {
+          id: jsonMe.user.id,
+          username: jsonMe.user.username,
+          avatarUrl: jsonMe.user.avatarUrl ?? null,
+        };
+        resolvedUser = me;
+        localStorage.setItem("user", JSON.stringify(jsonMe.user));
+      } else {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          try {
+            resolvedUser = JSON.parse(userStr);
+          } catch {}
+        }
+      }
       const jsonJoined = resJoined.ok ? await resJoined.json() : { success: false, data: [] };
       const jsonHosted = resHosted.ok ? await resHosted.json() : { success: false, data: [] };
+      const jsonActive = resActive.ok ? await resActive.json() : { success: false, data: [] };
+      const hostMetaByGameId: Record<number, ActiveGameHostMeta> = {};
+      if (jsonActive.success) {
+        (jsonActive.data || []).forEach((g: any) => {
+          hostMetaByGameId[Number(g.GameId)] = {
+            hostId: g.HostID,
+            hostName: g.hostName,
+            hostAvatarUrl: g.hostAvatarUrl ?? null,
+          };
+        });
+      }
       const hostedIds = new Set<number>();
       const hostedList: Session[] = [];
       if (jsonHosted.success) {
-        (jsonHosted.data || []).forEach((g: any) => { hostedIds.add(g.GameId); hostedList.push(mapSession(g, true)); });
+        (jsonHosted.data || []).forEach((g: any) => { hostedIds.add(g.GameId); hostedList.push(mapSession(g, true, resolvedUser, hostMetaByGameId)); });
       }
       const joinedList: Session[] = [];
       if (jsonJoined.success) {
-        (jsonJoined.data || []).forEach((g: any) => { if (!hostedIds.has(g.GameId)) joinedList.push(mapSession(g, false)); });
+        (jsonJoined.data || []).forEach((g: any) => { if (!hostedIds.has(g.GameId)) joinedList.push(mapSession(g, false, resolvedUser, hostMetaByGameId)); });
       }
       setAllSessions([...hostedList, ...joinedList]);
     } catch (e: any) { console.error(e.message); }
@@ -215,7 +272,7 @@ export default function EnrolledPage() {
                 todayStr={todayStr}
                 isHost={!!session.isHosted}
                 isJoined={!session.isHosted}
-                statusLabel={session.isExpired ? "已結束" : session.isHosted ? "主揪管理" : "場邊休息"}
+                statusLabel={session.isExpired ? "已結束" : session.isHosted ? "我開的" : "場邊休息"}
                 onOpenDetail={setSelectedSession}
                 onCheckIn={(s) => setCheckInModal({ isOpen: true, session: s })}
                 onOpenLive={(s) => router.push(s.isHosted ? `/dashboard/live/${s.id}` : `/enrolled/live/${s.id}`)}
