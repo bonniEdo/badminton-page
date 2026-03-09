@@ -11,7 +11,7 @@
   --color-sage: #9caf88;
   --color-stone: #9caf88;
   --color-alert: #3d5a44;
-  --font-serif: "Noto Serif TC", serif;
+  --font-serif: "Noto Sans TC", "Source Han Sans TC", sans-serif;
 }
 
 :root {
@@ -35,9 +35,17 @@ html {
 body {
   background: var(--brutal-bg);
   color: var(--brutal-ink);
-  font-family: var(--font-serif), "Noto Serif TC", serif;
+  font-family: var(--font-serif), "Noto Sans TC", "Source Han Sans TC", sans-serif;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
+}
+
+/* 全站字級下限：任何小於 12px 的文字都提升到 12px */
+[class*="text-[8px]"],
+[class*="text-[9px]"],
+[class*="text-[10px]"],
+[class*="text-[11px]"] {
+  font-size: 12px !important;
 }
 
 .neu-page {

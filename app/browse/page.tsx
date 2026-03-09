@@ -328,7 +328,7 @@ export default function Browse() {
                 onClick={() => setFilterDate(allChip.value)}
                 active={filterDate === allChip.value}
                 className={`min-w-[74px] px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
-                  filterDate === allChip.value ? "" : "text-ink/60"
+                  filterDate === allChip.value ? "" : "text-ink/80"
                 }`}
               >
                 {(() => {
@@ -350,7 +350,7 @@ export default function Browse() {
                 onClick={() => setFilterDate(chip.value)}
                 active={filterDate === chip.value}
                 className={`min-w-[74px] px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
-                  filterDate === chip.value ? "" : "text-ink/60"
+                  filterDate === chip.value ? "" : "text-ink/80"
                 }`}
               >
                 {(() => {

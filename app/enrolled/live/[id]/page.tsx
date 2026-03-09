@@ -554,9 +554,9 @@ export default function LiveViewPage({
       </div>
 
       <style jsx global>{`
-        @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700;900&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700;900&display=swap");
         body {
-          font-family: "Noto Serif TC", serif;
+          font-family: "Noto Sans TC", "Source Han Sans TC", sans-serif;
         }
       `}</style>
     </div>

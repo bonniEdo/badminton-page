@@ -309,9 +309,13 @@ Badminton-Rehab 前端系統規格書
 - 硬陰影：`4px 4px 0 #1A1A1A`（僅重點 CTA / FAB 使用，非全域預設）
 
 2) 字體
-- Noto Serif TC 為主
+- 全站使用思源黑體（Noto Sans TC / Source Han Sans TC）
 
-3) 共用元件
+3) 文字可讀性規範
+- 全站最小字級為 12px（小字不得低於 12px）
+- 禁用 `text-ink/60`，次要文字改用 `text-ink/80` 以上對比
+
+4) 共用元件
 - Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab, SessionDetailModal（球局詳情）, SessionCard（球局卡片）
 - `SessionCard` 以資料 props 驅動，不再由頁面傳入 card 內部 DOM；`/enrolled` 與 `/browse` 共用同一套 card 結構
 - 在 `browse` 由主揪檢視卡片時，提供：進入主控室、複製療程、終止療程

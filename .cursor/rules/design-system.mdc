@@ -27,7 +27,7 @@ alwaysApply: true
 
 ## 字體與排版
 
-- 標題/品牌字：`font-serif`（Noto Serif TC）。
+- 全站字體：`Noto Sans TC` / `Source Han Sans TC`（思源黑體）。
 - 內文/UI：系統無襯線或既有專案預設字體。
 - 行高：
   - 標題：`leading-tight`
@@ -120,14 +120,14 @@ disabled -> bg-paper/70 text-ink/50
 外層: fixed bottom-0 w-full bg-paper border-t-2 border-ink
 內層: 不加 border、不加陰影、可用分隔線
 active item -> text-sage font-bold
-inactive item -> text-ink/60
+inactive item -> text-ink/80
 ```
 
 ### Segmented Control（如 日/月、公平/巔峰）
 ```
 容器: inline-flex border-2 border-ink rounded-sm bg-paper p-1 shadow-none
 active: bg-sage text-ink font-bold border-2 border-ink
-inactive: bg-paper text-ink/60 border border-transparent
+inactive: bg-paper text-ink/80 border border-transparent
 ```
 
 ## 5) Feedback 類（Tag / Badge / Modal）

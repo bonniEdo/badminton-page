@@ -134,7 +134,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
           </button>
         </div>
 
-        <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${session.isExpired ? "text-ink/60" : "text-sage"}`}>
+        <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${session.isExpired ? "text-ink/80" : "text-sage"}`}>
           {session.title}
         </h2>
 

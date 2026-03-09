@@ -437,7 +437,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className={`text-xl tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-ink/60" : ""}`}>{session.title}</h3>
+                      <h3 className={`text-xl tracking-wide pr-4 ${isCancelled || session.isExpired ? "text-ink/80" : ""}`}>{session.title}</h3>
                         {!isCancelled && !session.isExpired && session.status === 'waiting_checkin' && (
                           <button 
                             onClick={(e) => handleLeave(e, session)} 
@@ -466,7 +466,7 @@ export default function Dashboard() {
                     )}
 
                     <div className="flex justify-end mt-6">
-                      {isCancelled ? <span className="text-[12px] text-ink font-bold italic tracking-[0.2em] uppercase">主治已取消</span> : session.isExpired ? <span className="text-[12px] text-ink/60 italic tracking-widest uppercase">已嘗試勒戒</span> : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-sage" : "text-ink/70"}`}><span className={`font-bold`}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                      {isCancelled ? <span className="text-[12px] text-ink font-bold italic tracking-[0.2em] uppercase">主治已取消</span> : session.isExpired ? <span className="text-[12px] text-ink/80 italic tracking-widest uppercase">已嘗試勒戒</span> : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-sage" : "text-ink/70"}`}><span className={`font-bold`}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
                     </div>
                   </div>
                 );
@@ -489,7 +489,7 @@ export default function Dashboard() {
               }`}
             >
               <div className="flex justify-between items-start mb-3">
-                <h3 className={`text-xl tracking-wide pr-4 ${s.isHostCanceled ? "text-ink/65" : s.isExpired ? "text-ink/60" : ""}`}>
+                <h3 className={`text-xl tracking-wide pr-4 ${s.isHostCanceled ? "text-ink/65" : s.isExpired ? "text-ink/80" : ""}`}>
                   {s.title}
                 </h3>
                 <div className="flex gap-3">
@@ -520,7 +520,7 @@ export default function Dashboard() {
                 {s.isHostCanceled ? (
                   <span className="text-[12px] text-ink font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
                 ) : s.isExpired ? (
-                  <span className="text-[12px] text-ink/60 italic tracking-widest uppercase">療程紀錄</span>
+                  <span className="text-[12px] text-ink/80 italic tracking-widest uppercase">療程紀錄</span>
                 ) : (
                   <span className="text-[12px] text-ink/70 tracking-tighter">
                     <span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人
@@ -551,7 +551,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30">
           <div className={`neu-modal w-full max-w-md p-8 relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-ink/50 hover:text-sage transition-colors"><X size={24}/></button>
-            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-ink/60" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
+            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-ink/80" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-ink/75 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14} /> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <p className="flex items-center gap-3 italic"><MapPin size={14} /> {selectedSession.location}</p>
@@ -627,7 +627,7 @@ export default function Dashboard() {
 
               <button 
                 onClick={() => setLevelModal({ isOpen: false })}
-                className="mt-10 text-[11px] text-ink/60 tracking-[0.4em] uppercase hover:text-ink"
+                className="mt-10 text-[11px] text-ink/80 tracking-[0.4em] uppercase hover:text-ink"
               >
                 取消
               </button>

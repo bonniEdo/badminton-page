@@ -673,10 +673,10 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       )}
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1A1A1A; border-radius: 10px; }
-        body { font-family: 'Noto Serif TC', serif; background-color: #F7F7F2; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Noto Sans TC', 'Source Han Sans TC', sans-serif; background-color: #F7F7F2; -webkit-tap-highlight-color: transparent; }
       `}</style>
     </div>
   );

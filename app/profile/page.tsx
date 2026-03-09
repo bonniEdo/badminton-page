@@ -1065,8 +1065,8 @@ export default function ProfilePage() {
       </main>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700;900&display=swap');
-        body { background-color: #F7F7F2; font-family: 'Noto Serif TC', serif; -webkit-tap-highlight-color: transparent; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        body { background-color: #F7F7F2; font-family: 'Noto Sans TC', 'Source Han Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
 
         @keyframes float {
           0% { transform: translateY(0px); }

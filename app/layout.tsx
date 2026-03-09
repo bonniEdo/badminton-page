@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Serif_TC } from "next/font/google";
+import { Noto_Sans_TC } from "next/font/google";
 import fs from "node:fs";
 import path from "node:path";
 import "./globals.css";
@@ -8,7 +8,7 @@ import LiffProvider from './LiffProvider';
 import ServiceWorkerRegister from './components/ServiceWorkerRegister';
 import BackendVersionTag from "./components/BackendVersionTag";
 
-const notoSerifTC = Noto_Serif_TC({
+const notoSansTC = Noto_Sans_TC({
   subsets: ["latin"],
   weight: ["400", "700"],
   variable: "--font-serif",
@@ -80,7 +80,7 @@ export default function RootLayout({  children,
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className={`${notoSerifTC.variable} antialiased`}>
+      <body className={`${notoSansTC.variable} antialiased`}>
         <BackendVersionTag />
         <ServiceWorkerRegister />
         <LiffProvider>

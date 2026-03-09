@@ -313,7 +313,7 @@ export default function SchedulePage() {
   const getSessionStyle = (session: Session) => {
     const isCancelled = session.isHostCanceled;
     if (isCancelled) return "text-alert/70 line-through";
-    if (session.isExpired) return "text-ink/60";
+    if (session.isExpired) return "text-ink/80";
     if (session.isHosted) return "text-sage";
     if (session.myStatus === 'WAITLIST') return "text-sage";
     return "text-sage";
@@ -436,7 +436,7 @@ export default function SchedulePage() {
                     } ${isToday ? "ring-1 ring-inset ring-sage/30" : ""}`}
                   >
                     <div className={`text-[11px] md:text-[12px] mb-0.5 md:mb-1 ${
-                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/60" : "text-ink/40"
+                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/80" : "text-ink/40"
                     }`}>
                       {cell.day}
                     </div>
@@ -499,7 +499,7 @@ export default function SchedulePage() {
                   className="w-full py-5 px-6 rounded-full border-2 border-ink bg-paper text-ink text-sm tracking-[0.2em] hover:bg-sage hover:text-white transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A]">{lvl.label}</button>
               ))}
             </div>
-            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[11px] text-ink/60 tracking-[0.4em] uppercase hover:text-ink">取消</button>
+            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[11px] text-ink/80 tracking-[0.4em] uppercase hover:text-ink">取消</button>
           </div>
         </div>
       )}
