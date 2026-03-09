@@ -292,6 +292,10 @@ export default function EnrolledPage() {
         isLoggedIn={isLoggedIn}
         isHost={!!selectedSession?.isHosted}
         canCheckIn={!!(selectedSession && !selectedSession.isHosted && selectedSession.status === "waiting_checkin" && !selectedSession.check_in_at)}
+        onOpenLive={selectedSession ? () => {
+          setSelectedSession(null);
+          router.push(selectedSession.isHosted ? `/dashboard/live/${selectedSession.id}` : `/enrolled/live/${selectedSession.id}`);
+        } : undefined}
         onHostLive={selectedSession ? () => {
           setSelectedSession(null);
           router.push(`/dashboard/live/${selectedSession.id}`);

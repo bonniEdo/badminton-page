@@ -160,6 +160,11 @@ Badminton-Rehab 前端系統規格書
 - 進入 live board：`/dashboard/live/{id}`
 - 複製既有球局作為新建草稿
 
+4) 球局詳情 Modal（SessionDetailModal）
+- 未過期且未取消時，若有 live callback：
+  - 主揪顯示「進入主控室」
+  - 參與者顯示「查看對戰實況」
+
 6.4 主揪實況主控（`/dashboard/live/[id]`）
 1) 即時資料
 - 初始 + refresh：`GET /api/games/{id}` + `GET /api/match/live-status/{id}`

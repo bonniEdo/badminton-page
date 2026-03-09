@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Banknote, Calendar, MapPin, UserCheck, X } from "lucide-react";
+import { Activity, Banknote, Calendar, Copy, MapPin, Settings2, Trash2, UserCheck, X } from "lucide-react";
 import AvatarBadge from "./AvatarBadge";
 
 interface SessionDetailBase {
@@ -39,6 +39,7 @@ interface SessionDetailModalProps<T extends SessionDetailBase> {
   canCheckIn?: boolean;
   isHostCanceled?: boolean;
   onHostLive?: () => void;
+  onOpenLive?: () => void;
   onCheckIn?: () => void;
   onAddFriend?: () => void;
   onCopy?: () => void;
@@ -61,6 +62,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   canCheckIn = false,
   isHostCanceled = false,
   onHostLive,
+  onOpenLive,
   onCheckIn,
   onAddFriend,
   onCopy,
@@ -123,6 +125,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   const statusText = session.isExpired ? "療程已結束" : isHostCanceled ? "已取消療程" : "";
   const canShowActions = !session.isExpired && !isHostCanceled;
   const hasAddedFriend = (session.friendCount ?? 0) >= 1;
+  const liveAction = isHost ? (onHostLive ?? onOpenLive) : onOpenLive;
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${overlayClassName}`}>
@@ -230,9 +233,14 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                   </>
                 ) : (
                   <>
-                    {isToday && isHost && onHostLive && (
-                      <button onClick={onHostLive} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
-                        進入主控室
+                    {liveAction && (
+                      <button
+                        onClick={liveAction}
+                        className={`flex items-center justify-center gap-3 w-full py-3 text-[12px] tracking-[0.2em] transition-all font-bold neu-btn ${
+                          isHost ? "text-amber-800" : "text-stone-800"
+                        }`}
+                      >
+                        {isHost ? <><Settings2 size={16} /> 進入主控室</> : <><Activity size={16} /> 查看對戰實況</>}
                       </button>
                     )}
                     {!isHost && isToday && canCheckIn && onCheckIn && (
@@ -245,15 +253,29 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                         + 朋友 (限一位)
                       </button>
                     )}
-                    {isHost && onCopy && (
-                      <button onClick={onCopy} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
-                        複製療程
-                      </button>
-                    )}
-                    {isHost && onDelete && (
-                      <button onClick={onDelete} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
-                        終止此療程
-                      </button>
+                    {isHost && (onCopy || onDelete) && (
+                      <div className="flex gap-2">
+                        {onCopy && (
+                          <button
+                            onClick={onCopy}
+                            className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
+                            title="複製療程"
+                            aria-label="複製療程"
+                          >
+                            <Copy size={16} />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={onDelete}
+                            className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
+                            title="終止療程"
+                            aria-label="終止療程"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </>
                 )}
