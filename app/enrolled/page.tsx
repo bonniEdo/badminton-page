@@ -276,6 +276,7 @@ export default function EnrolledPage() {
                 onOpenDetail={setSelectedSession}
                 onCheckIn={(s) => setCheckInModal({ isOpen: true, session: s })}
                 onOpenLive={(s) => router.push(s.isHosted ? `/dashboard/live/${s.id}` : `/enrolled/live/${s.id}`)}
+                onEdit={session.isHosted ? (s) => router.push(`/create?editGameId=${s.id}`) : undefined}
                 onCopy={(s) => handleCopy(s)}
                 onDelete={(s) => setDeleteConfirm({ isOpen: true, id: s.id })}
               />

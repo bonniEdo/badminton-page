@@ -390,6 +390,7 @@ export default function Browse() {
                 locationLink={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`}
                 onOpenDetail={handleOpenDetail}
                 onOpenLive={isHost ? () => router.push(`/dashboard/live/${s.id}`) : undefined}
+                onEdit={isHost ? () => router.push(`/create?editGameId=${s.id}`) : undefined}
                 onCopy={isHost ? () => handleCopy(s) : undefined}
                 onDelete={isHost ? () => setDeleteConfirm({ isOpen: true, id: s.id }) : undefined}
               />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Banknote, Calendar, CheckCircle, Clock, Copy, MapPin, Settings2, Trash2 } from "lucide-react";
+import { Activity, Banknote, Calendar, CheckCircle, Clock, Copy, MapPin, Pencil, Settings2, Trash2 } from "lucide-react";
 import AvatarBadge from "./AvatarBadge";
 
 interface SessionCardData {
@@ -33,6 +33,7 @@ interface SessionCardProps<TSession extends SessionCardData = SessionCardData> {
   onOpenDetail: (session: TSession) => void;
   onOpenLive?: (session: TSession) => void;
   onCheckIn?: (session: TSession) => void;
+  onEdit?: (session: TSession) => void;
   onCopy?: (session: TSession) => void;
   onDelete?: (session: TSession) => void;
 }
@@ -47,6 +48,7 @@ export default function SessionCard<TSession extends SessionCardData>({
   onOpenDetail,
   onOpenLive,
   onCheckIn,
+  onEdit,
   onCopy,
   onDelete,
 }: SessionCardProps<TSession>) {
@@ -123,7 +125,7 @@ export default function SessionCard<TSession extends SessionCardData>({
           ) : null
         )}
 
-        {!session.isExpired && onOpenLive && (
+        {!session.isExpired && isToday && onOpenLive && (
           <button
             onClick={(e) => { e.stopPropagation(); onOpenLive(session); }}
             className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] transition-all rounded-xl font-bold neu-btn ${hosted ? "text-amber-800" : "text-stone-800"}`}
@@ -132,8 +134,9 @@ export default function SessionCard<TSession extends SessionCardData>({
           </button>
         )}
 
-        {hosted && !session.isExpired && (onCopy || onDelete) && (
+        {hosted && !session.isExpired && (onEdit || onCopy || onDelete) && (
           <div className="flex gap-2">
+            {onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(session); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="編輯療程"><Pencil size={16} /></button>}
             {onCopy && <button onClick={(e) => { e.stopPropagation(); onCopy(session); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="複製療程"><Copy size={16} /></button>}
             {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(session); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="終止療程"><Trash2 size={16} /></button>}
           </div>

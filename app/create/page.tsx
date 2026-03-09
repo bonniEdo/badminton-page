@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { PlusCircle, CheckCircle, Info } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import LoginPrompt from "../components/LoginPrompt";
 import { Button, Card, Input, Modal, Select, Textarea } from "../components/ui";
@@ -17,8 +17,12 @@ const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
 
 export default function CreatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editGameId = searchParams.get("editGameId");
+  const isEditMode = !!editGameId;
   const todayStr = new Date().toISOString().split("T")[0];
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isEditLoading, setIsEditLoading] = useState(false);
 
   const [newSession, setNewSession] = useState({
     title: "", gameDate: "", gameTime: "18:00", location: "竹東鎮立羽球場",
@@ -33,7 +37,7 @@ export default function CreatePage() {
 
   useEffect(() => {
     const savedData = sessionStorage.getItem("copySessionData");
-    if (savedData) {
+    if (savedData && !isEditMode) {
       try {
         const data = JSON.parse(savedData);
         setNewSession(prev => ({ ...prev, ...data, gameDate: "" }));
@@ -41,7 +45,52 @@ export default function CreatePage() {
         setMsg({ isOpen: true, title: "延續療程", content: "已為您載入上次處方，選個新日期即可再次開診。", type: "success" });
       } catch (e) { console.error("解析複製資料失敗", e); }
     }
-  }, []);
+  }, [isEditMode]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !editGameId) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const fetchEditGame = async () => {
+      setIsEditLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/api/games/${editGameId}`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success || !json.data) {
+          setMsg({ isOpen: true, title: "載入失敗", content: json.message || "無法取得療程資料", type: "error" });
+          return;
+        }
+        const game = json.data;
+        const gameDateTime = game.GameDateTime || "";
+        const gameDate = gameDateTime.slice(0, 10);
+        const gameTime = gameDateTime.includes("T")
+          ? gameDateTime.split("T")[1].slice(0, 5)
+          : gameDateTime.slice(11, 16);
+
+        setNewSession({
+          title: game.Title || "",
+          gameDate,
+          gameTime: gameTime || "18:00",
+          location: game.Location || "竹東鎮立羽球場",
+          courtNumber: game.CourtNumber || "",
+          courtCount: String(game.CourtCount || 1),
+          endTime: (game.EndTime || "").slice(0, 5) || "20:00",
+          maxPlayers: String(game.MaxPlayers ?? ""),
+          price: String(game.Price ?? ""),
+          phone: game.HostContact || "",
+          notes: game.Notes || "",
+        });
+      } catch (e) {
+        console.error("載入編輯資料失敗", e);
+        setMsg({ isOpen: true, title: "載入失敗", content: "請稍後再試", type: "error" });
+      } finally {
+        setIsEditLoading(false);
+      }
+    };
+    fetchEditGame();
+  }, [editGameId, isLoggedIn]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,17 +101,24 @@ export default function CreatePage() {
       price: Number(newSession.price),
       courtCount: Number(newSession.courtCount)
     };
-    const res = await fetch(`${API_URL}/api/games/create`, {
-      method: "POST",
+    const url = isEditMode ? `${API_URL}/api/games/${editGameId}` : `${API_URL}/api/games/create`;
+    const method = isEditMode ? "PUT" : "POST";
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      setMsg({ isOpen: true, title: "開診成功", content: "新療程已記錄在案。", type: "success" });
+      setMsg({
+        isOpen: true,
+        title: isEditMode ? "更新成功" : "開診成功",
+        content: isEditMode ? "療程內容已更新。" : "新療程已記錄在案。",
+        type: "success"
+      });
       setTimeout(() => router.push("/enrolled"), 1500);
     } else {
       const err = await res.json();
-      setMsg({ isOpen: true, title: "開診失敗", content: err.message, type: "error" });
+      setMsg({ isOpen: true, title: isEditMode ? "更新失敗" : "開診失敗", content: err.message, type: "error" });
     }
   };
 
@@ -79,8 +135,11 @@ export default function CreatePage() {
 
       <main className="max-w-xl mx-auto p-6 mt-8">
         <Card className="p-8 space-y-6 text-ink">
+        {isEditMode && isEditLoading && (
+          <p className="text-xs tracking-[0.2em] text-ink/70 uppercase">載入療程資料中...</p>
+        )}
         <form onSubmit={handleCreate}>
-          <div className="text-center mb-4"><p className="text-[10px] text-ink/70 tracking-[0.3em] uppercase italic">開立新療程</p></div>
+          <div className="text-center mb-4"><p className="text-[10px] text-ink/70 tracking-[0.3em] uppercase italic">{isEditMode ? "編輯療程" : "開立新療程"}</p></div>
 
           <div>
             <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">療程名稱</label>
@@ -127,7 +186,7 @@ export default function CreatePage() {
 
           <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">處方備註</label><Textarea rows={3} value={newSession.notes} onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} className="resize-none" placeholder="補充說明（如：用球品牌、程度限制等）" /></div>
 
-          <Button type="submit" variant="primary" className="w-full py-3 mt-4 flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif"><PlusCircle size={14} /> 確認開立療程</Button>
+          <Button type="submit" variant="primary" className="w-full py-3 mt-4 flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif"><PlusCircle size={14} /> {isEditMode ? "確認更新療程" : "確認開立療程"}</Button>
         </form>
         </Card>
       </main>
