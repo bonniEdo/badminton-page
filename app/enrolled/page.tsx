@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Eye, EyeOff, CheckCircle, MapPin, Trash2, Activity, Settings2
+  Eye, EyeOff, CheckCircle, MapPin, Trash2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -289,28 +289,34 @@ export default function EnrolledPage() {
         onClose={() => setSelectedSession(null)}
         overlayClassName="bg-black/40 backdrop-blur-sm"
         modalClassName="p-10 rounded-3xl"
-        actions={selectedSession && (
-          <div className="space-y-4 pt-4 border-t border-stone/5">
-            <button
-              onClick={() => {
-                setSelectedSession(null);
-                router.push(selectedSession.isHosted ? `/dashboard/live/${selectedSession.id}` : `/enrolled/live/${selectedSession.id}`);
-              }}
-              className={`w-full py-5 text-sm tracking-[0.3em] uppercase transition-all font-bold flex items-center justify-center gap-3 rounded-2xl neu-btn ${selectedSession.isHosted ? "text-amber-800" : "text-stone-800"}`}
-            >
-              {selectedSession.isHosted ? <><Settings2 size={20} /> 進入主控室 </> : <><Activity size={20} /> 查看對戰實況</>}
-            </button>
-            {selectedSession.isHosted && !selectedSession.isExpired && (
-              <button onClick={() => { handleCopy(selectedSession); setSelectedSession(null); }} className="w-full py-3 neu-btn text-ink text-xs tracking-[0.3em] font-bold uppercase">複製療程</button>
-            )}
-            {!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
-              <button onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })} className="w-full py-5 neu-btn neu-btn-primary text-sm tracking-[0.3em] font-bold rounded-2xl uppercase">簽到：我到了</button>
-            )}
-            {selectedSession.isHosted && !selectedSession.isExpired && (
-              <button onClick={() => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="w-full py-4 neu-btn text-ink text-xs tracking-[0.3em] font-bold uppercase rounded-2xl">終止此療程</button>
-            )}
-          </div>
-        )}
+        statusText={selectedSession?.isExpired ? "療程已結束" : undefined}
+        actionButtons={selectedSession ? [
+          {
+            label: selectedSession.isHosted ? "進入主控室" : "查看對戰實況",
+            variant: "primary" as const,
+            onClick: () => {
+              setSelectedSession(null);
+              router.push(selectedSession.isHosted ? `/dashboard/live/${selectedSession.id}` : `/enrolled/live/${selectedSession.id}`);
+            },
+          },
+          ...(!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === "waiting_checkin" ? [{
+            label: "簽到：我到了",
+            variant: "primary" as const,
+            onClick: () => setCheckInModal({ isOpen: true, session: selectedSession }),
+          }] : []),
+          ...(selectedSession.isHosted && !selectedSession.isExpired ? [
+            {
+              label: "複製療程",
+              variant: "secondary" as const,
+              onClick: () => { handleCopy(selectedSession); setSelectedSession(null); },
+            },
+            {
+              label: "終止此療程",
+              variant: "secondary" as const,
+              onClick: () => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); },
+            },
+          ] : []),
+        ] : []}
       />
 
       {/* 簽到 Modal */}

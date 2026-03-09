@@ -1,16 +1,14 @@
 "use client";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
-  UserMinus, CheckCircle, Clock, X, MapPin,
-  Info, PlusCircle, Layout, Trash2, Zap, Copy,
-  CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Activity
+  UserMinus, CheckCircle, X, MapPin,
+  Info, Layout, Trash2, Copy,
+  CalendarDays, CalendarRange, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
-import AvatarBadge from "../components/AvatarBadge";
 import SessionDetailModal from "../components/SessionDetailModal";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -23,14 +21,6 @@ interface Session {
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
   isHosted?: boolean;
 }
-interface Participant {
-  Username: string;
-  Status: string;
-  FriendCount?: number;
-  AvatarUrl?: string | null;
-  UserId?: number | null;
-}
-
 export default function SchedulePage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
   const router = useRouter();
@@ -51,8 +41,6 @@ export default function SchedulePage() {
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
   const [checkInModal, setCheckInModal] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
   const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
@@ -67,20 +55,6 @@ export default function SchedulePage() {
     } else {
       setLoading(false);
     }
-  }, []);
-
-  const fetchParticipants = useCallback(async (gameId: number) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    setLoadingParticipants(true);
-    try {
-      const res = await fetch(`${API_URL}/api/games/${gameId}/players`, {
-        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
-      });
-      const json = await res.json();
-      if (json.success) setParticipants(json.data);
-    } catch (err) { console.error(err); }
-    finally { setLoadingParticipants(false); }
   }, []);
 
   const mapSession = (g: any, isHosted: boolean): Session => ({
@@ -154,14 +128,12 @@ export default function SchedulePage() {
         setCheckInModal({ isOpen: false, session: null });
         setMsg({ isOpen: true, title: "已通知主治", content: "今日的汗水，已被記錄在冊。請靜候主治安排上場。", type: "success" });
         fetchData(true);
-        fetchParticipants(checkInModal.session.id);
       } else { alert(json.message || "報到失敗"); }
     } catch (error) { console.error("Check-in error:", error); }
   };
 
   const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
-    fetchParticipants(session.id);
   };
 
   const handleLeave = (e: React.MouseEvent, session: Session) => {
@@ -186,7 +158,6 @@ export default function SchedulePage() {
         }
         if (selectedSession && selectedSession.id === id) {
           if (cancelType === 'friend_only') setSelectedSession(prev => prev ? { ...prev, friendCount: 0 } : null);
-          fetchParticipants(id);
         }
         setCancelMenu({ isOpen: false, session: null });
       } else { alert(json.message); }
@@ -231,11 +202,7 @@ export default function SchedulePage() {
 
   const handleAddFriendClick = () => {
     if (!selectedSession) return;
-    const userStr = localStorage.getItem("user");
-    const currentUser = userStr ? JSON.parse(userStr) : null;
-    const friendVirtualName = currentUser ? `${currentUser.username} +1` : null;
-    const hasAddedFriend = (friendVirtualName && participants.some(p => p.Username === friendVirtualName)) ||
-                           (selectedSession.friendCount && selectedSession.friendCount >= 1);
+    const hasAddedFriend = !!(selectedSession.friendCount && selectedSession.friendCount >= 1);
     if (hasAddedFriend) {
       setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
       return;
@@ -258,7 +225,6 @@ export default function SchedulePage() {
         setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
         setAllSessions(prev => prev.map(s => s.id === selectedSession.id ? { ...s, friendCount: 1 } : s));
         fetchData(true);
-        fetchParticipants(selectedSession.id);
         setMsg({ isOpen: true, title: "攜友入所", content: "已為同伴辦理入所手續。", type: "success" });
       } else { alert(json.message); }
     } catch (err) { console.error(err); }
@@ -522,55 +488,30 @@ export default function SchedulePage() {
         badge={selectedSession?.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled ? (
           <div className="inline-block neu-status-chip text-sage text-[10px] font-bold tracking-wider mb-3">主揪</div>
         ) : undefined}
-        participantsTitle="Participants"
         participantsCountText={selectedSession ? `${selectedSession.currentPlayers} / ${selectedSession.maxPlayers}` : undefined}
-        participantsContent={
-          participants.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {participants.map((p, i) => (
-                <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
-                  <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" playerUserId={p.UserId ?? null} />
-                  <span>{p.Username}</span>
-                </div>
-              ))}
-            </div>
-          ) : undefined
-        }
-        participantsEmptyText="尚無掛號紀錄"
-        loadingParticipants={loadingParticipants}
-        participantsLoadingText="正在讀取病友名冊..."
-        actions={selectedSession && !selectedSession.isExpired && !selectedSession.isHostCanceled ? (
-          <div className="mt-8 space-y-3">
-            {selectedSession.isHosted && selectedSession.date === todayStr && (
-              <button
-                onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif"
-              >
-                <Zap size={14} fill="currentColor" /> 進入實況看板
-              </button>
-            )}
-            {selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
-              <button
-                onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })}
-                className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif"
-              >
-                <MapPin size={14} /> 我到了，報到
-              </button>
-            )}
-            {!selectedSession.isHosted && selectedSession.date === todayStr && (
-              <button
-                onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
-                className="w-full py-4 neu-btn text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif"
-              >
-                <Activity size={14} /> 對戰實況
-              </button>
-            )}
-            <button onClick={handleAddFriendClick}
-              className="w-full py-4 neu-btn text-sage text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2">
-              <PlusCircle size={14} /> ＋ 攜友入所 (限一位)
-            </button>
-          </div>
-        ) : undefined}
+        statusText={selectedSession?.isHostCanceled ? "已取消療程" : selectedSession?.isExpired ? "療程已結束" : undefined}
+        actionButtons={selectedSession && !selectedSession.isExpired && !selectedSession.isHostCanceled ? [
+          ...(selectedSession.isHosted && selectedSession.date === todayStr ? [{
+            label: "進入實況看板",
+            variant: "primary" as const,
+            onClick: () => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); },
+          }] : []),
+          ...(selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === "waiting_checkin" ? [{
+            label: "我到了，報到",
+            variant: "primary" as const,
+            onClick: () => setCheckInModal({ isOpen: true, session: selectedSession }),
+          }] : []),
+          ...(!selectedSession.isHosted && selectedSession.date === todayStr ? [{
+            label: "對戰實況",
+            variant: "secondary" as const,
+            onClick: () => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); },
+          }] : []),
+          {
+            label: "＋ 攜友入所 (限一位)",
+            variant: "secondary" as const,
+            onClick: handleAddFriendClick,
+          },
+        ] : []}
       />
 
       {/* Level Modal */}

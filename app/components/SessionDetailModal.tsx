@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Banknote, Calendar, FileText, MapPin, UserCheck, X } from "lucide-react";
+import AvatarBadge from "./AvatarBadge";
 
 interface SessionDetailBase {
   id: number;
@@ -18,6 +19,21 @@ interface SessionDetailBase {
   maxPlayers?: number | string;
 }
 
+interface Participant {
+  Username: string;
+  Status: string;
+  FriendCount?: number;
+  AvatarUrl?: string | null;
+  UserId?: number | null;
+}
+
+interface SessionDetailActionButton {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "primary" | "secondary";
+}
+
 interface SessionDetailModalProps<T extends SessionDetailBase> {
   session: T | null;
   onClose: () => void;
@@ -26,14 +42,11 @@ interface SessionDetailModalProps<T extends SessionDetailBase> {
   title?: string;
   locationHref?: string;
   showPhone?: boolean;
-  participantsTitle?: string;
-  loadingParticipants?: boolean;
-  participantsLoadingText?: string;
   participantsCountText?: string;
-  participantsContent?: ReactNode;
-  participantsEmptyText?: string;
+  hideWaitlistParticipants?: boolean;
   notesTitle?: string;
-  actions?: ReactNode;
+  statusText?: string;
+  actionButtons?: SessionDetailActionButton[];
   overlayClassName?: string;
   modalClassName?: string;
 }
@@ -46,17 +59,63 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   title,
   locationHref,
   showPhone = true,
-  participantsTitle,
-  loadingParticipants = false,
-  participantsLoadingText = "載入中...",
   participantsCountText,
-  participantsContent,
-  participantsEmptyText = "尚無資料",
+  hideWaitlistParticipants = false,
   notesTitle = "Notes",
-  actions,
+  statusText,
+  actionButtons = [],
   overlayClassName = "bg-ink/30",
   modalClassName = "",
 }: SessionDetailModalProps<T>) {
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const sessionId = session?.id;
+
+  useEffect(() => {
+    if (!sessionId) {
+      setParticipants([]);
+      return;
+    }
+
+    let cancelled = false;
+    const headers: Record<string, string> = { "ngrok-skip-browser-warning": "true" };
+    const token = localStorage.getItem("token");
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
+
+    const loadParticipants = async () => {
+      setLoadingParticipants(true);
+      try {
+        const res = await fetch(`${apiUrl}/api/games/${sessionId}/players`, { headers });
+        const json = await res.json();
+        if (!cancelled && json?.success) {
+          const source = Array.isArray(json.data) ? json.data : [];
+          setParticipants(
+            hideWaitlistParticipants
+              ? source.filter((p: Participant) => p.Status !== "WAITLIST")
+              : source
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setParticipants([]);
+        }
+        console.error(error);
+      } finally {
+        if (!cancelled) {
+          setLoadingParticipants(false);
+        }
+      }
+    };
+
+    loadParticipants();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, hideWaitlistParticipants]);
+
   if (!session) return null;
 
   const resolvedTitle = title ?? (session.isExpired ? "療程紀錄" : session.title);
@@ -114,25 +173,58 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
           </div>
         )}
 
-        {participantsTitle && (
-          <div className="border-t border-stone/10 pt-6 mt-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-[11px] tracking-widest text-ink/70 uppercase">{participantsTitle}</h3>
-              <span className="text-[11px] text-sage italic">
-                {participantsCountText ?? `${session.currentPlayers ?? 0} / ${session.maxPlayers ?? 0}`}
-              </span>
-            </div>
-            <div className="max-h-40 overflow-y-auto">
-              {loadingParticipants ? (
-                <div className="text-[11px] text-stone-500 italic animate-pulse">{participantsLoadingText}</div>
-              ) : (
-                participantsContent ?? <div className="text-[11px] text-stone-500 italic">{participantsEmptyText}</div>
-              )}
-            </div>
+        <div className="border-t border-stone/10 pt-6 mt-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-[11px] tracking-widest text-ink/70 uppercase">掛號名冊 / Participants</h3>
+            <span className="text-[11px] text-sage italic">
+              {participantsCountText ?? `${session.currentPlayers ?? 0} / ${session.maxPlayers ?? 0}`}
+            </span>
+          </div>
+          <div className="max-h-40 overflow-y-auto">
+            {loadingParticipants ? (
+              <div className="text-[11px] text-stone-500 italic animate-pulse">正在讀取病友名冊...</div>
+            ) : participants.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {participants.flatMap((p) => {
+                  const list = [{ ...p, displayName: p.Username }];
+                  if ((p.FriendCount ?? 0) > 0) {
+                    list.push({ ...p, displayName: `${p.Username} +1`, UserId: null });
+                  }
+                  return list;
+                }).map((p, idx) => (
+                  <div key={`${p.displayName}-${idx}`} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === "WAITLIST" ? "neu-pill text-stone-500 border-dashed" : "neu-pill text-sage"}`}>
+                    <AvatarBadge avatarUrl={p.AvatarUrl} name={p.displayName} size="xs" playerUserId={p.UserId ?? null} />
+                    <span>{p.displayName}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[11px] text-stone-500 italic">尚無掛號紀錄</div>
+            )}
+          </div>
+        </div>
+
+        {(statusText || actionButtons.length > 0) && (
+          <div className="mt-6 space-y-3 border-t border-stone/10 pt-4">
+            {statusText ? (
+              <div className="py-2 text-center text-ink/70 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">
+                {statusText}
+              </div>
+            ) : null}
+            {actionButtons.map((button) => (
+              <button
+                key={button.label}
+                onClick={button.onClick}
+                disabled={button.disabled}
+                className={`w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink ${
+                  button.variant === "primary" ? "bg-sage text-ink" : "bg-paper text-ink hover:bg-sage/15"
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                {button.label}
+              </button>
+            ))}
           </div>
         )}
-
-        {actions}
       </div>
     </div>
   );

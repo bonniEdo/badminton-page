@@ -10,27 +10,16 @@ import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import { Chip } from "../components/ui";
-import AvatarBadge from "../components/AvatarBadge";
 import SessionDetailModal from "../components/SessionDetailModal";
 import SessionCard from "../components/SessionCard";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
-const TW_MOBILE_REGEX = /^09\d{8}$/;
 
 interface Session {
   id: number; hostId: number; hostName: string; hostAvatarUrl?: string | null; title: string; date: string; time: string; endTime: string;
   location: string; currentPlayers: number; maxPlayers: number; price: number; notes: string;
   isExpired: boolean; friendCount: number; badminton_level?: string; courtCount: number; courtNumber?: string;
-}
-
-interface Participant {
-  Username: string;
-  Status: string;
-  FriendCount: number;
-  AvatarUrl?: string | null;
-  UserId?: number | null;
-  IsVirtual?: boolean;
 }
 
 export default function Browse() {
@@ -43,8 +32,6 @@ export default function Browse() {
   const [joinedIds, setJoinedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
@@ -56,7 +43,7 @@ export default function Browse() {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
     const userStr = localStorage.getItem("user");
-    if (userStr) try { setCurrentUserId(JSON.parse(userStr)?.id ?? null); } catch (_) {}
+    if (userStr) try { setCurrentUserId(JSON.parse(userStr)?.id ?? null); } catch {}
     fetchData(false, !!token);
   }, []);
 
@@ -114,20 +101,6 @@ export default function Browse() {
     }
   };
 
-  const fetchParticipants = async (sessionId: number) => {
-    setLoadingParticipants(true);
-    const headers: Record<string, string> = { "ngrok-skip-browser-warning": "true" };
-    const token = localStorage.getItem("token");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    try {
-      const res = await fetch(`${API_URL}/api/games/${sessionId}/players`, { headers });
-      const json = await res.json();
-      // 取消候補機制：過濾掉 WAITLIST 狀態的病友
-      if (json.success) setParticipants(json.data.filter((p: Participant) => p.Status !== "WAITLIST"));
-    } catch (e) { console.error(e); }
-    finally { setLoadingParticipants(false); }
-  };
-
   const dateChips = useMemo(() => {
     const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
     const chips: { label: string; value: string | null }[] = [{ label: "全部", value: null }];
@@ -168,7 +141,6 @@ export default function Browse() {
   const handleOpenDetail = (session: Session) => {
     setSelectedSession(session);
     setJoinForm({ phone: "", numPlayers: 1 });
-    fetchParticipants(session.id);
   };
 
   const handleLineLogin = async () => {
@@ -186,28 +158,6 @@ export default function Browse() {
       if (data.url) window.location.href = data.url;
     } catch (error) {
       console.error("LINE Auth Error:", error);
-    }
-  };
-
-  const submitJoin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSession) return;
-
-    // 檢查名額是否不足
-    if (selectedSession.currentPlayers + joinForm.numPlayers > selectedSession.maxPlayers) {
-      setMsg({ 
-        isOpen: true, 
-        title: "空位不足", 
-        content: "搜哩只剩一人拉 下次請早~~\n不然就拋棄你朋友吧", 
-        type: "error" 
-      });
-      return;
-    }
-
-    if (joinForm.numPlayers === 2) {
-      setFriendLevelModal({ isOpen: true, type: "join" });
-    } else {
-      executeJoin(undefined);
     }
   };
 
@@ -246,7 +196,6 @@ export default function Browse() {
       setMsg({ isOpen: true, title: "掛號成功", content: "期待在場上與你相遇。", type: "success" });
       fetchData(true);
       setJoinedIds(prev => [...prev, selectedSession.id]);
-      fetchParticipants(selectedSession.id);
       setFriendLevelModal({ ...friendLevelModal, isOpen: false });
     } else {
       setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
@@ -266,7 +215,6 @@ export default function Browse() {
       setFriendLevelModal({ ...friendLevelModal, isOpen: false });
       setSelectedSession(prev => prev ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : null);
       fetchData(true);
-      fetchParticipants(selectedSession.id);
       setMsg({ isOpen: true, title: "+ 朋友", content: "已為同伴辦理入所手續。", type: "success" });
     } else {
       setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
@@ -441,9 +389,9 @@ export default function Browse() {
                 statusLabel={s.isExpired ? "已散場" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
                 locationLink={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`}
                 onOpenDetail={handleOpenDetail}
-                onOpenLive={isHost ? (_session) => router.push(`/dashboard/live/${s.id}`) : undefined}
-                onCopy={isHost ? (_session) => handleCopy(s) : undefined}
-                onDelete={isHost ? (_session) => setDeleteConfirm({ isOpen: true, id: s.id }) : undefined}
+                onOpenLive={isHost ? () => router.push(`/dashboard/live/${s.id}`) : undefined}
+                onCopy={isHost ? () => handleCopy(s) : undefined}
+                onDelete={isHost ? () => setDeleteConfirm({ isOpen: true, id: s.id }) : undefined}
               />
             );
           })}
@@ -455,112 +403,37 @@ export default function Browse() {
         onClose={() => setSelectedSession(null)}
         showPhone={false}
         locationHref={selectedSession ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}` : undefined}
-        participantsTitle="掛號名冊 / Participants"
+        hideWaitlistParticipants
         participantsCountText={selectedSession ? `${selectedSession.currentPlayers} / ${selectedSession.maxPlayers}` : undefined}
-        loadingParticipants={loadingParticipants}
-        participantsLoadingText="正在讀取病友名冊..."
-        participantsContent={
-          participants.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {participants.flatMap(p => {
-                const list = [{ ...p, Display: p.Username }];
-                if (p.FriendCount > 0) list.push({ ...p, Display: `${p.Username} +1`, UserId: null });
-                return list;
-              }).map((p, i) => (
-                <div key={i} className="flex items-center gap-1.5 px-3 py-1 text-[11px] text-sage neu-pill transition-all">
-                  <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Display} size="xs" playerUserId={p.UserId ?? null} />
-                  <span>{p.Display}</span>
-                </div>
-              ))}
-            </div>
-          ) : undefined
-        }
-        participantsEmptyText="尚無掛號紀錄"
-        actions={selectedSession && (() => {
-          const userStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-          const currentUserId = userStr ? JSON.parse(userStr)?.id : null;
-          const isHost = isLoggedIn && !!currentUserId && currentUserId === selectedSession.hostId;
+        statusText={selectedSession?.isExpired ? "療程已結束" : undefined}
+        actionButtons={selectedSession ? (() => {
+          const isHost = isLoggedIn && currentUserId !== null && currentUserId === selectedSession.hostId;
           const isJoined = joinedIds.includes(selectedSession.id);
-
-          if (selectedSession.isExpired) {
-            return <div className="py-3 text-center text-ink/70 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">療程已結束</div>;
+          if (selectedSession.isExpired) return [];
+          if (isHost) {
+            return [
+              {
+                label: "進入主控室",
+                variant: "primary" as const,
+                onClick: () => {
+                  setSelectedSession(null);
+                  router.push(`/dashboard/live/${selectedSession.id}`);
+                },
+              },
+            ];
           }
-
           if (!isLoggedIn) {
-            return (
-              <div className="w-full space-y-3">
-                <button
-                  onClick={handleLineLogin}
-                  className="w-full py-4 bg-sage text-ink border-2 border-ink text-[13px] tracking-[0.4em] font-bold rounded-full shadow-[4px_4px_0_0_#1A1A1A] hover:bg-sage/80 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19.228 10.946c0-4.054-4.125-7.354-9.213-7.354-5.088 0-9.213 3.3-9.213 7.354 0 3.631 3.272 6.681 7.691 7.253.299.066.707.198.81.453.093.229.061.587.03 1.171l-.046 1.114c-.015.39-.126 1.52.544 1.114.67-.406 3.613-2.129 4.929-3.645l.012-.014c3.418-1.42 4.44-4.22 4.44-6.446zm-11.413 3.447H6.082a.37.37 0 01-.37-.37v-4.041a.37.37 0 01.37-.37h.215a.37.37 0 01.37.37v3.456h1.148a.37.37 0 01.37.37v.215a.37.37 0 01-.37.37zm1.906-.37a.37.37 0 01-.37.37h-.215a.37.37 0 01-.37-.37v-4.041a.37.37 0 01.37-.37h.215a.37.37 0 01.37.37v4.041zm4.187 0a.37.37 0 01-.37.37h-.215a.366.366 0 01-.321-.186l-1.464-2.071v1.887a.37.37 0 01-.37.37h-.215a.37.37 0 01-.37-.37v-4.041a.37.37 0 01.37-.37h.215a.366.366 0 01.321.186l1.464 2.071v-1.887a.37.37 0 01.37-.37h.215a.37.37 0 01.37.37v4.041zm3.178-2.228h-1.148v1.148h1.148a.37.37 0 01.37.37v.215a.37.37 0 01-.37.37h-1.733a.37.37 0 01-.37-.37V9.982a.37.37 0 01.37-.37h1.733a.37.37 0 01.37.37v.215a.37.37 0 01-.37.37z" />
-                  </svg>
-                  LINE
-                </button>
-                <button
-                  onClick={handleGoogleLogin}
-                  className="w-full py-4 bg-sage text-ink border-2 border-ink text-[13px] tracking-[0.4em] font-bold rounded-full shadow-[4px_4px_0_0_#1A1A1A] hover:bg-sage/80 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="currentColor" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="currentColor" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="currentColor" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="currentColor" />
-                  </svg>
-                  Google
-                </button>
-                <button
-                  onClick={handleFbLogin}
-                  className="w-full py-4 bg-sage text-ink border-2 border-ink text-[13px] tracking-[0.4em] font-bold rounded-full shadow-[4px_4px_0_0_#1A1A1A] hover:bg-sage/80 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                  Facebook
-                </button>
-              </div>
-            );
+            return [
+              { label: "LINE 登入", variant: "primary" as const, onClick: handleLineLogin },
+              { label: "Google 登入", variant: "secondary" as const, onClick: handleGoogleLogin },
+              { label: "Facebook 登入", variant: "secondary" as const, onClick: handleFbLogin },
+            ];
           }
-
-          return (
-            <div className="space-y-3">
-              {isHost && (
-                <button
-                  onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                  className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase font-serif"
-                >
-                  進入主控室
-                </button>
-              )}
-              {(isHost || isJoined) ? (
-                <div className="space-y-3">
-                  {!isHost && <div className="py-2 text-center text-sage text-[11px] font-bold neu-soft-panel tracking-widest uppercase">掛號成功</div>}
-                  <button onClick={handleAddFriend} className="w-full py-2 neu-btn text-sage text-[11px] tracking-widest uppercase font-serif">
-                    + 朋友 (限一位)
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={submitJoin} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">掛號人數</label>
-                      <select value={joinForm.numPlayers} onChange={(e) => setJoinForm({ ...joinForm, numPlayers: Number(e.target.value) })} className="neu-input text-sm">
-                        <option value={1}>1 人 (我)</option>
-                        <option value={2}>2 人 (+朋友)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-stone-400 mb-1 uppercase tracking-widest">聯絡電話</label>
-                      <input required type="tel" value={joinForm.phone} onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="neu-input text-sm" placeholder="0912..." />
-                    </div>
-                  </div>
-                  <button type="submit" disabled={!TW_MOBILE_REGEX.test(joinForm.phone)} className="w-full py-3 neu-btn neu-btn-primary text-[11px] tracking-widest uppercase disabled:opacity-50 font-serif">確認掛號</button>
-                </form>
-              )}
-            </div>
-          );
-        })()}
+          if (isJoined) {
+            return [{ label: "+ 朋友 (限一位)", variant: "secondary" as const, onClick: handleAddFriend }];
+          }
+          return [];
+        })() : []}
       />
 
       {msg.isOpen && (
