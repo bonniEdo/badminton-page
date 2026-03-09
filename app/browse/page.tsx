@@ -343,7 +343,7 @@ export default function Browse() {
               </Chip>
             </div>
           )}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 max-w-screen overflow-x-auto">
             {dateOnlyChips.map((chip) => (
               <Chip
                 key={chip.value}
