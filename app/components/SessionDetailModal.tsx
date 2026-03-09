@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Activity, Banknote, Calendar, Copy, MapPin, Settings2, Trash2, UserCheck, X } from "lucide-react";
 import AvatarBadge from "./AvatarBadge";
 import { emitOpenPlayerProfile } from "./playerProfileModalBus";
@@ -74,9 +74,36 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   overlayClassName = "bg-ink/30",
   modalClassName = "",
 }: SessionDetailModalProps<T>) {
+  const ANIMATION_MS = 240;
+  const [renderSession, setRenderSession] = useState<T | null>(session);
+  const [isPresented, setIsPresented] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
-  const sessionId = session?.id;
+  const [isMobile, setIsMobile] = useState(false);
+  const [sheetHeightVh, setSheetHeightVh] = useState(52);
+  const dragStartYRef = useRef(0);
+  const dragStartHeightRef = useRef(52);
+  const sessionId = renderSession?.id;
+
+  useEffect(() => {
+    let rafId = 0;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    if (session) {
+      setRenderSession(session);
+      rafId = requestAnimationFrame(() => setIsPresented(true));
+    } else if (renderSession) {
+      setIsPresented(false);
+      timeoutId = setTimeout(() => {
+        setRenderSession(null);
+      }, ANIMATION_MS);
+    }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [session, renderSession, ANIMATION_MS]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -119,13 +146,43 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     };
   }, [sessionId]);
 
-  if (!session) return null;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!renderSession) return;
+    setSheetHeightVh(52);
+  }, [renderSession?.id]);
+
+  useEffect(() => {
+    if (!renderSession) return;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyTouchAction = document.body.style.touchAction;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.touchAction = previousBodyTouchAction;
+    };
+  }, [renderSession]);
+
+  if (!renderSession) return null;
 
   const todayStr = new Date().toLocaleDateString("en-CA");
-  const isToday = session.date === todayStr;
-  const statusText = session.isExpired ? "療程已結束" : isHostCanceled ? "已取消療程" : "";
-  const canShowActions = !session.isExpired && !isHostCanceled;
-  const hasAddedFriend = (session.friendCount ?? 0) >= 1;
+  const isToday = renderSession.date === todayStr;
+  const statusText = renderSession.isExpired ? "療程已結束" : isHostCanceled ? "已取消療程" : "";
+  const canShowActions = !renderSession.isExpired && !isHostCanceled;
+  const hasAddedFriend = (renderSession.friendCount ?? 0) >= 1;
   const liveAction = isHost ? (onHostLive ?? onOpenLive) : onOpenLive;
   const openPlayerProfile = (e: React.MouseEvent<HTMLButtonElement>, player: { displayName: string; AvatarUrl?: string | null; UserId?: number | null; }) => {
     e.preventDefault();
@@ -166,182 +223,231 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     });
   };
 
-  return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${overlayClassName}`}>
-      <div className={`neu-modal w-full max-w-md p-8 relative animate-in zoom-in duration-200 ${session.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}>
-        <div className="absolute top-4 right-4 flex items-center gap-2">
-          {topRightActions}
-          <button onClick={onClose} className="text-ink/50 hover:text-sage transition-colors" title="關閉">
-            <X size={24} />
-          </button>
-        </div>
+  const handleSheetTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    dragStartYRef.current = e.touches[0].clientY;
+    dragStartHeightRef.current = sheetHeightVh;
+  };
 
-        <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${session.isExpired ? "text-ink/80" : "text-sage"}`}>
-          {session.title}
-        </h2>
+  const handleSheetTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const currentY = e.touches[0].clientY;
+    const deltaY = dragStartYRef.current - currentY;
+    const vhDelta = (deltaY / window.innerHeight) * 100;
+    const next = Math.max(52, Math.min(92, dragStartHeightRef.current + vhDelta));
+    setSheetHeightVh(next);
+  };
 
-        <div className="space-y-4 text-sm text-ink/75 mb-8">
+  const handleSheetTouchEnd = () => {
+    setSheetHeightVh((prev) => (prev >= 72 ? 92 : 52));
+  };
+
+  const detailBody = (
+    <>
+      <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${renderSession.isExpired ? "text-ink/80" : "text-sage"}`}>
+        {renderSession.title}
+      </h2>
+
+      <div className="space-y-4 text-sm text-ink/75 mb-8">
+        <p className="flex items-center gap-3 italic">
+          <Calendar size={14} /> {renderSession.date} ({renderSession.time}{renderSession.endTime ? ` - ${renderSession.endTime}` : ""})
+        </p>
+        {locationHref ? (
+          <a
+            href={locationHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"
+          >
+            <MapPin size={14} /> {renderSession.location}
+          </a>
+        ) : (
           <p className="flex items-center gap-3 italic">
-            <Calendar size={14} /> {session.date} ({session.time}{session.endTime ? ` - ${session.endTime}` : ""})
+            <MapPin size={14} /> {renderSession.location}
           </p>
-          {locationHref ? (
-            <a
-              href={locationHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"
-            >
-              <MapPin size={14} /> {session.location}
-            </a>
-          ) : (
-            <p className="flex items-center gap-3 italic">
-              <MapPin size={14} /> {session.location}
-            </p>
-          )}
-          <p className="flex items-center gap-3 italic">
-            <UserCheck size={14} className="text-sage" /> {session.phone || "現場找主治"}
-          </p>
-          <p className="flex items-center gap-3 font-bold text-sage">
-            <Banknote size={14} /> 費用: ${session.price}
-          </p>
-        </div>
-
-        {session.notes && (
-          <div className="mt-4 p-3 neu-soft-panel text-sm italic text-ink/75 leading-relaxed whitespace-pre-wrap">
-            {session.notes}
-          </div>
         )}
+        <p className="flex items-center gap-3 italic">
+          <UserCheck size={14} className="text-sage" /> {renderSession.phone || "現場找主治"}
+        </p>
+        <p className="flex items-center gap-3 font-bold text-sage">
+          <Banknote size={14} /> 費用: ${renderSession.price}
+        </p>
+      </div>
 
-        <div className="border-t border-stone/10 pt-6 mt-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-[11px] tracking-widest text-ink/70 uppercase">掛號名冊 / Participants</h3>
-            <span className="text-[11px] text-sage italic">
-              {`${session.currentPlayers ?? 0} / ${session.maxPlayers ?? 0}`}
-            </span>
-          </div>
-          <div className="max-h-40 overflow-y-auto">
-            {loadingParticipants ? (
-              <div className="text-[11px] text-stone-500 italic animate-pulse">正在讀取病友名冊...</div>
-            ) : participants.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {participants.flatMap((p) => {
-                  const list = [{ ...p, displayName: p.Username }];
-                  if ((p.FriendCount ?? 0) > 0) {
-                    list.push({ ...p, displayName: `${p.Username} +1`, UserId: null });
-                  }
-                  return list;
-                }).map((p, idx) => {
-                  const isClickable = Number.isInteger(p.UserId) && Number(p.UserId) > 0;
-                  const badgeClass = `flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === "WAITLIST" ? "neu-pill text-stone-500 border-dashed" : "neu-pill text-sage"}`;
-                  if (!isClickable) {
-                    return (
-                      <div key={`${p.displayName}-${idx}`} className={badgeClass}>
-                        <AvatarBadge avatarUrl={p.AvatarUrl} name={p.displayName} size="xs" playerUserId={null} />
-                        <span>{p.displayName}</span>
-                      </div>
-                    );
-                  }
+      {renderSession.notes && (
+        <div className="mt-4 p-3 neu-soft-panel text-sm italic text-ink/75 leading-relaxed whitespace-pre-wrap">
+          {renderSession.notes}
+        </div>
+      )}
 
+      <div className="border-t border-stone/10 pt-6 mt-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-[11px] tracking-widest text-ink/70 uppercase">掛號名冊 / Participants</h3>
+          <span className="text-[11px] text-sage italic">
+            {`${renderSession.currentPlayers ?? 0} / ${renderSession.maxPlayers ?? 0}`}
+          </span>
+        </div>
+        <div className="max-h-40 overflow-y-auto">
+          {loadingParticipants ? (
+            <div className="text-[11px] text-stone-500 italic animate-pulse">正在讀取病友名冊...</div>
+          ) : participants.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {participants.flatMap((p) => {
+                const list = [{ ...p, displayName: p.Username }];
+                if ((p.FriendCount ?? 0) > 0) {
+                  list.push({ ...p, displayName: `${p.Username} +1`, UserId: null });
+                }
+                return list;
+              }).map((p, idx) => {
+                const isClickable = Number.isInteger(p.UserId) && Number(p.UserId) > 0;
+                const badgeClass = `flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === "WAITLIST" ? "neu-pill text-stone-500 border-dashed" : "neu-pill text-sage"}`;
+                if (!isClickable) {
                   return (
-                    <button
-                      key={`${p.displayName}-${idx}`}
-                      type="button"
-                      onClick={(e) => openPlayerProfile(e, p)}
-                      className={`${badgeClass} cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sage/50`}
-                      title="查看球友資訊"
-                    >
+                    <div key={`${p.displayName}-${idx}`} className={badgeClass}>
                       <AvatarBadge avatarUrl={p.AvatarUrl} name={p.displayName} size="xs" playerUserId={null} />
                       <span>{p.displayName}</span>
-                    </button>
+                    </div>
                   );
-                })}
-              </div>
-            ) : (
-              <div className="text-[11px] text-stone-500 italic">尚無掛號紀錄</div>
-            )}
+                }
+
+                return (
+                  <button
+                    key={`${p.displayName}-${idx}`}
+                    type="button"
+                    onClick={(e) => openPlayerProfile(e, p)}
+                    className={`${badgeClass} cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sage/50`}
+                    title="查看球友資訊"
+                  >
+                    <AvatarBadge avatarUrl={p.AvatarUrl} name={p.displayName} size="xs" playerUserId={null} />
+                    <span>{p.displayName}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-[11px] text-stone-500 italic">尚無掛號紀錄</div>
+          )}
+        </div>
+      </div>
+
+      {(statusText || canShowActions) && (
+        <div className="mt-6 space-y-3 border-t border-stone/10 pt-4">
+          {statusText ? (
+            <div className="py-2 text-center text-ink/70 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">
+              {statusText}
+            </div>
+          ) : null}
+          {canShowActions && (
+            <>
+              {!isLoggedIn ? (
+                <>
+                  {onLoginLine && (
+                    <button onClick={onLoginLine} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
+                      LINE 登入
+                    </button>
+                  )}
+                  {onLoginGoogle && (
+                    <button onClick={onLoginGoogle} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                      Google 登入
+                    </button>
+                  )}
+                  {onLoginFacebook && (
+                    <button onClick={onLoginFacebook} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                      Facebook 登入
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  {liveAction && (
+                    <button
+                      onClick={liveAction}
+                      className={`flex items-center justify-center gap-3 w-full py-3 text-[12px] tracking-[0.2em] transition-all font-bold neu-btn ${
+                        isHost ? "text-amber-800" : "text-stone-800"
+                      }`}
+                    >
+                      {isHost ? <><Settings2 size={16} /> 進入主控室</> : <><Activity size={16} /> 查看對戰實況</>}
+                    </button>
+                  )}
+                  {!isHost && isToday && canCheckIn && onCheckIn && (
+                    <button onClick={onCheckIn} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
+                      我到了，報到
+                    </button>
+                  )}
+                  {canAddFriend && !hasAddedFriend && onAddFriend && (
+                    <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                      + 朋友 (限一位)
+                    </button>
+                  )}
+                  {isHost && (onCopy || onDelete) && (
+                    <div className="flex gap-2">
+                      {onCopy && (
+                        <button
+                          onClick={onCopy}
+                          className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
+                          title="複製療程"
+                          aria-label="複製療程"
+                        >
+                          <Copy size={16} />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={onDelete}
+                          className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
+                          title="終止療程"
+                          aria-label="終止療程"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className={`fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 transition-opacity duration-200 ${isPresented ? "opacity-100" : "opacity-0"} ${overlayClassName}`}>
+      {isMobile ? (
+        <div
+          className={`neu-modal !p-0 w-full rounded-t-md md:rounded-md border-2 border-ink transition-transform duration-200 ease-out ${isPresented ? "translate-y-0" : "translate-y-full"} ${renderSession.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}
+          style={{ height: `${sheetHeightVh}dvh`, maxHeight: "92dvh" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="px-4 pt-3 pb-2 border-b border-stone/20"
+            style={{ touchAction: "none" }}
+            onTouchStart={handleSheetTouchStart}
+            onTouchMove={handleSheetTouchMove}
+            onTouchEnd={handleSheetTouchEnd}
+          >
+            <div className="w-12 h-1 bg-ink/25 rounded-full mx-auto" />
+            <div className="mt-2 flex justify-end items-center gap-2">
+              {topRightActions}
+              <button onClick={onClose} className="text-ink/50 hover:text-sage transition-colors" title="關閉">
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+          <div className="p-4">
+            {detailBody}
           </div>
         </div>
-
-        {(statusText || canShowActions) && (
-          <div className="mt-6 space-y-3 border-t border-stone/10 pt-4">
-            {statusText ? (
-              <div className="py-2 text-center text-ink/70 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">
-                {statusText}
-              </div>
-            ) : null}
-            {canShowActions && (
-              <>
-                {!isLoggedIn ? (
-                  <>
-                    {onLoginLine && (
-                      <button onClick={onLoginLine} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
-                        LINE 登入
-                      </button>
-                    )}
-                    {onLoginGoogle && (
-                      <button onClick={onLoginGoogle} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
-                        Google 登入
-                      </button>
-                    )}
-                    {onLoginFacebook && (
-                      <button onClick={onLoginFacebook} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
-                        Facebook 登入
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {liveAction && (
-                      <button
-                        onClick={liveAction}
-                        className={`flex items-center justify-center gap-3 w-full py-3 text-[12px] tracking-[0.2em] transition-all font-bold neu-btn ${
-                          isHost ? "text-amber-800" : "text-stone-800"
-                        }`}
-                      >
-                        {isHost ? <><Settings2 size={16} /> 進入主控室</> : <><Activity size={16} /> 查看對戰實況</>}
-                      </button>
-                    )}
-                    {!isHost && isToday && canCheckIn && onCheckIn && (
-                      <button onClick={onCheckIn} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
-                        我到了，報到
-                      </button>
-                    )}
-                    {canAddFriend && !hasAddedFriend && onAddFriend && (
-                      <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
-                        + 朋友 (限一位)
-                      </button>
-                    )}
-                    {isHost && (onCopy || onDelete) && (
-                      <div className="flex gap-2">
-                        {onCopy && (
-                          <button
-                            onClick={onCopy}
-                            className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
-                            title="複製療程"
-                            aria-label="複製療程"
-                          >
-                            <Copy size={16} />
-                          </button>
-                        )}
-                        {onDelete && (
-                          <button
-                            onClick={onDelete}
-                            className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
-                            title="終止療程"
-                            aria-label="終止療程"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+      ) : (
+        <div className={`neu-modal w-full max-w-md p-8 relative transition-all duration-200 ease-out ${isPresented ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-4"} ${renderSession.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}>
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            {topRightActions}
+            <button onClick={onClose} className="text-ink/50 hover:text-sage transition-colors" title="關閉">
+              <X size={24} />
+            </button>
           </div>
-        )}
-      </div>
+          {detailBody}
+        </div>
+      )}
     </div>
   );
 }
