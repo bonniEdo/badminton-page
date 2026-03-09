@@ -80,7 +80,7 @@ export default function CreatePage() {
       <main className="max-w-xl mx-auto p-6 mt-8">
         <Card className="p-8 space-y-6 text-ink">
         <form onSubmit={handleCreate}>
-          <div className="text-center mb-4"><p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase italic">開立新療程</p></div>
+          <div className="text-center mb-4"><p className="text-[10px] text-ink/70 tracking-[0.3em] uppercase italic">開立新療程</p></div>
 
           <div>
             <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">療程名稱</label>
@@ -133,11 +133,11 @@ export default function CreatePage() {
       </main>
 
       <Modal open={msg.isOpen} className="p-10 text-center max-w-md">
-            <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
+            <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-sage/20 text-ink'}`}>
               {msg.type === 'success' ? <CheckCircle size={24} /> : <Info size={24} />}
             </div>
             <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
-            <p className="text-sm text-gray-400 italic mb-10 tracking-widest">{msg.content}</p>
+            <p className="text-sm text-ink/70 italic mb-10 tracking-widest">{msg.content}</p>
             <Button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 text-xs tracking-[0.4em] uppercase">我知道了</Button>
       </Modal>
     </div>

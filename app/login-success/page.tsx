@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PageLoading from "../components/PageLoading";
@@ -111,7 +111,7 @@ function LoginSuccessContent() {
         
         <div className="space-y-2">
           <p className="text-2xl text-ink">檢測到您的羽球成癮指數已超標。</p>
-          <p className="text-base text-gray-400 italic">「 勒戒通道已開啟，即刻進入場地。 」</p>
+          <p className="text-base text-ink/70 italic">「 勒戒通道已開啟，即刻進入場地。 」</p>
         </div>
         <div className="flex justify-center mt-8">
           <div className="w-12 h-[1px] bg-sage animate-pulse"></div>

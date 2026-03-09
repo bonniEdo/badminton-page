@@ -15,7 +15,7 @@ const notoSerifTC = Noto_Serif_TC({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#8A9A5B",
+  themeColor: "#9CAF88",
   width: "device-width",
   initialScale: 1,
 };

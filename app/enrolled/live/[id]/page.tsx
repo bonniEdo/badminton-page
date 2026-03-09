@@ -322,7 +322,7 @@ export default function LiveViewPage({
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     myPlayer.status === "playing"
-                      ? "bg-blue-50 text-blue-500"
+                      ? "bg-sage/20 text-ink"
                       : myPlayer.status === "idle"
                         ? "bg-sage/10 text-sage"
                         : "bg-stone/20 text-stone-400"
@@ -446,7 +446,7 @@ export default function LiveViewPage({
             <div className="space-y-3">
               {[
                 { label: "A 隊", slots: [0, 1], teamStyle: "border-sage/25 bg-sage/5", labelStyle: "text-sage" },
-                { label: "B 隊", slots: [2, 3], teamStyle: "border-[#D8D2C6] bg-[#F1EEE7]", labelStyle: "text-stone-600" }
+                { label: "B 隊", slots: [2, 3], teamStyle: "border-ink/25 bg-sage/10", labelStyle: "text-ink/80" }
               ].map((team) => (
                 <div key={team.label} className={`rounded-xl border p-3 ${team.teamStyle}`}>
                   <div className={`text-[10px] font-bold tracking-[0.2em] mb-2.5 ${team.labelStyle}`}>
@@ -526,7 +526,7 @@ export default function LiveViewPage({
                 {waitingPlayers.length} 人
               </span>
             </h2>
-            <div className="bg-white/60 border border-stone rounded-2xl shadow-sm divide-y divide-stone/20">
+            <div className="bg-paper border-2 border-ink rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] divide-y divide-stone/20">
               {waitingPlayers.map((p) => (
                 <div
                   key={p.playerId}
@@ -620,13 +620,13 @@ function MatchCard({
         <div className="relative my-3">
           <div className="h-[1px] bg-stone/20" />
           <div className="absolute inset-0 flex items-center justify-center -translate-y-1/2 top-1/2">
-            <span className="px-3 py-0.5 rounded-full bg-[#FAF9F6] border border-stone/20 text-[11px] tracking-[0.22em] text-stone-500 uppercase font-bold">
+            <span className="px-3 py-0.5 rounded-full bg-paper border border-ink/20 text-[11px] tracking-[0.22em] text-ink/70 uppercase font-bold">
               VS
             </span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-[#D8D2C6] bg-[#F1EEE7] p-3 mt-3">
+        <div className="rounded-xl border border-ink/25 bg-sage/10 p-3 mt-3">
           <div className="text-[10px] font-bold tracking-[0.2em] text-stone-600 mb-2">B 隊</div>
           <div className="flex items-center gap-2 flex-wrap">
             {[b1, b2].map(
@@ -672,7 +672,7 @@ function TeamPlayerBadge({
       {verified && (
         <CheckCircle
           size={10}
-          className="text-blue-500 fill-blue-50 shrink-0"
+          className="text-sage fill-paper shrink-0"
         />
       )}
       <span className="text-[10px] text-sage italic font-serif font-bold">
@@ -691,7 +691,7 @@ function NextGroupSlotPill({
 }) {
   if (!player) {
     return (
-      <div className="flex items-center rounded-full border border-dashed border-stone/25 bg-white/45 px-4 py-2 min-h-[44px]">
+      <div className="flex items-center rounded-full border border-dashed border-stone/25 bg-paper px-4 py-2 min-h-[44px]">
         <span className="text-[11px] text-stone-300 italic">待安排</span>
       </div>
     );
@@ -741,10 +741,10 @@ function PlayerRow({
           )}
         </span>
         {isVerified && (
-          <CheckCircle size={10} className="text-blue-500 fill-blue-50" />
+          <CheckCircle size={10} className="text-sage fill-paper" />
         )}
         {player.isHost && (
-          <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">
+          <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold">
             主揪
           </span>
         )}

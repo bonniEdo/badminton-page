@@ -6,5 +6,5 @@ interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export default function Chip({ active = false, className, ...props }: ChipProps) {
-  return <button className={cn("neu-chip", active && "neu-chip-active", className)} {...props} />;
+  return <button className={cn("neu-chip brutal-focus", active && "neu-chip-active", className)} {...props} />;
 }

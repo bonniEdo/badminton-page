@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
-import { TabButton, Tabs } from "../components/ui";
 import AvatarBadge from "../components/AvatarBadge";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
@@ -348,9 +347,9 @@ export default function SchedulePage() {
   const getSessionStyle = (session: Session) => {
     const isCancelled = session.isHostCanceled;
     if (isCancelled) return "text-alert/70 line-through";
-    if (session.isExpired) return "text-stone-400";
-    if (session.isHosted) return "text-amber-700";
-    if (session.myStatus === 'WAITLIST') return "text-orange-600";
+    if (session.isExpired) return "text-ink/60";
+    if (session.isHosted) return "text-sage";
+    if (session.myStatus === 'WAITLIST') return "text-sage";
     return "text-sage";
   };
 
@@ -369,23 +368,23 @@ export default function SchedulePage() {
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
         <h2 className="text-base tracking-[0.2em] text-sage font-bold">排程管理</h2>
-        <div className="flex items-center gap-1.5">
-          <Tabs className="text-[11px]">
-            <TabButton
-              onClick={() => setViewMode('week')}
-              active={viewMode === "week"}
-              className="flex items-center gap-1 px-2.5 py-1.5 tracking-wider"
-            >
-              <CalendarRange size={12} />週
-            </TabButton>
-            <TabButton
-              onClick={() => setViewMode('calendar')}
-              active={viewMode === "calendar"}
-              className="flex items-center gap-1 px-2.5 py-1.5 tracking-wider"
-            >
-              <CalendarDays size={12} />月
-            </TabButton>
-          </Tabs>
+        <div className="inline-flex bg-stone-50 p-1 rounded-sm border-2 border-ink">
+          <button
+            onClick={() => setViewMode('week')}
+            className={`px-4 py-1.5 rounded-sm text-[10px] tracking-widest transition-all flex items-center gap-1 border ${
+              viewMode === "week" ? "bg-paper text-sage border-ink font-bold" : "text-stone-400 border-transparent"
+            }`}
+          >
+            <CalendarRange size={12} />週
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-4 py-1.5 rounded-sm text-[10px] tracking-widest transition-all flex items-center gap-1 border ${
+              viewMode === "calendar" ? "bg-paper text-sage border-ink font-bold" : "text-stone-400 border-transparent"
+            }`}
+          >
+            <CalendarDays size={12} />月
+          </button>
         </div>
       </div>
 
@@ -453,7 +452,7 @@ export default function SchedulePage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-7 text-center text-[10px] md:text-[11px] tracking-widest text-gray-400 uppercase mb-1">
+            <div className="grid grid-cols-7 text-center text-[10px] md:text-[11px] tracking-widest text-ink/70 uppercase mb-1">
               {['日', '一', '二', '三', '四', '五', '六'].map(d => (
                 <div key={d} className="py-1 md:py-2">{d}</div>
               ))}
@@ -471,7 +470,7 @@ export default function SchedulePage() {
                     } ${isToday ? "ring-1 ring-inset ring-sage/30" : ""}`}
                   >
                     <div className={`text-[11px] md:text-[12px] mb-0.5 md:mb-1 ${
-                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/60" : "text-gray-300"
+                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/60" : "text-ink/40"
                     }`}>
                       {cell.day}
                     </div>
@@ -494,7 +493,7 @@ export default function SchedulePage() {
                         );
                       })}
                       {daySessions.length > 2 && (
-                        <div className="text-[9px] md:text-[10px] text-gray-400 text-center">+{daySessions.length - 2}</div>
+                        <div className="text-[9px] md:text-[10px] text-ink/70 text-center">+{daySessions.length - 2}</div>
                       )}
                     </div>
                   </div>
@@ -507,22 +506,22 @@ export default function SchedulePage() {
 
       {/* Detail Modal */}
       {selectedSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30">
           <div className={`neu-modal w-full max-w-md p-8 relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <div className="absolute top-4 right-4 flex items-center gap-2">
               {selectedSession.isHosted && (
-                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-gray-300 hover:text-sage transition-colors" title="複製療程"><Copy size={18}/></button>
+                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-ink/50 hover:text-sage transition-colors" title="複製療程"><Copy size={18}/></button>
               )}
               {selectedSession.isHosted && !selectedSession.isHostCanceled && !selectedSession.isExpired && (
-                <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="text-gray-300 hover:text-red-400 transition-colors" title="刪除療程"><Trash2 size={18}/></button>
+                <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="text-ink/50 hover:text-sage transition-colors" title="刪除療程"><Trash2 size={18}/></button>
               )}
-              <button onClick={() => setSelectedSession(null)} className="text-gray-300 hover:text-sage transition-colors"><X size={24}/></button>
+              <button onClick={() => setSelectedSession(null)} className="text-ink/50 hover:text-sage transition-colors"><X size={24}/></button>
             </div>
               {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
-                <div className="inline-block neu-status-chip text-amber-700 text-[10px] font-bold tracking-wider mb-3">主揪</div>
+                <div className="inline-block neu-status-chip text-sage text-[10px] font-bold tracking-wider mb-3">主揪</div>
               )}
-            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-gray-400" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
-            <div className="space-y-4 text-sm text-gray-500 mb-8">
+            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-ink/60" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
+            <div className="space-y-4 text-sm text-ink/75 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               {selectedSession.isHosted ? (
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/> {selectedSession.location}</a>
@@ -533,13 +532,13 @@ export default function SchedulePage() {
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (
-              <div className="mt-4 p-3 neu-soft-panel text-sm italic text-gray-500 leading-relaxed whitespace-pre-wrap">
-                <div className="flex items-center gap-1 mb-1 font-bold not-italic text-stone-400 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
+              <div className="mt-4 p-3 neu-soft-panel text-sm italic text-ink/75 leading-relaxed whitespace-pre-wrap">
+                <div className="flex items-center gap-1 mb-1 font-bold not-italic text-ink/70 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
                 {selectedSession.notes}
               </div>
             )}
             <div className="border-t border-stone/10 pt-6 mt-4">
-              <div className="flex justify-between items-center mb-4"><h3 className="text-[11px] tracking-widest text-gray-400 uppercase">Participants</h3><span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
+              <div className="flex justify-between items-center mb-4"><h3 className="text-[11px] tracking-widest text-ink/70 uppercase">Participants</h3><span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
               <div className="max-h-32 overflow-y-auto">
                 <div className="flex flex-wrap gap-2">
                   {participants.map((p, i) => (
@@ -590,30 +589,30 @@ export default function SchedulePage() {
           <div className="neu-modal w-full max-w-sm rounded-[3rem] p-12 text-center">
             <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8"><Layout className="text-sage opacity-50" size={24}/></div>
             <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">同伴的症狀</h2>
-            <p className="text-[11px] text-gray-400 italic mb-10 tracking-[0.1em]">這將影響所內 AI 醫師如何為您們配對</p>
+            <p className="text-[11px] text-ink/70 italic mb-10 tracking-[0.1em]">這將影響所內 AI 醫師如何為您們配對</p>
             <div className="space-y-4">
               {[{ label: "初次碰球 (L1-3)", value: 2 }, { label: "重度球毒 (L4-7)", value: 5 }, { label: "球得我心 (L8-12)", value: 10 }, { label: "球入五臟 (L13-18)", value: 15 }].map((lvl) => (
                 <button key={lvl.value} onClick={() => executeAddFriend(lvl.value)}
-                  className="w-full py-5 px-6 rounded-full border border-stone/10 bg-white text-stone-500 text-sm tracking-[0.2em] hover:bg-sage hover:text-white hover:border-sage transition-all duration-500 font-light">{lvl.label}</button>
+                  className="w-full py-5 px-6 rounded-full border-2 border-ink bg-paper text-ink text-sm tracking-[0.2em] hover:bg-sage hover:text-white transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A]">{lvl.label}</button>
               ))}
             </div>
-            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[11px] text-gray-300 tracking-[0.4em] uppercase hover:text-stone-500">取消</button>
+            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[11px] text-ink/60 tracking-[0.4em] uppercase hover:text-ink">取消</button>
           </div>
         </div>
       )}
 
       {/* Msg Modal */}
       {msg.isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
+        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-ink/40 animate-in fade-in duration-200">
+          <div className="neu-modal w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 animate-in slide-in-from-bottom-10 duration-300 text-center">
             <div className="flex flex-col items-center">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-red-50 text-red-400'}`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${msg.type === 'success' ? 'bg-sage/10 text-sage' : 'bg-sage/20 text-ink'}`}>
                 {msg.type === 'success' ? <CheckCircle size={24}/> : <Info size={24}/>}
               </div>
               <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
               <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p>
-              <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase">我知道了</button>
+              <p className="text-base text-ink/75 italic font-serif leading-relaxed mb-10 tracking-widest">{msg.content}</p>
+              <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] hover:bg-sage/15 transition-all uppercase shadow-[4px_4px_0_0_#1A1A1A]">我知道了</button>
             </div>
           </div>
         </div>
@@ -621,16 +620,16 @@ export default function SchedulePage() {
 
       {/* Cancel Menu */}
       {cancelMenu.isOpen && cancelMenu.session && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl tracking-widest text-sage font-bold">取消掛號</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-gray-300"><X size={24}/></button></div>
-            <p className="text-base text-gray-500 mb-8 leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-orange-400 font-bold">候補名單</span> 中。</>) : (<>您目前掛號了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-ink/40 animate-in fade-in duration-200">
+          <div className="neu-modal w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 animate-in slide-in-from-bottom-10 duration-300">
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl tracking-widest text-sage font-bold">取消掛號</h2><button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="text-ink/50"><X size={24}/></button></div>
+            <p className="text-base text-ink/75 mb-8 leading-relaxed">{cancelMenu.session.myStatus === 'WAITLIST' ? (<>您目前正在 <span className="text-sage font-bold">候補名單</span> 中。</>) : (<>您目前掛號了 <span className="text-sage font-bold">{1 + (cancelMenu.session.friendCount || 0)} 位</span></>)}請確認是否要執行取消操作：</p>
             <div className="space-y-4">
               {(cancelMenu.session?.friendCount || 0) > 0 && (
-                <button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border border-orange-200 text-orange-500 bg-orange-50/30 rounded-xl text-base tracking-widest hover:bg-orange-50 transition-all font-bold flex items-center justify-center gap-2"><UserMinus size={18}/> 僅取消同伴 (保留本人)</button>
+                <button onClick={() => executeCancel(cancelMenu.session!.id, 'friend_only')} className="w-full py-4 border-2 border-ink text-ink bg-sage/15 rounded-xl text-base tracking-widest hover:bg-sage/30 transition-all font-bold flex items-center justify-center gap-2 shadow-[4px_4px_0_0_#1A1A1A]"><UserMinus size={18}/> 僅取消同伴 (保留本人)</button>
               )}
-              <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border border-red-100 text-red-400 bg-red-50/30 rounded-xl text-base tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 font-bold"><Trash2 size={18}/> 確認取消掛號</button>
-              <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-gray-400 text-sm tracking-widest hover:text-gray-600 transition-all uppercase">返回</button>
+              <button onClick={() => executeCancel(cancelMenu.session!.id, 'all')} className="w-full py-4 border-2 border-ink text-ink bg-sage/25 rounded-xl text-base tracking-widest hover:bg-sage/40 transition-all flex items-center justify-center gap-2 font-bold shadow-[4px_4px_0_0_#1A1A1A]"><Trash2 size={18}/> 確認取消掛號</button>
+              <button onClick={() => setCancelMenu({ isOpen: false, session: null })} className="w-full py-4 text-ink/70 text-sm tracking-widest hover:text-ink transition-all uppercase">返回</button>
             </div>
           </div>
         </div>
@@ -638,16 +637,16 @@ export default function SchedulePage() {
 
       {/* Delete Confirm */}
       {deleteConfirm.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 text-center">
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-ink/40 animate-in fade-in duration-200">
+          <div className="neu-modal w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 animate-in slide-in-from-bottom-10 duration-300 text-center">
             <div className="flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-red-50 text-red-400 flex items-center justify-center mb-6"><Trash2 size={24}/></div>
+              <div className="w-12 h-12 rounded-full bg-sage/20 text-ink flex items-center justify-center mb-6"><Trash2 size={24}/></div>
               <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止此療程？</h2>
               <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
-              <p className="text-base text-gray-400 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
+              <p className="text-base text-ink/75 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
               <div className="w-full space-y-3">
-                <button onClick={executeDelete} className="w-full py-4 bg-red-500 text-white text-sm tracking-[0.4em] hover:bg-red-600 transition-all uppercase rounded-sm shadow-sm font-bold">確認終止療程</button>
-                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border border-stone text-stone-400 text-sm tracking-[0.4em] hover:bg-stone/5 transition-all uppercase rounded-sm">保留這份期待</button>
+                <button onClick={executeDelete} className="w-full py-4 bg-sage text-ink text-sm tracking-[0.4em] hover:bg-sage/80 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink font-bold">確認終止療程</button>
+                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] hover:bg-sage/15 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
               </div>
             </div>
           </div>
@@ -658,16 +657,16 @@ export default function SchedulePage() {
       {checkInModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-paper/95 backdrop-blur-md animate-in fade-in duration-700">
           <div className="max-w-xs w-full text-center space-y-10 p-8">
-            <div className="relative mx-auto w-20 h-20 border border-[#D6C58D]/30 rounded-full flex items-center justify-center">
-              <MapPin size={28} strokeWidth={1} className="text-[#A68F4C] animate-bounce" />
+            <div className="relative mx-auto w-20 h-20 border-2 border-ink rounded-full flex items-center justify-center bg-sage/10 shadow-[4px_4px_0_0_#1A1A1A]">
+              <MapPin size={28} strokeWidth={1} className="text-sage animate-bounce" />
             </div>
             <div className="space-y-4">
-              <h2 className="text-2xl tracking-[0.4em] text-stone-800 font-light">抵達勒戒所</h2>
-              <div className="w-8 h-[1px] bg-[#D6C58D]/40 mx-auto"></div>
-              <p className="text-[12px] text-gray-400 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但勒戒已經開始了。 」</p>
+              <h2 className="text-2xl tracking-[0.4em] text-ink font-light">抵達勒戒所</h2>
+              <div className="w-8 h-[1px] bg-sage mx-auto"></div>
+              <p className="text-[12px] text-ink/70 italic leading-loose tracking-[0.2em]">「 汗水還未落下，<br/>但勒戒已經開始了。 」</p>
             </div>
             <div className="space-y-3">
-              <button onClick={executeCheckIn} className="w-full py-4 bg-[#D6C58D] text-white text-[11px] tracking-[0.5em] uppercase hover:bg-[#C4B37A] transition-all shadow-sm">確認報到</button>
+              <button onClick={executeCheckIn} className="w-full py-4 bg-sage text-ink text-[11px] tracking-[0.5em] uppercase hover:bg-sage/80 transition-all shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink">確認報到</button>
               <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-500 text-[10px] tracking-[0.3em] uppercase hover:text-stone-500">稍後再說</button>
             </div>
           </div>

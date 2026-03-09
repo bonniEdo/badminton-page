@@ -12,7 +12,7 @@ export default function Modal({ open, children, className, overlayClassName }: M
   if (!open) return null;
   return (
     <div className={cn("neu-overlay", overlayClassName)}>
-      <div className={cn("neu-modal", className)}>{children}</div>
+      <div className={cn("neu-modal brutal-block", className)}>{children}</div>
     </div>
   );
 }

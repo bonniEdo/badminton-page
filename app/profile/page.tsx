@@ -592,7 +592,7 @@ export default function ProfilePage() {
                   step={0.01}
                   value={cropZoom}
                   onChange={(e) => setCropZoom(Number(e.target.value))}
-                  className="w-full accent-[#8F9B74]"
+                  className="w-full accent-sage"
                 />
               </label>
               <p className="text-[11px] text-stone-400 italic">用手指或滑鼠直接拖曳圖片調整位置</p>
@@ -622,7 +622,7 @@ export default function ProfilePage() {
         <section className="flex flex-col items-center mb-12">
           <div className="relative">
             <div className="absolute inset-0 bg-sage/10 rounded-full blur-3xl scale-125 opacity-50"></div>
-            <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-[6px] border-white shadow-xl bg-stone-50 transition-transform duration-700 hover:scale-105">
+            <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-[6px] border-ink bg-stone-50 transition-transform duration-700 hover:scale-105">
               {userInfo?.avatarUrl || userInfo?.AvatarUrl ? (
                 <img src={userInfo.avatarUrl || userInfo.AvatarUrl} className="w-full h-full object-cover" />
               ) : (
@@ -634,14 +634,14 @@ export default function ProfilePage() {
             <button
               onClick={handleSelectAvatar}
               disabled={isAvatarUploading}
-              className="absolute -bottom-1 -left-1 bg-white rounded-full border-4 border-[#FAF9F6] shadow-md p-2 z-10 text-sage hover:text-stone-700 transition-colors disabled:opacity-50"
+              className="absolute -bottom-1 -left-1 bg-paper rounded-full border-2 border-ink shadow-[4px_4px_0_0_#1A1A1A] p-2 z-10 text-sage hover:text-stone-700 transition-colors disabled:opacity-50"
               title="上傳頭貼"
             >
               <Camera className="w-4 h-4" />
             </button>
             {isVerified && (
-              <div className="absolute -bottom-1 -right-1 bg-white rounded-full border-4 border-[#FAF9F6] shadow-md p-0.5 z-10">
-                <CheckCircle className="w-7 h-7 text-blue-500 fill-blue-50" strokeWidth={2.5} />
+              <div className="absolute -bottom-1 -right-1 bg-paper rounded-full border-2 border-ink shadow-[4px_4px_0_0_#1A1A1A] p-0.5 z-10">
+                <CheckCircle className="w-7 h-7 text-sage fill-paper" strokeWidth={2.5} />
               </div>
             )}
             <input
@@ -1066,7 +1066,7 @@ export default function ProfilePage() {
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700;900&display=swap');
-        body { background-color: #FAF9F6; font-family: 'Noto Serif TC', serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #F7F7F2; font-family: 'Noto Serif TC', serif; -webkit-tap-highlight-color: transparent; }
 
         @keyframes float {
           0% { transform: translateY(0px); }

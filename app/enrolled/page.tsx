@@ -187,7 +187,7 @@ export default function EnrolledPage() {
           <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的療程</h2>
           <button
             onClick={() => setShowExpired(!showExpired)}
-            className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${showExpired ? "border-sage text-sage bg-white shadow-sm" : "border-stone/40 text-stone-500 bg-stone/5"}`}
+            className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${showExpired ? "border-sage text-sage bg-paper shadow-[4px_4px_0_0_#1A1A1A]" : "border-stone/40 text-ink/70 bg-stone/5"}`}
           >
             {showExpired ? <Eye size={16} /> : <EyeOff size={16} />}
             時光紀錄
@@ -197,15 +197,15 @@ export default function EnrolledPage() {
         <div className="flex items-center gap-2 pb-1 scrollbar-hide">
           {['all', 'hosted', 'enrolled'].map(k => (
             <Chip key={k} onClick={() => setFilterType(k as any)} active={filterType === k}
-              className={`flex-shrink-0 px-6 py-2 font-bold text-sm transition-all ${filterType === k ? "" : "text-stone-600"}`}>
+            className={`flex-shrink-0 px-5 py-2 font-bold text-sm transition-all ${filterType === k ? "" : "text-stone-600"}`}>
               {k === 'all' ? '全部' : k === 'hosted' ? '我發起' : '我報名'}
             </Chip>
           ))}
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
           {sortedSessions.map((session) => {
             const isToday = session.date === todayStr;
             const hasCheckedIn = !!session.check_in_at;
@@ -213,28 +213,21 @@ export default function EnrolledPage() {
             return (
               <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} 
                 onClick={() => setSelectedSession(session)}
-                className={`relative cursor-pointer neu-card p-7 border-l-[6px] transition-all rounded-2xl overflow-hidden ${
+                className={`relative cursor-pointer neu-card p-5 md:p-7 border-l-[6px] transition-all rounded-2xl overflow-hidden ${
                   session.isHostCanceled ? "border-l-red-300 opacity-60 grayscale-[0.2]" :
                   session.isExpired ? "border-l-stone-300 opacity-80 grayscale-[0.2]" :
                   session.isHosted ? "border-l-amber-500" : "border-l-sage"
                 }`}>
                 
                 <div className="absolute top-0 right-0">
-                  <div className={`text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-2xl neu-status-chip ${session.isExpired ? 'text-stone-500' : session.isHosted ? 'text-amber-700' : 'text-sage'}`}>
+                  <div className={`text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-xl border-l-2 border-b-2 border-ink ${session.isExpired ? 'bg-paper text-ink/70' : session.isHosted ? 'bg-sage/20 text-sage' : 'bg-sage/15 text-sage'}`}>
                     {session.isExpired ? '已結束' : session.isHosted ? '主揪管理' : '場邊休息'}
                   </div>
                 </div>
 
                 <div className="flex justify-between items-start mb-6 pr-12">
                   <h3 className={`text-2xl tracking-widest font-bold ${session.isExpired ? "text-stone-400" : "text-stone-800"}`}>{session.title}</h3>
-                  <div className="flex gap-4">
-                    {session.isHosted && !session.isExpired && (
-                      <>
-                        <button onClick={(e) => handleCopy(e, session)} className="text-stone-300 hover:text-sage transition-colors"><Copy size={18}/></button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="text-stone-300 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
-                      </>
-                    )}
-                  </div>
+                  <div />
                 </div>
 
                 <div className="text-[15px] text-stone-700 space-y-3 font-serif p-4">
@@ -266,6 +259,13 @@ export default function EnrolledPage() {
                       {session.isHosted ? <><Settings2 size={16} /> 進入主控室 </> : <><Activity size={16} /> 查看對戰實況</>}
                     </button>
                   )}
+
+                  {session.isHosted && !session.isExpired && (
+                    <div className="flex gap-2">
+                      <button onClick={(e) => handleCopy(e, session)} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="複製療程"><Copy size={16}/></button>
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="終止療程"><Trash2 size={16}/></button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-end mt-6">
                   <span className="text-xs text-stone-500 font-bold uppercase tracking-widest">掛號人數 {session.currentPlayers} / {session.maxPlayers}</span>
@@ -280,11 +280,8 @@ export default function EnrolledPage() {
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="neu-modal w-full max-w-md p-10 relative animate-in zoom-in duration-200 rounded-3xl">
-            <div className="absolute top-6 right-6 flex items-center gap-3">
-              {selectedSession.isHosted && !selectedSession.isExpired && (
-                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-stone-300 hover:text-sage transition-colors"><Copy size={20}/></button>
-              )}
-              <button onClick={() => setSelectedSession(null)} className="text-stone-400 hover:text-stone-800 transition-colors"><X size={32}/></button>
+            <div className="absolute top-6 right-6 flex items-center gap-2">
+              <button onClick={() => setSelectedSession(null)} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="關閉"><X size={18}/></button>
             </div>
             <h2 className="text-2xl mb-8 tracking-[0.3em] text-sage font-bold border-b border-stone/10 pb-5">{selectedSession.title}</h2>
             <div className="space-y-6 text-lg text-stone-800 mb-10 font-serif p-5">
@@ -298,11 +295,14 @@ export default function EnrolledPage() {
                 className={`w-full py-5 text-sm tracking-[0.3em] uppercase transition-all font-bold flex items-center justify-center gap-3 rounded-2xl neu-btn ${selectedSession.isHosted ? "text-amber-800" : "text-stone-800"}`}>
                 {selectedSession.isHosted ? <><Settings2 size={20} /> 進入主控室 </> : <><Activity size={20} /> 查看對戰實況</>}
               </button>
+              {selectedSession.isHosted && !selectedSession.isExpired && (
+                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="w-full py-3 neu-btn text-ink text-xs tracking-[0.3em] font-bold uppercase">複製療程</button>
+              )}
               {!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
                 <button onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })} className="w-full py-5 neu-btn neu-btn-primary text-sm tracking-[0.3em] font-bold rounded-2xl uppercase">簽到：我到了</button>
               )}
               {selectedSession.isHosted && !selectedSession.isExpired && (
-                <button onClick={() => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="w-full py-4 neu-btn text-red-500 text-xs tracking-[0.3em] font-bold uppercase rounded-2xl">終止此療程</button>
+                <button onClick={() => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="w-full py-4 neu-btn text-ink text-xs tracking-[0.3em] font-bold uppercase rounded-2xl">終止此療程</button>
               )}
             </div>
           </div>
@@ -312,15 +312,15 @@ export default function EnrolledPage() {
       {/* 簽到 Modal */}
       {checkInModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-paper/95 backdrop-blur-md animate-in fade-in duration-500">
-          <div className="max-w-sm w-full text-center space-y-12 p-10 bg-white shadow-2xl border border-stone/20 rounded-[3rem]">
-            <div className="mx-auto w-24 h-24 border-2 border-[#D6C58D]/30 rounded-full flex items-center justify-center bg-[#D6C58D]/5"><MapPin size={40} className="text-[#A68F4C] animate-bounce" /></div>
+          <div className="max-w-sm w-full text-center space-y-12 p-10 neu-modal rounded-[3rem]">
+            <div className="mx-auto w-24 h-24 border-2 border-ink rounded-full flex items-center justify-center bg-sage/10 shadow-[4px_4px_0_0_#1A1A1A]"><MapPin size={40} className="text-sage animate-bounce" /></div>
             <div className="space-y-5">
-              <h2 className="text-2xl md:text-3xl tracking-[0.4em] text-stone-900 font-bold">抵達現場</h2>
-              <div className="w-12 h-[2px] bg-[#D6C58D] mx-auto rounded-full"></div>
+              <h2 className="text-2xl md:text-3xl tracking-[0.4em] text-ink font-bold">抵達現場</h2>
+              <div className="w-12 h-[2px] bg-sage mx-auto rounded-full"></div>
               <p className="text-base text-stone-700 leading-loose tracking-[0.2em] font-serif">汗水還未落下，<br/>但療程已經開始了。</p>
             </div>
             <div className="space-y-4 pt-4">
-              <button onClick={executeCheckIn} className="w-full py-5 bg-[#D6C58D] text-white text-base tracking-[0.5em] font-bold rounded-2xl shadow-lg uppercase">確認簽到</button>
+              <button onClick={executeCheckIn} className="w-full py-5 bg-sage text-ink text-base tracking-[0.5em] font-bold rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink uppercase">確認簽到</button>
               <button onClick={() => setCheckInModal({ isOpen: false, session: null })} className="w-full py-4 text-stone-400 text-sm font-bold tracking-[0.3em] uppercase">稍後處理</button>
             </div>
           </div>
@@ -329,14 +329,14 @@ export default function EnrolledPage() {
 
       {/* 刪除確認 Modal */}
       {deleteConfirm.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-12 shadow-2xl text-center border border-stone/10">
-            <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-8 border border-red-100"><Trash2 size={32}/></div>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-ink/40">
+          <div className="neu-modal w-full max-w-md rounded-[3rem] p-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-sage/20 text-ink flex items-center justify-center mx-auto mb-8 border-2 border-ink"><Trash2 size={32}/></div>
             <h2 className="text-2xl tracking-[0.3em] text-stone-900 font-bold mb-5">終止此療程？</h2>
             <p className="text-base text-stone-600 font-serif mb-12 tracking-widest leading-relaxed">一旦終止，所有的掛號與期待都將隨風而去。確認要執行嗎？</p>
             <div className="space-y-4">
-              <button onClick={executeDelete} className="w-full py-5 bg-red-500 text-white text-sm tracking-[0.4em] font-bold rounded-2xl shadow-lg uppercase">確認終止</button>
-              <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-5 border border-stone text-stone-500 text-sm font-bold rounded-2xl uppercase transition-all hover:bg-stone-50">保留這份期待</button>
+              <button onClick={executeDelete} className="w-full py-5 bg-sage text-ink text-sm tracking-[0.4em] font-bold rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink uppercase">確認終止</button>
+              <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-5 border-2 border-ink text-ink text-sm font-bold rounded-2xl uppercase transition-all hover:bg-sage/15 shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
             </div>
           </div>
         </div>
@@ -344,9 +344,9 @@ export default function EnrolledPage() {
 
       {/* 訊息 Modal */}
       {msg.isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-12 shadow-2xl text-center border border-stone/10">
-            <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-8 bg-sage text-white shadow-lg shadow-sage/20"><CheckCircle size={32}/></div>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-ink/50">
+          <div className="neu-modal w-full max-w-sm rounded-[2.5rem] p-12 text-center">
+            <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-8 bg-sage text-white shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink"><CheckCircle size={32}/></div>
             <h2 className="text-2xl tracking-[0.3em] text-stone-900 font-bold mb-5">{msg.title}</h2>
             <p className="text-base text-stone-600 font-serif mb-10 tracking-widest leading-relaxed">{msg.content}</p>
             <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 bg-stone-100 text-stone-800 text-sm font-bold rounded-2xl uppercase">我知道了</button>

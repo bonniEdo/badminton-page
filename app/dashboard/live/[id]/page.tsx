@@ -461,15 +461,15 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       <AppHeader />
 
       {/* 頂部導航 */}
-      <div className="sticky top-0 md:top-14 z-20 neu-floating-header px-6 py-3">
-        <div className="neu-surface neu-surface-glass px-4 py-3 flex justify-between items-center rounded-[20px]">
+      <div className="sticky top-0 md:top-14 z-20 px-4 md:px-6 py-2 bg-paper border-b-2 border-ink">
+        <div className="px-0 py-2 flex justify-between items-center">
           <button onClick={() => router.push("/enrolled")} className="text-stone-400 hover:text-sage transition-all"><ChevronLeft size={24} /></button>
           <div className="text-center">
             <h1 className="text-sm font-bold tracking-[0.3em] uppercase">{gameInfo?.Title || "場地載入中"}</h1>
             <p className="text-[9px] text-stone-400 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={executeCloseGame} className="text-[9px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border border-red-200 text-red-400 hover:bg-red-50 transition-all">
+            <button onClick={executeCloseGame} className="text-[9px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border-2 border-ink text-ink hover:bg-sage/15 transition-all">
               關閉球團
             </button>
             <button onClick={() => setIsBenchOpen(true)} className="md:hidden text-sage"><Users size={20} /></button>
@@ -526,13 +526,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           {/* 全域待診預備區 */}
           <section className="max-w-4xl mx-auto">
             <div className="neu-card rounded-[2rem] p-8 relative">
-              <div className="absolute -top-3 left-10 px-4 py-1 bg-[#FAF9F6] border border-stone-100 rounded-full text-[10px] tracking-[0.3em] text-stone-400 uppercase font-bold">預備組 Next</div>
+              <div className="absolute -top-3 left-10 px-4 py-1 bg-paper border border-ink/20 rounded-full text-[10px] tracking-[0.3em] text-ink/70 uppercase font-bold">預備組 Next</div>
               
               {/* 公平/巔峰 策略切換 */}
               <div className="flex justify-center mb-6">
-                <div className="inline-flex bg-stone-50 p-1 rounded-full border border-stone-100">
-                  <button onClick={() => setGlobalStrategy("fairness")} className={`px-4 py-1.5 rounded-full text-[10px] tracking-widest transition-all ${globalStrategy === "fairness" ? "bg-white text-sage shadow-sm font-bold" : "text-stone-400"}`}>公平戰役</button>
-                  <button onClick={() => setGlobalStrategy("peak")} className={`px-4 py-1.5 rounded-full text-[10px] tracking-widest transition-all ${globalStrategy === "peak" ? "bg-white text-sage shadow-sm font-bold" : "text-stone-400"}`}>巔峰對決</button>
+                <div className="inline-flex bg-stone-50 p-1 rounded-sm border-2 border-ink">
+                  <button onClick={() => setGlobalStrategy("fairness")} className={`px-4 py-1.5 rounded-sm text-[10px] tracking-widest transition-all border ${globalStrategy === "fairness" ? "bg-paper text-sage border-ink font-bold" : "text-stone-400 border-transparent"}`}>公平戰役</button>
+                  <button onClick={() => setGlobalStrategy("peak")} className={`px-4 py-1.5 rounded-sm text-[10px] tracking-widest transition-all border ${globalStrategy === "peak" ? "bg-paper text-sage border-ink font-bold" : "text-stone-400 border-transparent"}`}>巔峰對決</button>
                 </div>
               </div>
 
@@ -541,7 +541,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   {nextSlots.map((id, idx) => (
                     <div key={idx} onClick={() => handleNextSlotClick(idx)}
                       className={`h-16 flex items-center px-4 border-2 rounded-2xl transition-all cursor-pointer ${
-                        swappingSlotIdx === idx ? 'bg-orange-50 border-orange-200 animate-pulse' :
+                        swappingSlotIdx === idx ? 'bg-sage/20 border-sage animate-pulse' :
                         id ? 'bg-white border-sage/20 shadow-sm' : 'bg-stone-50 border-dashed border-stone-100 hover:border-sage/40'
                       }`}>
                       <MagnetPlayer playerId={id} isNext />
@@ -578,7 +578,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                       >
                         <Pencil size={14} />
                       </button>
-                      {!match && <button onClick={() => removeCourt(num)} className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"><Trash2 size={14}/></button>}
+                      {!match && <button onClick={() => removeCourt(num)} className="opacity-0 group-hover:opacity-100 hover:text-sage transition-all"><Trash2 size={14}/></button>}
                       {match && <HeartPulse size={14} className="animate-pulse" />}
                     </div>
                   </div>
@@ -586,7 +586,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   <div className="p-8 flex-1 flex flex-col justify-between gap-8">
                     {match ? (
                       <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4 bg-[#FAF9F6] p-4 rounded-2xl border border-stone-50">
+                        <div className="grid grid-cols-2 gap-4 bg-paper p-4 rounded-2xl border border-ink/20">
                           <div className="space-y-3">
                              <MagnetPlayer playerId={match.player_a1}/>
                              <MagnetPlayer playerId={match.player_a2}/>
@@ -607,7 +607,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                             onConfirm: (win: any) => executeFinishMatch(match.id, win),
                             onCancel: () => executeFinishMatch(match.id, 'none')
                           });
-                        }} className="w-full py-3.5 bg-stone-900 text-white text-[11px] tracking-[0.4em] uppercase font-bold rounded-2xl shadow-xl active:scale-95 transition-all">結束對戰</button>
+                        }} className="w-full py-3.5 bg-sage text-ink text-[11px] tracking-[0.4em] uppercase font-bold rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink active:scale-95 transition-all">結束對戰</button>
                       </div>
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center py-6 space-y-6 border-2 border-dashed border-stone-50 rounded-[1.5rem]">
@@ -665,7 +665,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       {selectedPlayerIds.length > 0 && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-stone-900/90 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-10 border border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-sage rounded-full animate-pulse shadow-[0_0_8px_#878D79]" />
+            <div className="w-2 h-2 bg-sage rounded-full animate-pulse shadow-[0_0_8px_#1A1A1A]" />
             <span className="text-[11px] tracking-[0.3em] uppercase italic font-bold">已收集 {selectedPlayerIds.length} 個磁鐵</span>
           </div>
           <button onClick={() => setSelectedPlayerIds([])} className="text-stone-500 hover:text-white"><X size={18}/></button>
@@ -675,8 +675,8 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700;900&display=swap');
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E5E5; border-radius: 10px; }
-        body { font-family: 'Noto Serif TC', serif; background-color: #FAF9F6; -webkit-tap-highlight-color: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1A1A1A; border-radius: 10px; }
+        body { font-family: 'Noto Serif TC', serif; background-color: #F7F7F2; -webkit-tap-highlight-color: transparent; }
       `}</style>
     </div>
   );

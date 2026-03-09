@@ -1,70 +1,169 @@
 ---
-description: 鼠尾草綠文青風格設計系統 — 所有 UI 元件與頁面樣式必須遵循
+description: Brutalism Cute v2 設計系統（去裝飾、重層級）— 所有 UI 必須遵循
 alwaysApply: true
 ---
 
-# 設計系統：鼠尾草綠 × 文青風格
+# 設計系統：Brutalism Cute v2（簡化版）
 
-## 色彩定義（對應 globals.css @theme）
+## 設計目標
 
-| Token        | 色碼      | 用途                         |
-|-------------|-----------|------------------------------|
-| `paper`     | `#FDFCF8` | 頁面背景、卡片底色            |
-| `ink`       | `#3E3E3E` | 主要文字、標題                |
-| `sage`      | `#8A9A5B` | 主色調 — 按鈕、強調、連結     |
-| `stone`     | `#E6E2DD` | 分隔線、次要背景、disabled 態 |
-| `alert`     | `#C0564D` | 錯誤、警告、刪除操作          |
+1. **去除多餘裝飾**：預設不使用陰影、不使用大圓角。
+2. **資訊優先**：靠字級、粗細、間距與對齊建立層級。
+3. **狀態清楚**：每個互動元件必須有 `default / hover / active / disabled` 規範。
+4. **一致互動**：全站按鈕、輸入框、標籤、導覽列使用同一套語意樣式。
 
-Tailwind 用法：`bg-paper`、`text-ink`、`bg-sage`、`border-stone`、`text-alert`
+## 色彩 Token（唯一合法色票）
 
-## 字體
+| Token | 色碼 | 用途 |
+|---|---|---|
+| `paper` | `#F7F7F2` | 全站背景、容器底色 |
+| `sage` | `#9CAF88` | 主互動色、主 CTA |
+| `alert` | `#3D5A44` | 強調與高亮（非錯誤紅） |
+| `ink` | `#1A1A1A` | 文字、邊線、icon、分隔線 |
 
-- 標題 / 強調：`font-serif`（Noto Serif TC）
-- 內文 / UI 元素：系統無襯線字體（預設）
-- 禁止使用花俏裝飾字體
+補充：
+- 陰影色固定 `#1A1A1A`，但 **僅限少數重點元件** 使用。
+- Tailwind 建議：`bg-paper`、`text-ink`、`bg-sage`、`text-sage`、`text-alert`、`border-ink`。
 
-## 風格原則
+## 字體與排版
 
-1. **留白優先** — 元素間保持充足 padding/margin，不擁擠
-2. **圓角柔和** — 卡片與按鈕使用 `rounded-xl` 或 `rounded-2xl`
-3. **陰影內斂** — 僅用 `shadow-sm` 或 `shadow-md`，避免濃重陰影
-4. **色彩節制** — 頁面以 paper + ink 為主，sage 點綴強調，不超過三色
-5. **動畫克制** — 轉場用 `transition-all duration-200`，不做花俏動畫
+- 標題/品牌字：`font-serif`（Noto Serif TC）。
+- 內文/UI：系統無襯線或既有專案預設字體。
+- 行高：
+  - 標題：`leading-tight`
+  - 內文：`leading-relaxed`
+  - 小字註記：`leading-normal`
 
-## 元件規範
+## 形狀與深度規則
 
-### 按鈕（主要）
+### 圓角規範（嚴格）
+- `input / select / textarea`：`rounded-none`
+- `button`：`rounded-none` 或 `rounded-md`（擇一頁面內一致）
+- `card / panel`：`rounded-md`
+- `tag / chip / badge`：`rounded-none` 或 `rounded-sm`
+- 浮動 FAB：允許 `rounded-full`（唯一例外）
+
+### 陰影規範（嚴格）
+- 預設：`shadow-none`
+- 可用陰影場景（只能二選一）：
+  1. 主要 CTA（單一頁最多 1~2 顆）
+  2. 浮動 FAB
+- 合法陰影：`shadow-[4px_4px_0_0_#1A1A1A]`
+- 禁止：多層陰影、柔光陰影、blur 陰影。
+
+## 元件分類與狀態規範
+
+## 1) Surface 類（頁面 / 卡片 / 區塊）
+
+### Page
 ```
-bg-sage text-paper rounded-xl px-6 py-3 font-serif
-hover → opacity-90
-disabled → bg-stone text-ink/40
+bg-paper text-ink
 ```
 
-### 按鈕（次要 / 輪廓）
+### Card（預設）
 ```
-border border-sage text-sage rounded-xl px-6 py-3
-hover → bg-sage/10
-```
-
-### 卡片
-```
-bg-paper rounded-2xl shadow-sm border border-stone p-5
+bg-paper border-2 border-ink rounded-md
+shadow-none
 ```
 
-### 輸入框
+### Card（強調）
 ```
-bg-paper border border-stone rounded-xl px-4 py-3
-focus → border-sage ring-1 ring-sage/30
+bg-paper border-2 border-ink rounded-md
+shadow-[4px_4px_0_0_#1A1A1A]
 ```
 
-### 頁面佈局
-- 最大寬度 `max-w-md mx-auto`（行動優先）
-- 頁面底色 `bg-paper min-h-screen`
-- 內容區域 `px-4 py-6`
+## 2) Action 類（按鈕）
 
-## 禁止事項
+### Primary Button
+```
+bg-sage text-ink border-2 border-ink px-4 py-2
+rounded-none shadow-none font-bold
+hover -> bg-alert text-paper
+active -> translate-x-[1px] translate-y-[1px]
+disabled -> opacity-40 cursor-not-allowed
+```
 
-- 不使用純黑 `#000` 或純白 `#FFF` 作為文字/背景
-- 不使用漸層背景
-- 不使用 neon / 螢光色
-- 不使用粗重邊框（border-2 以上）
+### Secondary Button
+```
+bg-paper text-ink border-2 border-ink px-4 py-2
+rounded-none shadow-none
+hover -> bg-sage/15
+active -> bg-sage/25
+disabled -> opacity-40
+```
+
+### Icon Button（你要求的刪除/複製類）
+```
+w-8 h-8 inline-flex items-center justify-center
+bg-paper border-2 border-ink rounded-none shadow-none
+text-ink
+hover -> bg-sage/15 text-sage
+active -> bg-sage/25
+disabled -> opacity-40
+```
+
+## 3) Form 類（輸入）
+
+### Input / Select / Textarea
+```
+bg-paper text-ink border-2 border-ink
+rounded-none shadow-none
+focus -> outline-none ring-0 border-ink
+placeholder -> text-ink/50
+disabled -> bg-paper/70 text-ink/50
+```
+
+## 4) Navigation 類（Top/Bottom Bar、Tabs）
+
+### Bottom Bar（手機）
+```
+外層: fixed bottom-0 w-full bg-paper border-t-2 border-ink
+內層: 不加 border、不加陰影、可用分隔線
+active item -> text-sage font-bold
+inactive item -> text-ink/60
+```
+
+### Segmented Control（如 日/月、公平/巔峰）
+```
+容器: inline-flex border-2 border-ink rounded-sm bg-paper p-1 shadow-none
+active: bg-sage text-ink font-bold border-2 border-ink
+inactive: bg-paper text-ink/60 border border-transparent
+```
+
+## 5) Feedback 類（Tag / Badge / Modal）
+
+### 右上角狀態 Tag（卡片）
+```
+bg-sage 或 bg-paper
+text-ink 或 text-paper（視底色）
+border-l-2 border-b-2 border-ink
+rounded-none shadow-none
+```
+
+### Modal
+```
+overlay: bg-ink/35
+panel: bg-paper border-2 border-ink rounded-md shadow-none
+```
+
+## 響應式與間距策略
+
+- 手機（預設）：列表容器 `px-4 py-3`，卡片內距 `p-4`。
+- 平板以上：`md:px-6 md:py-6`，卡片內距 `md:p-6`。
+- 列表區塊 `gap` 建議：
+  - 手機：`gap-4` 或 `gap-5`
+  - 桌面：`md:gap-6` 或 `md:gap-8`
+
+## 無障礙（必須）
+
+- 互動元件必須有 `focus-visible` 狀態（至少保留 `outline` 或 `border` 變化）。
+- icon-only button 必須加 `title` 或 `aria-label`。
+- 文字對比需符合可讀性（避免 `text-ink/30` 以上低對比用於主要資訊）。
+
+## 禁止事項（強制）
+
+1. 不使用規範外色票。
+2. 不使用漸層背景。
+3. 不使用大圓角（`rounded-xl` 以上）作為預設。
+4. 不使用陰影作為常態（僅重點 CTA / FAB 例外）。
+5. 不同頁面不可自行發明新的按鈕狀態語言（需沿用本規範）。

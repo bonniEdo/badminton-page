@@ -10,10 +10,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClassMap: Record<ButtonVariant, string> = {
-  default: "neu-btn",
-  primary: "neu-btn neu-btn-primary",
-  danger: "neu-btn neu-btn-danger",
-  ghost: "neu-btn neu-btn-ghost",
+  default: "neu-btn brutal-focus",
+  primary: "neu-btn neu-btn-primary brutal-focus",
+  danger: "neu-btn neu-btn-danger brutal-focus",
+  ghost: "neu-btn neu-btn-ghost brutal-focus",
 };
 
 export default function Button({

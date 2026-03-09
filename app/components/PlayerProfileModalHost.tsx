@@ -139,11 +139,11 @@ export default function PlayerProfileModalHost() {
     <div className="fixed inset-0 z-[130] pointer-events-none">
       <div
         ref={cardRef}
-        className="absolute pointer-events-auto rounded-2xl border border-[#d9d4c8]/80 bg-[#faf8f2]/95 backdrop-blur-md shadow-[0_18px_30px_rgba(52,59,47,0.2)] p-3"
+        className="absolute pointer-events-auto neu-card p-3"
         style={{ top, left, width: CARD_WIDTH }}
       >
         <div
-          className="absolute -top-1.5 w-3 h-3 rotate-45 border-l border-t border-[#d9d4c8]/80 bg-[#faf8f2]/95"
+          className="absolute -top-1.5 w-3 h-3 rotate-45 border-l-2 border-t-2 border-ink bg-paper"
           style={{ left: arrowX - 6 }}
         />
         <div className="flex items-center gap-2.5">
@@ -153,17 +153,17 @@ export default function PlayerProfileModalHost() {
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <p className="text-[14px] font-semibold text-stone-800 truncate">{displayName}</p>
+              <p className="text-[14px] font-semibold text-ink truncate">{displayName}</p>
               {!isLoginPrompt && isVerified && (
-                <CheckCircle size={14} className="text-blue-500 fill-blue-50 shrink-0" />
+                <CheckCircle size={14} className="text-sage fill-paper shrink-0" />
               )}
             </div>
             {isLoginPrompt ? (
               <div className="mt-1">
-                <p className="text-[11px] text-stone-500">請先登入才能查看更多</p>
+                <p className="text-[11px] text-ink/70">請先登入才能查看更多</p>
                 <button
                   type="button"
-                  className="mt-2 inline-flex items-center rounded-lg border border-[#c9c2b3] bg-white/80 px-2.5 py-1 text-[11px] text-stone-700 hover:bg-white transition-colors"
+                  className="mt-2 inline-flex items-center rounded-lg border-2 border-ink bg-paper px-2.5 py-1 text-[11px] text-ink shadow-[4px_4px_0_0_#1A1A1A] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all duration-200"
                   onClick={() => {
                     const returnPath = `${window.location.pathname}${window.location.search}`;
                     localStorage.setItem("loginReturnPath", returnPath);
@@ -174,13 +174,13 @@ export default function PlayerProfileModalHost() {
                 </button>
               </div>
             ) : isLoading ? (
-              <p className="text-[11px] text-stone-400">載入中...</p>
+              <p className="text-[11px] text-ink/70">載入中...</p>
             ) : error ? (
-              <p className="text-[11px] text-red-500 truncate">{error}</p>
+              <p className="text-[11px] text-ink truncate">{error}</p>
             ) : (
               <div className="mt-1 flex items-center justify-between">
                 <span className="text-[12px] text-sage font-semibold">{levelText}</span>
-                <span className="text-[12px] text-stone-600">勝率 {winRateText}</span>
+                <span className="text-[12px] text-ink/80">勝率 {winRateText}</span>
               </div>
             )}
           </div>
@@ -201,13 +201,13 @@ function StaticAvatar({
   const fallback = name?.trim()?.charAt(0)?.toUpperCase() || "?";
   if (avatarUrl) {
     return (
-      <span className="inline-flex shrink-0 rounded-full border border-[#cfc8ba] p-[1px] shadow-sm">
-        <img src={avatarUrl} alt={name} className="w-12 h-12 rounded-full object-cover bg-white" />
+      <span className="inline-flex shrink-0 rounded-full border-2 border-ink p-[1px] shadow-[4px_4px_0_0_#1A1A1A]">
+        <img src={avatarUrl} alt={name} className="w-12 h-12 rounded-full object-cover bg-paper" />
       </span>
     );
   }
   return (
-    <span className="w-12 h-12 inline-flex items-center justify-center shrink-0 rounded-full border border-[#cfc8ba] bg-[#f4f1e8] text-stone-600 font-semibold shadow-sm">
+    <span className="w-12 h-12 inline-flex items-center justify-center shrink-0 rounded-full border-2 border-ink bg-paper text-ink font-semibold shadow-[4px_4px_0_0_#1A1A1A]">
       {fallback}
     </span>
   );

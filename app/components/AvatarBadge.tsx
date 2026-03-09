@@ -31,19 +31,19 @@ export default function AvatarBadge({
 
   const badgeNode = avatarUrl ? (
     <span
-      className={`relative inline-flex shrink-0 rounded-full p-[1px] bg-gradient-to-br from-[#A5B184] via-[#C8B88C] to-[#CFC8BA] shadow-[0_2px_8px_rgba(90,96,77,0.2)] ${className}`}
+      className={`relative inline-flex shrink-0 rounded-full p-[1px] border-2 border-ink bg-sage/20 shadow-[4px_4px_0_0_#1A1A1A] ${className}`}
     >
       <img
         src={avatarUrl}
         alt={name}
         loading="lazy"
         decoding="async"
-        className={`${sizeClass} rounded-full object-cover bg-white`}
+        className={`${sizeClass} rounded-full object-cover bg-paper`}
       />
     </span>
   ) : (
     <span
-      className={`${sizeClass} inline-flex items-center justify-center shrink-0 rounded-full border border-[#D7D2C7] bg-gradient-to-br from-[#F6F3ED] to-[#ECE8DF] text-stone-600 shadow-[0_1px_6px_rgba(120,112,97,0.18)] font-semibold ${className}`}
+      className={`${sizeClass} inline-flex items-center justify-center shrink-0 rounded-full border-2 border-ink bg-paper text-ink shadow-[4px_4px_0_0_#1A1A1A] font-semibold ${className}`}
     >
       {fallback}
     </span>

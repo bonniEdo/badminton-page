@@ -6,5 +6,5 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export default function Card({ className, inset = false, ...props }: CardProps) {
-  return <div className={cn(inset ? "neu-inset" : "neu-card", className)} {...props} />;
+  return <div className={cn(inset ? "neu-inset brutal-block" : "neu-card brutal-block", className)} {...props} />;
 }

@@ -1,5 +1,5 @@
 Badminton-Rehab 前端系統規格書
-版本：目前程式碼基線（掃描日期：2026-02-25）
+版本：目前程式碼基線（掃描日期：2026-03-08）
 專案目錄：/home/walker/project/badminton-page
 
 ==================================================
@@ -28,8 +28,8 @@ Badminton-Rehab 前端系統規格書
 
 2) UI / 樣式
 - Tailwind CSS v4
-- 自訂 Neumorphism 風格 class（`neu-*`）集中於 `app/globals.css`
-- 共用 UI primitives：Button/Card/Input/Modal/Tabs/Chip/Fab
+- 自訂 Brutalism Cute 風格 class（沿用 `neu-*` 命名）集中於 `app/globals.css`
+- 共用 UI primitives：Button/Card/Input/Modal/Tabs/Chip/Fab（API 不變，外觀改為硬陰影與粗邊框）
 
 3) 認證與第三方
 - LINE LIFF SDK（`@line/liff`）
@@ -301,15 +301,19 @@ Badminton-Rehab 前端系統規格書
 ==================================================
 11. 設計系統與 UI 規範（實作現況）
 ==================================================
-1) 主題色
-- paper / ink / sage / stone / alert（對應 CSS 變數）
+1) 主題色（Brutalism Cute）
+- `paper`: `#F7F7F2`
+- `ink`: `#1A1A1A`
+- `sage`: `#9CAF88`
+- `alert/accent`: `#3D5A44`
+- 硬陰影：`4px 4px 0 #1A1A1A`（僅重點 CTA / FAB 使用，非全域預設）
 
 2) 字體
 - Noto Serif TC 為主
 
 3) 共用元件
 - Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab
-- 以 `neu-*` class 套用視覺一致性
+- 以 `neu-*` class 套用一致視覺（低圓角、`border-2`、預設無陰影）
 
 ==================================================
 12. 非功能性需求（目前可觀察）
