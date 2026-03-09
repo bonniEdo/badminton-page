@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import {
-  UserMinus, CheckCircle, Clock, X, MapPin, User, Banknote,
-  Info, Calendar, PlusCircle, FileText, UserCheck, Layout, Trash2, Zap, Copy,
+  UserMinus, CheckCircle, Clock, X, MapPin,
+  Info, PlusCircle, Layout, Trash2, Zap, Copy,
   CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Activity
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import AvatarBadge from "../components/AvatarBadge";
+import SessionDetailModal from "../components/SessionDetailModal";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -504,84 +505,73 @@ export default function SchedulePage() {
         )}
       </main>
 
-      {/* Detail Modal */}
-      {selectedSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30">
-          <div className={`neu-modal w-full max-w-md p-8 relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              {selectedSession.isHosted && (
-                <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-ink/50 hover:text-sage transition-colors" title="複製療程"><Copy size={18}/></button>
-              )}
-              {selectedSession.isHosted && !selectedSession.isHostCanceled && !selectedSession.isExpired && (
-                <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="text-ink/50 hover:text-sage transition-colors" title="刪除療程"><Trash2 size={18}/></button>
-              )}
-              <button onClick={() => setSelectedSession(null)} className="text-ink/50 hover:text-sage transition-colors"><X size={24}/></button>
-            </div>
-              {selectedSession.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled && (
-                <div className="inline-block neu-status-chip text-sage text-[10px] font-bold tracking-wider mb-3">主揪</div>
-              )}
-            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-ink/60" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
-            <div className="space-y-4 text-sm text-ink/75 mb-8">
-              <p className="flex items-center gap-3 italic"><Calendar size={14}/> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
-              {selectedSession.isHosted ? (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 italic underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors"><MapPin size={14}/> {selectedSession.location}</a>
-              ) : (
-                <p className="flex items-center gap-3 italic"><MapPin size={14}/> {selectedSession.location}</p>
-              )}
-              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage"/> {selectedSession.phone || "現場找主治"}</p>
-              <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14}/> 費用: ${selectedSession.price}</p>
-            </div>
-            {selectedSession.notes && (
-              <div className="mt-4 p-3 neu-soft-panel text-sm italic text-ink/75 leading-relaxed whitespace-pre-wrap">
-                <div className="flex items-center gap-1 mb-1 font-bold not-italic text-ink/70 uppercase tracking-tighter"><FileText size={12}/> Notes</div>
-                {selectedSession.notes}
-              </div>
+      <SessionDetailModal
+        session={selectedSession}
+        onClose={() => setSelectedSession(null)}
+        locationHref={selectedSession?.isHosted ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}` : undefined}
+        topRightActions={selectedSession && (
+          <>
+            {selectedSession.isHosted && (
+              <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-ink/50 hover:text-sage transition-colors" title="複製療程"><Copy size={18} /></button>
             )}
-            <div className="border-t border-stone/10 pt-6 mt-4">
-              <div className="flex justify-between items-center mb-4"><h3 className="text-[11px] tracking-widest text-ink/70 uppercase">Participants</h3><span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
-              <div className="max-h-32 overflow-y-auto">
-                <div className="flex flex-wrap gap-2">
-                  {participants.map((p, i) => (
-                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
-                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" playerUserId={p.UserId ?? null} />
-                      <span>{p.Username}</span>
-                    </div>
-                  ))}
+            {selectedSession.isHosted && !selectedSession.isHostCanceled && !selectedSession.isExpired && (
+              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="text-ink/50 hover:text-sage transition-colors" title="刪除療程"><Trash2 size={18} /></button>
+            )}
+          </>
+        )}
+        badge={selectedSession?.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled ? (
+          <div className="inline-block neu-status-chip text-sage text-[10px] font-bold tracking-wider mb-3">主揪</div>
+        ) : undefined}
+        participantsTitle="Participants"
+        participantsCountText={selectedSession ? `${selectedSession.currentPlayers} / ${selectedSession.maxPlayers}` : undefined}
+        participantsContent={
+          participants.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {participants.map((p, i) => (
+                <div key={i} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === 'WAITLIST' ? 'neu-pill text-stone-500 border-dashed' : 'neu-pill text-sage'}`}>
+                  <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" playerUserId={p.UserId ?? null} />
+                  <span>{p.Username}</span>
                 </div>
-              </div>
+              ))}
             </div>
-            {!selectedSession.isExpired && !selectedSession.isHostCanceled && (
-              <div className="mt-8 space-y-3">
-                {selectedSession.isHosted && selectedSession.date === todayStr && (
-                  <button
-                    onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
-                    className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif">
-                    <Zap size={14} fill="currentColor" /> 進入實況看板
-                  </button>
-                )}
-                {selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
-                  <button
-                    onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })}
-                    className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif">
-                    <MapPin size={14} /> 我到了，報到
-                  </button>
-                )}
-                {!selectedSession.isHosted && selectedSession.date === todayStr && (
-                  <button
-                    onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
-                    className="w-full py-4 neu-btn text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif">
-                    <Activity size={14} /> 對戰實況
-                  </button>
-                )}
-                <button onClick={handleAddFriendClick}
-                  className="w-full py-4 neu-btn text-sage text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2">
-                  <PlusCircle size={14}/> ＋ 攜友入所 (限一位)
-                </button>
-              </div>
+          ) : undefined
+        }
+        participantsEmptyText="尚無掛號紀錄"
+        loadingParticipants={loadingParticipants}
+        participantsLoadingText="正在讀取病友名冊..."
+        actions={selectedSession && !selectedSession.isExpired && !selectedSession.isHostCanceled ? (
+          <div className="mt-8 space-y-3">
+            {selectedSession.isHosted && selectedSession.date === todayStr && (
+              <button
+                onClick={() => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); }}
+                className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif"
+              >
+                <Zap size={14} fill="currentColor" /> 進入實況看板
+              </button>
             )}
+            {selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
+              <button
+                onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })}
+                className="w-full py-4 neu-btn neu-btn-primary text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif"
+              >
+                <MapPin size={14} /> 我到了，報到
+              </button>
+            )}
+            {!selectedSession.isHosted && selectedSession.date === todayStr && (
+              <button
+                onClick={() => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); }}
+                className="w-full py-4 neu-btn text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2 font-serif"
+              >
+                <Activity size={14} /> 對戰實況
+              </button>
+            )}
+            <button onClick={handleAddFriendClick}
+              className="w-full py-4 neu-btn text-sage text-[11px] tracking-[0.3em] uppercase font-bold flex items-center justify-center gap-2">
+              <PlusCircle size={14} /> ＋ 攜友入所 (限一位)
+            </button>
           </div>
-        </div>
-      )}
+        ) : undefined}
+      />
 
       {/* Level Modal */}
       {levelModal.isOpen && (

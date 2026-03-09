@@ -312,7 +312,7 @@ Badminton-Rehab 前端系統規格書
 - Noto Serif TC 為主
 
 3) 共用元件
-- Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab
+- Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab, SessionDetailModal（球局詳情）
 - 以 `neu-*` class 套用一致視覺（低圓角、`border-2`、預設無陰影）
 
 ==================================================
