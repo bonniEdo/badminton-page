@@ -160,11 +160,6 @@ Badminton-Rehab 前端系統規格書
 - 進入 live board：`/dashboard/live/{id}`
 - 複製既有球局作為新建草稿
 
-4) 球局詳情 Modal（SessionDetailModal）
-- 未過期且未取消時，若有 live callback：
-  - 主揪顯示「進入主控室」
-  - 參與者顯示「查看對戰實況」
-
 6.4 主揪實況主控（`/dashboard/live/[id]`）
 1) 即時資料
 - 初始 + refresh：`GET /api/games/{id}` + `GET /api/match/live-status/{id}`
@@ -314,15 +309,16 @@ Badminton-Rehab 前端系統規格書
 - 硬陰影：`4px 4px 0 #1A1A1A`（僅重點 CTA / FAB 使用，非全域預設）
 
 2) 字體
-- 全站使用思源黑體（Noto Sans TC / Source Han Sans TC）
+- Noto Serif TC 為主
 
-3) 文字可讀性規範
-- 全站最小字級為 12px（小字不得低於 12px）
-- 禁用 `text-ink/60`，次要文字改用 `text-ink/80` 以上對比
-
-4) 共用元件
+3) 共用元件
 - Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab, SessionDetailModal（球局詳情）, SessionCard（球局卡片）
 - `SessionCard` 以資料 props 驅動，不再由頁面傳入 card 內部 DOM；`/enrolled` 與 `/browse` 共用同一套 card 結構
+- `SessionCard` 於日期資訊上方顯示團主頭貼與名稱（有提供主揪資料時）
+- `SessionCard` 已取消 enrolled/browse 分支元件與 SharedSessionCardData，統一單一元件實作
+- `SessionDetailModal` 的掛號名冊區塊改為元件內建：每次開啟依 `session.id` 呼叫 `/api/games/{id}/players`，並固定文案為「掛號名冊 / Participants」、「正在讀取病友名冊...」、「尚無掛號紀錄」
+- `SessionDetailModal` 已移除由外部傳入的 participants DOM 與 actions DOM，按鈕文案/順序由 Modal 內建定義；頁面端僅傳狀態旗標與 handler，不再插入自訂 footer DOM
+- `SessionDetailModal` 互動按鈕規則：未登入顯示第三方登入；當天且主揪顯示「進入主控室」；未加過朋友顯示「+ 朋友 (限一位)」；非主揪且當天可報到顯示「我到了，報到」；主揪顯示「複製療程 / 終止此療程」；移除「進入實況看板」與「＋ 攜友入所 (限一位)」
 - 在 `browse` 由主揪檢視卡片時，提供：進入主控室、複製療程、終止療程
 - 在 `enrolled` 由主揪檢視卡片時，右上角標籤文案統一為「我開的」
 - 在 `enrolled` 若 joined/mygame 缺少主揪資料，前端會以 `activegames` 補齊主揪名稱與頭貼

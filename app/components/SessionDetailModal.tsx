@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Activity, Banknote, Calendar, Copy, MapPin, Settings2, Trash2, UserCheck, X } from "lucide-react";
 import AvatarBadge from "./AvatarBadge";
+import { emitOpenPlayerProfile } from "./playerProfileModalBus";
 
 interface SessionDetailBase {
   id: number;
@@ -126,6 +127,44 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   const canShowActions = !session.isExpired && !isHostCanceled;
   const hasAddedFriend = (session.friendCount ?? 0) >= 1;
   const liveAction = isHost ? (onHostLive ?? onOpenLive) : onOpenLive;
+  const openPlayerProfile = (e: React.MouseEvent<HTMLButtonElement>, player: { displayName: string; AvatarUrl?: string | null; UserId?: number | null; }) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    if (!token) {
+      emitOpenPlayerProfile({
+        mode: "login_prompt",
+        fallbackName: player.displayName,
+        fallbackAvatarUrl: player.AvatarUrl,
+        anchorRect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+          right: rect.right,
+        },
+      });
+      return;
+    }
+
+    emitOpenPlayerProfile({
+      mode: "profile",
+      userId: Number(player.UserId),
+      fallbackName: player.displayName,
+      fallbackAvatarUrl: player.AvatarUrl,
+      anchorRect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        bottom: rect.bottom,
+        right: rect.right,
+      },
+    });
+  };
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${overlayClassName}`}>
@@ -191,12 +230,31 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                     list.push({ ...p, displayName: `${p.Username} +1`, UserId: null });
                   }
                   return list;
-                }).map((p, idx) => (
-                  <div key={`${p.displayName}-${idx}`} className={`flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === "WAITLIST" ? "neu-pill text-stone-500 border-dashed" : "neu-pill text-sage"}`}>
-                    <AvatarBadge avatarUrl={p.AvatarUrl} name={p.displayName} size="xs" playerUserId={p.UserId ?? null} />
-                    <span>{p.displayName}</span>
-                  </div>
-                ))}
+                }).map((p, idx) => {
+                  const isClickable = Number.isInteger(p.UserId) && Number(p.UserId) > 0;
+                  const badgeClass = `flex items-center gap-1.5 px-3 py-1 text-[11px] ${p.Status === "WAITLIST" ? "neu-pill text-stone-500 border-dashed" : "neu-pill text-sage"}`;
+                  if (!isClickable) {
+                    return (
+                      <div key={`${p.displayName}-${idx}`} className={badgeClass}>
+                        <AvatarBadge avatarUrl={p.AvatarUrl} name={p.displayName} size="xs" playerUserId={null} />
+                        <span>{p.displayName}</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={`${p.displayName}-${idx}`}
+                      type="button"
+                      onClick={(e) => openPlayerProfile(e, p)}
+                      className={`${badgeClass} cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sage/50`}
+                      title="查看球友資訊"
+                    >
+                      <AvatarBadge avatarUrl={p.AvatarUrl} name={p.displayName} size="xs" playerUserId={null} />
+                      <span>{p.displayName}</span>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-[11px] text-stone-500 italic">尚無掛號紀錄</div>
