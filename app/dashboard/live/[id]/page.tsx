@@ -441,17 +441,41 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     }
   };
 
-  const MagnetPlayer = ({ playerId, isNext = false }: { playerId: number | null, isNext?: boolean }) => {
-    if (!playerId) return <div className="text-[11px] text-stone-300 italic flex items-center gap-1">待指派</div>;
+  const MagnetPlayer = ({
+    playerId,
+    isNext = false,
+    compact = false,
+    emptyLabel = "待指派"
+  }: {
+    playerId: number | null,
+    isNext?: boolean,
+    compact?: boolean,
+    emptyLabel?: string
+  }) => {
+    if (!playerId) {
+      return (
+        <div className={`italic flex items-center gap-1 ${compact ? "text-[12px] text-ink/60" : "text-[12px] text-stone-500"}`}>
+          {emptyLabel}
+        </div>
+      );
+    }
     const p = players.find(player => player.playerId === playerId);
     if (!p) return null;
+    if (compact) {
+      return (
+        <div className="flex items-center gap-2 min-w-0">
+          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
+          <span className="text-[12px] font-bold text-ink truncate">{p.displayName}</span>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-between w-full px-1 gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
           <span className={`text-[14px] font-bold truncate ${isNext ? 'text-stone-700' : 'text-stone-900'}`}>{p.displayName}</span>
         </div>
-        <span className="text-[10px] font-serif italic text-sage opacity-70">L{Math.floor(p.level)}</span>
+        <span className="text-[12px] font-serif italic text-sage opacity-70">L{Math.floor(p.level)}</span>
       </div>
     );
   };
@@ -466,10 +490,10 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           <button onClick={() => router.push("/enrolled")} className="text-stone-400 hover:text-sage transition-all"><ChevronLeft size={24} /></button>
           <div className="text-center">
             <h1 className="text-sm font-bold tracking-[0.3em] uppercase">{gameInfo?.Title || "場地載入中"}</h1>
-            <p className="text-[9px] text-stone-400 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
+            <p className="text-[12px] text-stone-500 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={executeCloseGame} className="text-[9px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border-2 border-ink text-ink hover:bg-sage/15 transition-all">
+            <button onClick={executeCloseGame} className="text-[12px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border-2 border-ink text-ink hover:bg-sage/15 transition-all">
               關閉球團
             </button>
             <button onClick={() => setIsBenchOpen(true)} className="md:hidden text-sage"><Users size={20} /></button>
@@ -482,7 +506,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         <aside className={`fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 md:bg-transparent p-4 md:p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
           <div className="neu-surface neu-surface-glass h-full rounded-2xl p-4 md:p-5">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[11px] tracking-[0.4em] text-stone-500 uppercase font-bold">待命名冊</h2>
+              <h2 className="text-[12px] tracking-[0.4em] text-stone-500 uppercase font-bold">待命名冊</h2>
               <button className="md:hidden text-stone-400" onClick={() => setIsBenchOpen(false)}><X size={20} /></button>
             </div>
             <div className="space-y-2 overflow-y-auto h-[calc(100dvh-220px)] custom-scrollbar pr-2">
@@ -504,13 +528,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                           <span className="text-[14px] font-bold truncate">{p.displayName}</span>
                         </div>
                         {p.status === 'waiting_checkin' && (
-                            <button onClick={(e) => { e.stopPropagation(); handleHostCheckin(p.playerId); }} className="text-stone-300 hover:text-sage"><MapPin size={14}/></button>
+                            <button onClick={(e) => { e.stopPropagation(); handleHostCheckin(p.playerId); }} className="text-stone-500 hover:text-sage"><MapPin size={14}/></button>
                         )}
                         {p.isHost && <Crown size={12} className="text-amber-500" />}
                     </div>
                     <div className="flex justify-between items-center mt-1">
-                        <span className={`text-[10px] font-bold italic tracking-wider ${isSelected ? 'text-white/80' : 'text-sage'}`}>Lv.{Math.floor(p.level)}</span>
-                        <span className={`text-[9px] font-serif italic ${isSelected ? 'text-white/50' : 'text-stone-400'}`}>{p.games_played} 場</span>
+                        <span className={`text-[12px] font-bold italic tracking-wider ${isSelected ? 'text-white/80' : 'text-sage'}`}>Lv.{Math.floor(p.level)}</span>
+                        <span className={`text-[12px] font-serif italic ${isSelected ? 'text-white/70' : 'text-stone-500'}`}>{p.games_played} 場</span>
                     </div>
                   </div>
                 </div>
@@ -526,41 +550,84 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           {/* 全域待診預備區 */}
           <section className="max-w-4xl mx-auto">
             <div className="neu-card rounded-[2rem] p-8 relative">
-              <div className="absolute -top-3 left-10 px-4 py-1 bg-paper border border-ink/20 rounded-full text-[10px] tracking-[0.3em] text-ink/70 uppercase font-bold">預備組 Next</div>
+              <div className="absolute -top-3 left-10 px-4 py-1 bg-paper border border-ink/20 rounded-full text-[12px] tracking-[0.3em] text-ink/70 uppercase font-bold">預備組 Next</div>
               
               {/* 公平/巔峰 策略切換 */}
               <div className="flex justify-center mb-6">
                 <div className="inline-flex bg-stone-50 p-1 rounded-sm border-2 border-ink">
-                  <button onClick={() => setGlobalStrategy("fairness")} className={`px-4 py-1.5 rounded-sm text-[10px] tracking-widest transition-all border ${globalStrategy === "fairness" ? "bg-paper text-sage border-ink font-bold" : "text-stone-400 border-transparent"}`}>公平戰役</button>
-                  <button onClick={() => setGlobalStrategy("peak")} className={`px-4 py-1.5 rounded-sm text-[10px] tracking-widest transition-all border ${globalStrategy === "peak" ? "bg-paper text-sage border-ink font-bold" : "text-stone-400 border-transparent"}`}>巔峰對決</button>
+                  <button onClick={() => setGlobalStrategy("fairness")} className={`px-4 py-1.5 rounded-sm text-[12px] tracking-widest transition-all border ${globalStrategy === "fairness" ? "bg-paper text-sage border-ink font-bold" : "text-stone-500 border-transparent"}`}>公平戰役</button>
+                  <button onClick={() => setGlobalStrategy("peak")} className={`px-4 py-1.5 rounded-sm text-[12px] tracking-widest transition-all border ${globalStrategy === "peak" ? "bg-paper text-sage border-ink font-bold" : "text-stone-500 border-transparent"}`}>巔峰對決</button>
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1 w-full">
-                  {nextSlots.map((id, idx) => (
-                    <div key={idx} onClick={() => handleNextSlotClick(idx)}
-                      className={`h-16 flex items-center px-4 border-2 rounded-2xl transition-all cursor-pointer ${
-                        swappingSlotIdx === idx ? 'bg-sage/20 border-sage animate-pulse' :
-                        id ? 'bg-white border-sage/20 shadow-sm' : 'bg-stone-50 border-dashed border-stone-100 hover:border-sage/40'
-                      }`}>
-                      <MagnetPlayer playerId={id} isNext />
-                    </div>
-                  ))}
+              <div className="flex flex-col items-center gap-8">
+                <div className="relative bg-sage border-2 border-ink rounded-md w-full md:w-1/2 aspect-[13.4/6.1] overflow-hidden">
+                  {/* 依 BWF 比例：13.4m x 6.1m、短發球線 1.98m、雙打後發球線 0.76m、單打邊線內縮 0.46m */}
+                  <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "5.67%" }} />
+                  <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "35.22%" }} />
+                  <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "50%" }} />
+                  <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "64.78%" }} />
+                  <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "94.33%" }} />
+                  <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "7.54%" }} />
+                  <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "92.46%" }} />
+                  <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "5.67%", width: "29.55%", top: "50%" }} />
+                  <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "64.78%", width: "29.55%", top: "50%" }} />
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[28px] font-black tracking-wider text-paper/90"
+                    style={{ WebkitTextStroke: "1.5px #1A1A1A" }}
+                  >
+                    VS
+                  </div>
+
+                  {[
+                    { idx: 0, region: "A", style: { left: "5.67%", top: "7.54%", width: "29.55%", height: "42.46%" } },
+                    { idx: 1, region: "B", style: { left: "5.67%", top: "50%", width: "29.55%", height: "42.46%" } },
+                    { idx: 2, region: "C", style: { left: "64.78%", top: "7.54%", width: "29.55%", height: "42.46%" } },
+                    { idx: 3, region: "D", style: { left: "64.78%", top: "50%", width: "29.55%", height: "42.46%" } }
+                  ].map((slot) => {
+                    const id = nextSlots[slot.idx];
+                    const isSwapping = swappingSlotIdx === slot.idx;
+                    const player = players.find((p) => p.playerId === id);
+                    const playerName = player?.displayName;
+                    return (
+                      <button
+                        key={slot.idx}
+                        type="button"
+                        onClick={() => handleNextSlotClick(slot.idx)}
+                        aria-label={`${slot.region} 區${playerName ? `：${playerName}` : "，點擊上場"}`}
+                        style={slot.style}
+                        className={`absolute flex items-center justify-center px-2 text-center text-[12px] font-bold transition-all ${
+                          isSwapping ? "bg-alert/25 animate-pulse" : "hover:bg-paper/10"
+                        } ${playerName ? "text-paper" : "text-paper/80"}`}
+                      >
+                        {player ? (
+                          <div className="flex flex-col items-start w-full min-w-0 gap-0.5">
+                            <div className="flex items-center gap-2 w-full min-w-0 whitespace-nowrap">
+                              <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
+                              <span className="text-[12px] italic text-paper/90">L{Math.floor(player.level)}</span>
+                            </div>
+                            <span className="truncate">{player.displayName}</span>
+                          </div>
+                        ) : (
+                          <span className="truncate">點擊上場</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="flex gap-3">
                   <button onClick={handleAIAutoFill} className="w-12 h-12 flex items-center justify-center rounded-full bg-sage/5 text-sage border border-sage/10 hover:bg-sage hover:text-white transition-all shadow-sm" title="智慧配對"><Zap size={20} fill="currentColor"/></button>
-                  <button onClick={() => setNextSlots([null,null,null,null])} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-50 text-stone-300 border border-stone-100 hover:text-red-400 transition-all" title="清空位置"><RotateCcw size={20}/></button>
+                  <button onClick={() => setNextSlots([null,null,null,null])} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-50 text-stone-500 border border-stone-100 hover:text-red-500 transition-all" title="清空位置"><RotateCcw size={20}/></button>
                 </div>
               </div>
               {isSyncingNextGroup && (
-                <p className="text-[10px] text-stone-400 text-center mt-3 italic">預備組同步中...</p>
+                <p className="text-[12px] text-stone-500 text-center mt-3 italic">預備組同步中...</p>
               )}
             </div>
           </section>
 
           {/* 診間場地列表 */}
-          <section className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <section className="max-w-2xl mx-auto grid grid-cols-1 gap-8">
             {Array.from({ length: courtCount }, (_, i) => (i + 1).toString()).map(num => {
               const match = matches.find(m => m.court_number === num);
               const isFull = nextSlots.every(s => s !== null);
@@ -569,16 +636,16 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
               return (
                 <div key={num} className="neu-card rounded-[2rem] overflow-hidden flex flex-col group transition-all">
                   <div className={`px-6 py-3 flex justify-between items-center ${match ? 'bg-blue-50/50 text-blue-600' : 'bg-stone-50/50 text-stone-400'}`}>
-                    <span className="text-[10px] tracking-[0.3em] uppercase font-bold">場地 {label}</span>
+                    <span className="text-[12px] tracking-[0.3em] uppercase font-bold">場地 {label}</span>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => editCourtLabel(num)}
-                        className="opacity-0 group-hover:opacity-100 hover:text-sage transition-all"
+                        className="text-ink/70 hover:text-sage transition-all"
                         title="修改場地名稱"
                       >
                         <Pencil size={14} />
                       </button>
-                      {!match && <button onClick={() => removeCourt(num)} className="opacity-0 group-hover:opacity-100 hover:text-sage transition-all"><Trash2 size={14}/></button>}
+                      {!match && <button onClick={() => removeCourt(num)} className="text-ink/70 hover:text-sage transition-all"><Trash2 size={14}/></button>}
                       {match && <HeartPulse size={14} className="animate-pulse" />}
                     </div>
                   </div>
@@ -586,14 +653,34 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   <div className="p-8 flex-1 flex flex-col justify-between gap-8">
                     {match ? (
                       <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4 bg-paper p-4 rounded-2xl border border-ink/20">
-                          <div className="space-y-3">
-                             <MagnetPlayer playerId={match.player_a1}/>
-                             <MagnetPlayer playerId={match.player_a2}/>
+                        <div className="relative bg-sage border-2 border-ink rounded-md w-full aspect-[13.4/6.1] overflow-hidden">
+                          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "5.67%" }} />
+                          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "35.22%" }} />
+                          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "50%" }} />
+                          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "64.78%" }} />
+                          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "94.33%" }} />
+                          <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "7.54%" }} />
+                          <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "92.46%" }} />
+                          <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "5.67%", width: "29.55%", top: "50%" }} />
+                          <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "64.78%", width: "29.55%", top: "50%" }} />
+                          <div
+                            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[28px] font-black tracking-wider text-paper/90"
+                            style={{ WebkitTextStroke: "1.5px #1A1A1A" }}
+                          >
+                            VS
                           </div>
-                          <div className="space-y-3 border-l border-stone-100 pl-4">
-                             <MagnetPlayer playerId={match.player_b1}/>
-                             <MagnetPlayer playerId={match.player_b2}/>
+
+                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ top: "13%", left: "6.8%", width: "27.2%" }}>
+                            <MagnetPlayer playerId={match.player_a1} compact emptyLabel="左上待補" />
+                          </div>
+                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ bottom: "13%", left: "6.8%", width: "27.2%" }}>
+                            <MagnetPlayer playerId={match.player_a2} compact emptyLabel="左下待補" />
+                          </div>
+                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ top: "13%", left: "66%", width: "27.2%" }}>
+                            <MagnetPlayer playerId={match.player_b1} compact emptyLabel="右上待補" />
+                          </div>
+                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ bottom: "13%", left: "66%", width: "27.2%" }}>
+                            <MagnetPlayer playerId={match.player_b2} compact emptyLabel="右下待補" />
                           </div>
                         </div>
                         <button onClick={() => {
@@ -607,13 +694,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                             onConfirm: (win: any) => executeFinishMatch(match.id, win),
                             onCancel: () => executeFinishMatch(match.id, 'none')
                           });
-                        }} className="w-full py-3.5 bg-sage text-ink text-[11px] tracking-[0.4em] uppercase font-bold rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink active:scale-95 transition-all">結束對戰</button>
+                        }} className="w-full py-3.5 bg-sage text-ink text-[12px] tracking-[0.4em] uppercase font-bold rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink active:scale-95 transition-all">結束對戰</button>
                       </div>
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center py-6 space-y-6 border-2 border-dashed border-stone-50 rounded-[1.5rem]">
-                        <p className="text-[11px] text-stone-300 italic tracking-widest">靜候入所</p>
+                        <p className="text-[12px] text-stone-500 italic tracking-widest">靜候入所</p>
                         <button onClick={() => executeStartMatch(num)} disabled={!isFull}
-                          className={`px-8 py-3 rounded-full text-[11px] tracking-[0.3em] uppercase font-bold transition-all ${isFull ? 'bg-sage text-white shadow-lg shadow-sage/20 scale-105' : 'bg-stone-50 text-stone-200 cursor-not-allowed'}`}>
+                          className={`px-8 py-3 rounded-full text-[12px] tracking-[0.3em] uppercase font-bold transition-all ${isFull ? 'bg-sage text-white shadow-lg shadow-sage/20 scale-105' : 'bg-stone-50 text-stone-500 cursor-not-allowed'}`}>
                           呼叫預備組
                         </button>
                       </div>
@@ -624,9 +711,9 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             })}
             
             {/* 加開診間 */}
-            <button onClick={addCourt} className="h-full min-h-[260px] flex flex-col items-center justify-center border-2 border-dashed border-stone-100 rounded-[2rem] text-stone-300 hover:text-sage hover:border-sage/20 transition-all group">
+            <button onClick={addCourt} className="h-full min-h-[260px] flex flex-col items-center justify-center border-2 border-dashed border-stone-100 rounded-[2rem] text-stone-500 hover:text-sage hover:border-sage/20 transition-all group">
               <Plus size={32} className="group-hover:rotate-90 transition-all duration-500 mb-2"/>
-              <span className="text-[10px] tracking-[0.4em] uppercase font-bold">加開場地</span>
+              <span className="text-[12px] tracking-[0.4em] uppercase font-bold">加開場地</span>
             </button>
           </section>
         </main>
@@ -643,18 +730,18 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <button onClick={() => { msg.onConfirm('A'); setMsg({...msg, isOpen:false}); }} className="w-full py-4 bg-sage text-white text-[11px] font-bold rounded-2xl shadow-md active:scale-95 transition-all">A 隊勝</button>
-                      <p className="text-[9px] text-sage font-bold truncate">{msg.teamANames}</p>
+                      <button onClick={() => { msg.onConfirm('A'); setMsg({...msg, isOpen:false}); }} className="w-full py-4 bg-sage text-white text-[12px] font-bold rounded-2xl shadow-md active:scale-95 transition-all">A 隊勝</button>
+                      <p className="text-[12px] text-sage font-bold truncate">{msg.teamANames}</p>
                     </div>
                     <div className="space-y-2">
-                      <button onClick={() => { msg.onConfirm('B'); setMsg({...msg, isOpen:false}); }} className="w-full py-4 bg-stone-800 text-white text-[11px] font-bold rounded-2xl shadow-md active:scale-95 transition-all">B 隊勝</button>
-                      <p className="text-[9px] text-stone-400 font-bold truncate">{msg.teamBNames}</p>
+                      <button onClick={() => { msg.onConfirm('B'); setMsg({...msg, isOpen:false}); }} className="w-full py-4 bg-stone-800 text-white text-[12px] font-bold rounded-2xl shadow-md active:scale-95 transition-all">B 隊勝</button>
+                      <p className="text-[12px] text-stone-500 font-bold truncate">{msg.teamBNames}</p>
                     </div>
                   </div>
-                  <button onClick={() => { msg.onCancel(); setMsg({...msg, isOpen:false}); }} className="text-stone-300 text-[10px] tracking-[0.2em] uppercase pt-4 hover:text-stone-500">不計分，僅結束比賽</button>
+                  <button onClick={() => { msg.onCancel(); setMsg({...msg, isOpen:false}); }} className="text-stone-500 text-[12px] tracking-[0.2em] uppercase pt-4 hover:text-ink">不計分，僅結束比賽</button>
                 </>
               ) : (
-                <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 bg-stone-900 text-white text-[11px] tracking-[0.4em] uppercase rounded-2xl">我知道了</button>
+                <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 bg-stone-900 text-white text-[12px] tracking-[0.4em] uppercase rounded-2xl">我知道了</button>
               )}
             </div>
           </div>
@@ -666,7 +753,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-stone-900/90 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-10 border border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-sage rounded-full animate-pulse shadow-[0_0_8px_#1A1A1A]" />
-            <span className="text-[11px] tracking-[0.3em] uppercase italic font-bold">已收集 {selectedPlayerIds.length} 個磁鐵</span>
+            <span className="text-[12px] tracking-[0.3em] uppercase italic font-bold">已收集 {selectedPlayerIds.length} 個磁鐵</span>
           </div>
           <button onClick={() => setSelectedPlayerIds([])} className="text-stone-500 hover:text-white"><X size={18}/></button>
         </div>
