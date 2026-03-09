@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  MapPin, CalendarClock, Clock,
-  CircleDollarSign, CheckCircle, Info,
+  CalendarClock, CheckCircle, Info, Trash2,
   Plus, ArrowRightLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -13,6 +12,7 @@ import PageLoading from "../components/PageLoading";
 import { Chip } from "../components/ui";
 import AvatarBadge from "../components/AvatarBadge";
 import SessionDetailModal from "../components/SessionDetailModal";
+import SessionCard from "../components/SessionCard";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -35,6 +35,7 @@ interface Participant {
 
 export default function Browse() {
   const router = useRouter();
+  const todayStr = new Date().toLocaleDateString("en-CA");
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [filterDate, setFilterDate] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export default function Browse() {
   const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
   const [friendLevelModal, setFriendLevelModal] = useState<{ isOpen: boolean; type: "join" | "add" }>({ isOpen: false, type: "join" });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -271,6 +273,35 @@ export default function Browse() {
     }
   };
 
+  const handleCopy = (s: Session) => {
+    sessionStorage.setItem("copySessionData", JSON.stringify({
+      title: s.title,
+      gameTime: s.time,
+      endTime: s.endTime,
+      location: s.location,
+      maxPlayers: s.maxPlayers?.toString() || "",
+      price: s.price?.toString() || "",
+      phone: "",
+      notes: s.notes || ""
+    }));
+    router.push("/create");
+  };
+
+  const executeDelete = async () => {
+    if (!deleteConfirm.id) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setSessions((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
+      if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
+      setDeleteConfirm({ isOpen: false, id: null });
+      setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在記憶裡就好了。", type: "success" });
+    }
+  };
+
   const handleLevelSelect = (level: number) => {
     if (friendLevelModal.type === "join") executeJoin(level);
     else executeAddFriend(level);
@@ -401,46 +432,19 @@ export default function Browse() {
             const isJoined = joinedIds.includes(s.id);
             const isHost = currentUserId !== null && s.hostId === currentUserId;
               return (
-              <div key={s.id} onClick={() => handleOpenDetail(s)}
-                className={`relative cursor-pointer neu-card p-4 md:p-6 border-l-4 transition-all rounded-2xl ${
-                  s.isExpired ? "border-l-ink bg-paper grayscale opacity-70"
-                    : isHost ? "border-l-sage shadow-[4px_4px_0_0_#1A1A1A]"
-                    : isJoined ? "border-l-sage shadow-[4px_4px_0_0_#1A1A1A]" : "border-l-stone shadow-[4px_4px_0_0_#1A1A1A]"
-                }`}>
-                <div className="absolute top-0 right-0">
-                  {s.isExpired
-                    ? <div className="bg-ink text-white text-[11px] px-3 py-1 tracking-widest uppercase">已散場</div>
-                    : isHost
-                    ? <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg border-l-2 border-b-2 border-ink">我開的</div>
-                    : isJoined
-                    ? <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg border-l-2 border-b-2 border-ink">已掛號</div>
-                    : null}
-                </div>
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <span className="text-[11px] text-ink/70 tracking-widest uppercase block mb-1">主揪</span>
-                    <div className="flex items-center gap-2 mb-1">
-                      <AvatarBadge avatarUrl={s.hostAvatarUrl} name={s.hostName} size="xs" playerUserId={s.hostId} />
-                      <span className="text-[13px] text-stone-700 font-semibold">{s.hostName}</span>
-                    </div>
-                    <h3 className={`text-xl tracking-wide pr-4 ${s.isExpired ? "text-ink/60" : ""}`}>{s.title}</h3>
-                  </div>
-                </div>
-                <div className="text-sm text-ink/75 space-y-1.5">
-                  <p className="flex items-center gap-2"><CalendarClock size={12}/> {s.date}</p>
-                  <p className="flex items-center gap-2"><Clock size={12}/> {s.time} - {s.endTime}</p>
-                  <p className="flex items-center gap-2">
-                    <MapPin size={12}/>
-                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 decoration-sage/30 hover:text-sage transition-colors">{s.location}</a>
-                  </p>
-                  <p className="flex items-center gap-2"><CircleDollarSign size={12}/> ${s.price}</p>
-                </div>
-                <div className="flex justify-end mt-6">
-                  <span className="text-[12px] text-ink/70 tracking-tighter">
-                    <span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人
-                  </span>
-                </div>
-              </div>
+              <SessionCard
+                key={s.id}
+                session={s}
+                todayStr={todayStr}
+                isHost={isHost}
+                isJoined={isJoined}
+                statusLabel={s.isExpired ? "已散場" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
+                locationLink={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`}
+                onOpenDetail={handleOpenDetail}
+                onOpenLive={isHost ? (_session) => router.push(`/dashboard/live/${s.id}`) : undefined}
+                onCopy={isHost ? (_session) => handleCopy(s) : undefined}
+                onDelete={isHost ? (_session) => setDeleteConfirm({ isOpen: true, id: s.id }) : undefined}
+              />
             );
           })}
         </section>
@@ -568,6 +572,23 @@ export default function Browse() {
             <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
             <p className="text-base text-ink/70 italic mb-10 tracking-widest whitespace-pre-wrap">{msg.content}</p>
             <button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] uppercase hover:bg-sage/15 transition shadow-[4px_4px_0_0_#1A1A1A]">我知道了</button>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-ink/40 animate-in fade-in duration-200">
+          <div className="neu-modal w-full max-w-md rounded-t-2xl md:rounded-2xl p-10 animate-in slide-in-from-bottom-10 duration-300 text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 rounded-full bg-sage/20 text-ink flex items-center justify-center mb-6"><Trash2 size={24} /></div>
+              <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">終止此療程？</h2>
+              <div className="w-8 h-[1px] bg-stone/30 mb-6"></div>
+              <p className="text-base text-ink/75 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
+              <div className="w-full space-y-3">
+                <button onClick={executeDelete} className="w-full py-4 bg-sage text-ink text-sm tracking-[0.4em] hover:bg-sage/80 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink font-bold">確認終止療程</button>
+                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] hover:bg-sage/15 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -1,21 +1,21 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Eye, EyeOff, CheckCircle, Clock, MapPin, Banknote,
-  Calendar, Trash2, Copy, Activity, Settings2
+  Eye, EyeOff, CheckCircle, MapPin, Trash2, Activity, Settings2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import SessionDetailModal from "../components/SessionDetailModal";
+import SessionCard from "../components/SessionCard";
 import { Chip } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 
 interface Session {
-  id: number; title: string; date: string; time: string; location: string; endTime: string;
+  id: number; hostId?: number; hostName?: string; hostAvatarUrl?: string | null; title: string; date: string; time: string; location: string; endTime: string;
   maxPlayers?: number | string; price?: number; myStatus?: string; currentPlayers?: number;
   phone?: string; notes?: string; friendCount?: number; isExpired: boolean; isHostCanceled: boolean;
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
@@ -47,7 +47,7 @@ export default function EnrolledPage() {
   }, []);
 
   const mapSession = (g: any, isHosted: boolean): Session => ({
-    id: g.GameId, title: g.Title ?? "未命名療程",
+    id: g.GameId, hostId: g.HostID, hostName: g.hostName ?? g.HostName, hostAvatarUrl: g.hostAvatarUrl ?? g.HostAvatarUrl ?? null, title: g.Title ?? "未命名療程",
     date: (g.GameDateTime ?? "").slice(0, 10),
     time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
     endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "未定場所",
@@ -114,8 +114,8 @@ export default function EnrolledPage() {
     } catch (error) { console.error(error); }
   };
 
-  const handleCopy = (e: React.MouseEvent, s: Session) => {
-    e.stopPropagation();
+  const handleCopy = (s: Session, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     sessionStorage.setItem("copySessionData", JSON.stringify({
       title: s.title, gameTime: s.time, endTime: s.endTime, location: s.location,
       maxPlayers: s.maxPlayers?.toString() || "", price: s.price?.toString() || "",
@@ -208,70 +208,20 @@ export default function EnrolledPage() {
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
           {sortedSessions.map((session) => {
-            const isToday = session.date === todayStr;
-            const hasCheckedIn = !!session.check_in_at;
-            const needsCheckIn = !hasCheckedIn && session.status === 'waiting_checkin';
             return (
-              <div key={`${session.id}-${session.isHosted ? 'h' : 'j'}`} 
-                onClick={() => setSelectedSession(session)}
-                className={`relative cursor-pointer neu-card p-5 md:p-7 border-l-[6px] transition-all rounded-2xl overflow-hidden ${
-                  session.isHostCanceled ? "border-l-red-300 opacity-60 grayscale-[0.2]" :
-                  session.isExpired ? "border-l-stone-300 opacity-80 grayscale-[0.2]" :
-                  session.isHosted ? "border-l-amber-500" : "border-l-sage"
-                }`}>
-                
-                <div className="absolute top-0 right-0">
-                  <div className={`text-[10px] md:text-xs px-4 py-1.5 font-bold tracking-widest rounded-bl-xl border-l-2 border-b-2 border-ink ${session.isExpired ? 'bg-paper text-ink/70' : session.isHosted ? 'bg-sage/20 text-sage' : 'bg-sage/15 text-sage'}`}>
-                    {session.isExpired ? '已結束' : session.isHosted ? '主揪管理' : '場邊休息'}
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-start mb-6 pr-12">
-                  <h3 className={`text-2xl tracking-widest font-bold ${session.isExpired ? "text-stone-400" : "text-stone-800"}`}>{session.title}</h3>
-                  <div />
-                </div>
-
-                <div className="text-[15px] text-stone-700 space-y-3 font-serif p-4">
-                  <p className="flex items-center gap-3"><Calendar size={16} className="text-stone-400"/> {session.date}</p>
-                  <p className="flex items-center gap-3"><Clock size={16} className="text-stone-400"/> {session.time} - {session.endTime}</p>
-                  <p className="flex items-center gap-3"><MapPin size={16} className="text-stone-400"/> {session.location}</p>
-                  <p className="flex items-center gap-3"><Banknote size={16} className="text-stone-400"/> ${session.price}</p>
-                </div>
-
-                <div className="mt-8 flex flex-col gap-3">
-                  {!session.isExpired && isToday && (
-                    needsCheckIn ? (
-                      <button onClick={(e) => { e.stopPropagation(); setCheckInModal({ isOpen: true, session }); }}
-                        className="w-full py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.4em] rounded-xl font-bold">
-                        簽到：我到了
-                      </button>
-                    ) : hasCheckedIn && !session.isHosted ? (
-                      <div className="w-full py-3.5 neu-soft-panel text-stone-500 text-sm tracking-[0.4em] rounded-xl font-bold flex items-center justify-center gap-2">
-                        <CheckCircle size={16} /> 已經報到
-                      </div>
-                    ) : null
-                  )}
-                  
-                  {!session.isExpired && (
-                    <button onClick={(e) => { e.stopPropagation(); router.push(session.isHosted ? `/dashboard/live/${session.id}` : `/enrolled/live/${session.id}`); }}
-                      className={`flex items-center justify-center gap-3 w-full py-3.5 text-sm tracking-[0.2em] transition-all rounded-xl font-bold neu-btn ${
-                        session.isHosted ? "text-amber-800" : "text-stone-800"
-                      }`}>
-                      {session.isHosted ? <><Settings2 size={16} /> 進入主控室 </> : <><Activity size={16} /> 查看對戰實況</>}
-                    </button>
-                  )}
-
-                  {session.isHosted && !session.isExpired && (
-                    <div className="flex gap-2">
-                      <button onClick={(e) => handleCopy(e, session)} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="複製療程"><Copy size={16}/></button>
-                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: session.id }); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="終止療程"><Trash2 size={16}/></button>
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-end mt-6">
-                  <span className="text-xs text-stone-500 font-bold uppercase tracking-widest">掛號人數 {session.currentPlayers} / {session.maxPlayers}</span>
-                </div>
-              </div>
+              <SessionCard
+                key={`${session.id}-${session.isHosted ? 'h' : 'j'}`}
+                session={session}
+                todayStr={todayStr}
+                isHost={!!session.isHosted}
+                isJoined={!session.isHosted}
+                statusLabel={session.isExpired ? "已結束" : session.isHosted ? "主揪管理" : "場邊休息"}
+                onOpenDetail={setSelectedSession}
+                onCheckIn={(s) => setCheckInModal({ isOpen: true, session: s })}
+                onOpenLive={(s) => router.push(s.isHosted ? `/dashboard/live/${s.id}` : `/enrolled/live/${s.id}`)}
+                onCopy={(s) => handleCopy(s)}
+                onDelete={(s) => setDeleteConfirm({ isOpen: true, id: s.id })}
+              />
             );
           })}
         </div>
@@ -294,7 +244,7 @@ export default function EnrolledPage() {
               {selectedSession.isHosted ? <><Settings2 size={20} /> 進入主控室 </> : <><Activity size={20} /> 查看對戰實況</>}
             </button>
             {selectedSession.isHosted && !selectedSession.isExpired && (
-              <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="w-full py-3 neu-btn text-ink text-xs tracking-[0.3em] font-bold uppercase">複製療程</button>
+              <button onClick={() => { handleCopy(selectedSession); setSelectedSession(null); }} className="w-full py-3 neu-btn text-ink text-xs tracking-[0.3em] font-bold uppercase">複製療程</button>
             )}
             {!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === 'waiting_checkin' && (
               <button onClick={() => setCheckInModal({ isOpen: true, session: selectedSession })} className="w-full py-5 neu-btn neu-btn-primary text-sm tracking-[0.3em] font-bold rounded-2xl uppercase">簽到：我到了</button>

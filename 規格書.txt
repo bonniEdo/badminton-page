@@ -312,7 +312,11 @@ Badminton-Rehab 前端系統規格書
 - Noto Serif TC 為主
 
 3) 共用元件
-- Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab, SessionDetailModal（球局詳情）
+- Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab, SessionDetailModal（球局詳情）, SessionCard（球局卡片）
+- `SessionCard` 以資料 props 驅動，不再由頁面傳入 card 內部 DOM；`/enrolled` 與 `/browse` 共用同一套 card 結構
+- `SessionCard` 於日期資訊上方顯示團主頭貼與名稱（有提供主揪資料時）
+- `SessionCard` 已取消 enrolled/browse 分支元件與 SharedSessionCardData，統一單一元件實作
+- 在 `browse` 由主揪檢視卡片時，提供：進入主控室、複製療程、終止療程
 - 以 `neu-*` class 套用一致視覺（低圓角、`border-2`、預設無陰影）
 
 ==================================================
