@@ -561,7 +561,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
               </div>
 
               <div className="flex flex-col items-center gap-8">
-                <div className="relative bg-sage border-2 border-ink rounded-md w-full md:w-1/2 aspect-[13.4/6.1] overflow-hidden">
+                <div className="relative bg-sage border-2 border-ink rounded-md w-full md:w-2/3 aspect-[13.4/6.1] overflow-hidden">
                   {/* 依 BWF 比例：13.4m x 6.1m、短發球線 1.98m、雙打後發球線 0.76m、單打邊線內縮 0.46m */}
                   <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "5.67%" }} />
                   <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "35.22%" }} />
