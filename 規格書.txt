@@ -1,5 +1,5 @@
 Badminton-Rehab 前端系統規格書
-版本：目前程式碼基線（掃描日期：2026-03-08）
+版本：目前程式碼基線（掃描日期：2026-03-09）
 專案目錄：/home/walker/project/badminton-page
 
 ==================================================
@@ -41,6 +41,10 @@ Badminton-Rehab 前端系統規格書
 5) 重要環境變數
 - `NEXT_PUBLIC_API_URL`：後端 API Base URL
 - `NEXT_PUBLIC_LIFF_ID`：LIFF 初始化 ID（程式有使用）
+- `NEXT_PUBLIC_FEEDBACK_FORM_ACTION`：Google 表單 `formResponse` 送出網址
+- `NEXT_PUBLIC_FEEDBACK_CONTENT_ENTRY`：意見內容對應的 entry key（例如 `entry.123456`）
+- `NEXT_PUBLIC_FEEDBACK_USER_NAME_ENTRY`：使用者名稱對應的 entry key
+- `NEXT_PUBLIC_FEEDBACK_USER_ID_ENTRY`：使用者 ID 對應的 entry key
 
 6) 版本號標記（html tag）
 - `<html data-frontend-version>`：取自前端 `package.json` 的 `version`
@@ -207,6 +211,11 @@ Badminton-Rehab 前端系統規格書
 
 3) AI 建議
 - 依等級產生粗略版 / 詳細版訓練與注意事項（前端內建規則）
+
+4) 意見回饋（Google 表單）
+- `/profile` 頁面在 Logout 按鈕上方提供「意見回饋」按鈕，開啟共用 `FeedbackModal`
+- 使用者僅輸入意見內容；前端自動夾帶使用者名稱與使用者 ID 一併送出
+- 送出方式為前端 `POST` 到 Google Form（`mode: no-cors`，content-type: `application/x-www-form-urlencoded`）
 
 6.7 初次評分流程（`/rating`）
 1) 三步驟

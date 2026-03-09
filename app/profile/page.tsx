@@ -3,14 +3,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronLeft, CheckCircle, Camera, Target,
-  Activity, Dumbbell, Settings, MapPin, LogOut, User,
-  Zap, Droplets, BrainCircuit, History, Calendar, Swords, ChevronRight, Trophy, XCircle
+  Activity, Dumbbell, Settings, MapPin, User,
+  Zap, Droplets, BrainCircuit, History, Calendar, Swords, ChevronRight, Trophy, XCircle, MessageSquare
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import AvatarBadge from "../components/AvatarBadge";
+import FeedbackModal from "../components/FeedbackModal";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -34,6 +35,7 @@ export default function ProfilePage() {
   const [cropPanY, setCropPanY] = useState(0);
   const [isDraggingCrop, setIsDraggingCrop] = useState(false);
   const [sourceSize, setSourceSize] = useState({ width: 0, height: 0 });
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const dragOriginRef = useRef({ panX: 0, panY: 0 });
@@ -376,6 +378,15 @@ export default function ProfilePage() {
 
   const level = parseFloat(userInfo?.badminton_level || "0");
   const isVerified = (userInfo?.verified_matches || 0) >= 3;
+  const feedbackUserName = String(userInfo?.username || userInfo?.name || "未知使用者");
+  const feedbackUserId = String(
+    userInfo?.id
+      ?? userInfo?.userId
+      ?? userInfo?.user_id
+      ?? userInfo?.UserId
+      ?? userInfo?.line_user_id
+      ?? "未知ID"
+  );
 
   // ✅ 新增：羽球等級 1-18（詳細版）
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
@@ -559,6 +570,12 @@ export default function ProfilePage() {
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif pb-24 overflow-x-hidden selection:bg-sage/10">
       <AppHeader />
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        userName={feedbackUserName}
+        userId={feedbackUserId}
+      />
       {cropOpen && sourceImage && (
         <div className="fixed inset-0 z-[120] bg-black/45 backdrop-blur-sm p-4 flex items-center justify-center">
           <div className="w-full max-w-sm neu-card rounded-[2rem] p-5">
@@ -1057,6 +1074,16 @@ export default function ProfilePage() {
 
         {/* 底部按鈕 */}
         <section className="flex flex-col gap-4">
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="w-full py-5 bg-paper text-ink border-2 border-ink text-[11px] tracking-[0.35em] uppercase font-bold rounded-none hover:bg-sage/15 active:bg-sage/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            title="提供意見回饋"
+          >
+            <span className="inline-flex items-center justify-center gap-2">
+              <MessageSquare size={16} />
+              意見回饋
+            </span>
+          </button>
           <button onClick={handleLogout} className="w-full py-5 border border-sage-100 text-sage-300 text-[10px] tracking-[0.6em] uppercase font-bold rounded-3xl hover:bg-sage-300 transition-all">
             Logout 
           </button>
