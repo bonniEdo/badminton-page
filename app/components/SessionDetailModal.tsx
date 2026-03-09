@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Banknote, Calendar, FileText, MapPin, UserCheck, X } from "lucide-react";
+import { Banknote, Calendar, MapPin, UserCheck, X } from "lucide-react";
 import AvatarBadge from "./AvatarBadge";
 
 interface SessionDetailBase {
@@ -17,6 +17,7 @@ interface SessionDetailBase {
   isExpired?: boolean;
   currentPlayers?: number;
   maxPlayers?: number | string;
+  friendCount?: number;
 }
 
 interface Participant {
@@ -27,26 +28,24 @@ interface Participant {
   UserId?: number | null;
 }
 
-interface SessionDetailActionButton {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  variant?: "primary" | "secondary";
-}
-
 interface SessionDetailModalProps<T extends SessionDetailBase> {
   session: T | null;
   onClose: () => void;
   topRightActions?: ReactNode;
-  badge?: ReactNode;
-  title?: string;
   locationHref?: string;
-  showPhone?: boolean;
-  participantsCountText?: string;
-  hideWaitlistParticipants?: boolean;
-  notesTitle?: string;
-  statusText?: string;
-  actionButtons?: SessionDetailActionButton[];
+  isHost?: boolean;
+  isLoggedIn?: boolean;
+  canAddFriend?: boolean;
+  canCheckIn?: boolean;
+  isHostCanceled?: boolean;
+  onHostLive?: () => void;
+  onCheckIn?: () => void;
+  onAddFriend?: () => void;
+  onCopy?: () => void;
+  onDelete?: () => void;
+  onLoginLine?: () => void;
+  onLoginGoogle?: () => void;
+  onLoginFacebook?: () => void;
   overlayClassName?: string;
   modalClassName?: string;
 }
@@ -55,15 +54,20 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   session,
   onClose,
   topRightActions,
-  badge,
-  title,
   locationHref,
-  showPhone = true,
-  participantsCountText,
-  hideWaitlistParticipants = false,
-  notesTitle = "Notes",
-  statusText,
-  actionButtons = [],
+  isHost = false,
+  isLoggedIn = false,
+  canAddFriend = false,
+  canCheckIn = false,
+  isHostCanceled = false,
+  onHostLive,
+  onCheckIn,
+  onAddFriend,
+  onCopy,
+  onDelete,
+  onLoginLine,
+  onLoginGoogle,
+  onLoginFacebook,
   overlayClassName = "bg-ink/30",
   modalClassName = "",
 }: SessionDetailModalProps<T>) {
@@ -92,11 +96,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
         const json = await res.json();
         if (!cancelled && json?.success) {
           const source = Array.isArray(json.data) ? json.data : [];
-          setParticipants(
-            hideWaitlistParticipants
-              ? source.filter((p: Participant) => p.Status !== "WAITLIST")
-              : source
-          );
+          setParticipants(source);
         }
       } catch (error) {
         if (!cancelled) {
@@ -114,11 +114,15 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     return () => {
       cancelled = true;
     };
-  }, [sessionId, hideWaitlistParticipants]);
+  }, [sessionId]);
 
   if (!session) return null;
 
-  const resolvedTitle = title ?? (session.isExpired ? "療程紀錄" : session.title);
+  const todayStr = new Date().toLocaleDateString("en-CA");
+  const isToday = session.date === todayStr;
+  const statusText = session.isExpired ? "療程已結束" : isHostCanceled ? "已取消療程" : "";
+  const canShowActions = !session.isExpired && !isHostCanceled;
+  const hasAddedFriend = (session.friendCount ?? 0) >= 1;
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${overlayClassName}`}>
@@ -130,10 +134,8 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
           </button>
         </div>
 
-        {badge}
-
         <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${session.isExpired ? "text-ink/60" : "text-sage"}`}>
-          {resolvedTitle}
+          {session.title}
         </h2>
 
         <div className="space-y-4 text-sm text-ink/75 mb-8">
@@ -154,11 +156,9 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
               <MapPin size={14} /> {session.location}
             </p>
           )}
-          {showPhone && (
-            <p className="flex items-center gap-3 italic">
-              <UserCheck size={14} className="text-sage" /> {session.phone || "現場找主治"}
-            </p>
-          )}
+          <p className="flex items-center gap-3 italic">
+            <UserCheck size={14} className="text-sage" /> {session.phone || "現場找主治"}
+          </p>
           <p className="flex items-center gap-3 font-bold text-sage">
             <Banknote size={14} /> 費用: ${session.price}
           </p>
@@ -166,9 +166,6 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
 
         {session.notes && (
           <div className="mt-4 p-3 neu-soft-panel text-sm italic text-ink/75 leading-relaxed whitespace-pre-wrap">
-            <div className="flex items-center gap-1 mb-1 font-bold not-italic text-ink/70 uppercase tracking-tighter">
-              <FileText size={12} /> {notesTitle}
-            </div>
             {session.notes}
           </div>
         )}
@@ -177,7 +174,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-[11px] tracking-widest text-ink/70 uppercase">掛號名冊 / Participants</h3>
             <span className="text-[11px] text-sage italic">
-              {participantsCountText ?? `${session.currentPlayers ?? 0} / ${session.maxPlayers ?? 0}`}
+              {`${session.currentPlayers ?? 0} / ${session.maxPlayers ?? 0}`}
             </span>
           </div>
           <div className="max-h-40 overflow-y-auto">
@@ -204,25 +201,64 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
           </div>
         </div>
 
-        {(statusText || actionButtons.length > 0) && (
+        {(statusText || canShowActions) && (
           <div className="mt-6 space-y-3 border-t border-stone/10 pt-4">
             {statusText ? (
               <div className="py-2 text-center text-ink/70 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">
                 {statusText}
               </div>
             ) : null}
-            {actionButtons.map((button) => (
-              <button
-                key={button.label}
-                onClick={button.onClick}
-                disabled={button.disabled}
-                className={`w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink ${
-                  button.variant === "primary" ? "bg-sage text-ink" : "bg-paper text-ink hover:bg-sage/15"
-                } disabled:opacity-40 disabled:cursor-not-allowed`}
-              >
-                {button.label}
-              </button>
-            ))}
+            {canShowActions && (
+              <>
+                {!isLoggedIn ? (
+                  <>
+                    {onLoginLine && (
+                      <button onClick={onLoginLine} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
+                        LINE 登入
+                      </button>
+                    )}
+                    {onLoginGoogle && (
+                      <button onClick={onLoginGoogle} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                        Google 登入
+                      </button>
+                    )}
+                    {onLoginFacebook && (
+                      <button onClick={onLoginFacebook} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                        Facebook 登入
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {isToday && isHost && onHostLive && (
+                      <button onClick={onHostLive} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
+                        進入主控室
+                      </button>
+                    )}
+                    {!isHost && isToday && canCheckIn && onCheckIn && (
+                      <button onClick={onCheckIn} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
+                        我到了，報到
+                      </button>
+                    )}
+                    {canAddFriend && !hasAddedFriend && onAddFriend && (
+                      <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                        + 朋友 (限一位)
+                      </button>
+                    )}
+                    {isHost && onCopy && (
+                      <button onClick={onCopy} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                        複製療程
+                      </button>
+                    )}
+                    {isHost && onDelete && (
+                      <button onClick={onDelete} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                        終止此療程
+                      </button>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

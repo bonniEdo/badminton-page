@@ -289,34 +289,16 @@ export default function EnrolledPage() {
         onClose={() => setSelectedSession(null)}
         overlayClassName="bg-black/40 backdrop-blur-sm"
         modalClassName="p-10 rounded-3xl"
-        statusText={selectedSession?.isExpired ? "療程已結束" : undefined}
-        actionButtons={selectedSession ? [
-          {
-            label: selectedSession.isHosted ? "進入主控室" : "查看對戰實況",
-            variant: "primary" as const,
-            onClick: () => {
-              setSelectedSession(null);
-              router.push(selectedSession.isHosted ? `/dashboard/live/${selectedSession.id}` : `/enrolled/live/${selectedSession.id}`);
-            },
-          },
-          ...(!selectedSession.isExpired && selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === "waiting_checkin" ? [{
-            label: "簽到：我到了",
-            variant: "primary" as const,
-            onClick: () => setCheckInModal({ isOpen: true, session: selectedSession }),
-          }] : []),
-          ...(selectedSession.isHosted && !selectedSession.isExpired ? [
-            {
-              label: "複製療程",
-              variant: "secondary" as const,
-              onClick: () => { handleCopy(selectedSession); setSelectedSession(null); },
-            },
-            {
-              label: "終止此療程",
-              variant: "secondary" as const,
-              onClick: () => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); },
-            },
-          ] : []),
-        ] : []}
+        isLoggedIn={isLoggedIn}
+        isHost={!!selectedSession?.isHosted}
+        canCheckIn={!!(selectedSession && !selectedSession.isHosted && selectedSession.status === "waiting_checkin" && !selectedSession.check_in_at)}
+        onHostLive={selectedSession ? () => {
+          setSelectedSession(null);
+          router.push(`/dashboard/live/${selectedSession.id}`);
+        } : undefined}
+        onCheckIn={selectedSession ? () => setCheckInModal({ isOpen: true, session: selectedSession }) : undefined}
+        onCopy={selectedSession ? () => { handleCopy(selectedSession); setSelectedSession(null); } : undefined}
+        onDelete={selectedSession ? () => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); } : undefined}
       />
 
       {/* 簽到 Modal */}

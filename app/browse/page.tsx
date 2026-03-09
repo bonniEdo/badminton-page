@@ -401,39 +401,20 @@ export default function Browse() {
       <SessionDetailModal
         session={selectedSession}
         onClose={() => setSelectedSession(null)}
-        showPhone={false}
         locationHref={selectedSession ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}` : undefined}
-        hideWaitlistParticipants
-        participantsCountText={selectedSession ? `${selectedSession.currentPlayers} / ${selectedSession.maxPlayers}` : undefined}
-        statusText={selectedSession?.isExpired ? "療程已結束" : undefined}
-        actionButtons={selectedSession ? (() => {
-          const isHost = isLoggedIn && currentUserId !== null && currentUserId === selectedSession.hostId;
-          const isJoined = joinedIds.includes(selectedSession.id);
-          if (selectedSession.isExpired) return [];
-          if (isHost) {
-            return [
-              {
-                label: "進入主控室",
-                variant: "primary" as const,
-                onClick: () => {
-                  setSelectedSession(null);
-                  router.push(`/dashboard/live/${selectedSession.id}`);
-                },
-              },
-            ];
-          }
-          if (!isLoggedIn) {
-            return [
-              { label: "LINE 登入", variant: "primary" as const, onClick: handleLineLogin },
-              { label: "Google 登入", variant: "secondary" as const, onClick: handleGoogleLogin },
-              { label: "Facebook 登入", variant: "secondary" as const, onClick: handleFbLogin },
-            ];
-          }
-          if (isJoined) {
-            return [{ label: "+ 朋友 (限一位)", variant: "secondary" as const, onClick: handleAddFriend }];
-          }
-          return [];
-        })() : []}
+        isLoggedIn={isLoggedIn}
+        isHost={!!(selectedSession && currentUserId !== null && currentUserId === selectedSession.hostId)}
+        canAddFriend={!!(selectedSession && joinedIds.includes(selectedSession.id) && currentUserId !== selectedSession.hostId)}
+        onHostLive={selectedSession ? () => {
+          setSelectedSession(null);
+          router.push(`/dashboard/live/${selectedSession.id}`);
+        } : undefined}
+        onAddFriend={selectedSession ? handleAddFriend : undefined}
+        onCopy={selectedSession ? () => { handleCopy(selectedSession); setSelectedSession(null); } : undefined}
+        onDelete={selectedSession ? () => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); } : undefined}
+        onLoginLine={handleLineLogin}
+        onLoginGoogle={handleGoogleLogin}
+        onLoginFacebook={handleFbLogin}
       />
 
       {msg.isOpen && (

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   UserMinus, CheckCircle, X, MapPin,
-  Info, Layout, Trash2, Copy,
+  Info, Layout, Trash2,
   CalendarDays, CalendarRange, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -179,8 +179,7 @@ export default function SchedulePage() {
     }
   };
 
-  const handleCopy = (e: React.MouseEvent, s: Session) => {
-    e.stopPropagation();
+  const handleCopy = (s: Session) => {
     let locName = s.location;
     let cNum = "";
     let cCount = "1";
@@ -475,43 +474,16 @@ export default function SchedulePage() {
         session={selectedSession}
         onClose={() => setSelectedSession(null)}
         locationHref={selectedSession?.isHosted ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}` : undefined}
-        topRightActions={selectedSession && (
-          <>
-            {selectedSession.isHosted && (
-              <button onClick={(e) => { handleCopy(e, selectedSession); setSelectedSession(null); }} className="text-ink/50 hover:text-sage transition-colors" title="複製療程"><Copy size={18} /></button>
-            )}
-            {selectedSession.isHosted && !selectedSession.isHostCanceled && !selectedSession.isExpired && (
-              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); }} className="text-ink/50 hover:text-sage transition-colors" title="刪除療程"><Trash2 size={18} /></button>
-            )}
-          </>
-        )}
-        badge={selectedSession?.isHosted && !selectedSession.isExpired && !selectedSession.isHostCanceled ? (
-          <div className="inline-block neu-status-chip text-sage text-[10px] font-bold tracking-wider mb-3">主揪</div>
-        ) : undefined}
-        participantsCountText={selectedSession ? `${selectedSession.currentPlayers} / ${selectedSession.maxPlayers}` : undefined}
-        statusText={selectedSession?.isHostCanceled ? "已取消療程" : selectedSession?.isExpired ? "療程已結束" : undefined}
-        actionButtons={selectedSession && !selectedSession.isExpired && !selectedSession.isHostCanceled ? [
-          ...(selectedSession.isHosted && selectedSession.date === todayStr ? [{
-            label: "進入實況看板",
-            variant: "primary" as const,
-            onClick: () => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); },
-          }] : []),
-          ...(selectedSession.date === todayStr && !selectedSession.check_in_at && selectedSession.status === "waiting_checkin" ? [{
-            label: "我到了，報到",
-            variant: "primary" as const,
-            onClick: () => setCheckInModal({ isOpen: true, session: selectedSession }),
-          }] : []),
-          ...(!selectedSession.isHosted && selectedSession.date === todayStr ? [{
-            label: "對戰實況",
-            variant: "secondary" as const,
-            onClick: () => { setSelectedSession(null); router.push(`/enrolled/live/${selectedSession.id}`); },
-          }] : []),
-          {
-            label: "＋ 攜友入所 (限一位)",
-            variant: "secondary" as const,
-            onClick: handleAddFriendClick,
-          },
-        ] : []}
+        isLoggedIn={isLoggedIn}
+        isHost={!!selectedSession?.isHosted}
+        canAddFriend={!!(selectedSession && !selectedSession.isHosted)}
+        canCheckIn={!!(selectedSession && !selectedSession.isHosted && selectedSession.status === "waiting_checkin" && !selectedSession.check_in_at)}
+        isHostCanceled={!!selectedSession?.isHostCanceled}
+        onHostLive={selectedSession ? () => { setSelectedSession(null); router.push(`/dashboard/live/${selectedSession.id}`); } : undefined}
+        onCheckIn={selectedSession ? () => setCheckInModal({ isOpen: true, session: selectedSession }) : undefined}
+        onAddFriend={selectedSession ? handleAddFriendClick : undefined}
+        onCopy={selectedSession ? () => { handleCopy(selectedSession); setSelectedSession(null); } : undefined}
+        onDelete={selectedSession ? () => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); } : undefined}
       />
 
       {/* Level Modal */}

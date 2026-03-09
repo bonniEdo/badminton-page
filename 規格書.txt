@@ -314,10 +314,6 @@ Badminton-Rehab 前端系統規格書
 3) 共用元件
 - Button, Card, Input, Select, Textarea, Modal, Tabs, Chip, Fab, SessionDetailModal（球局詳情）, SessionCard（球局卡片）
 - `SessionCard` 以資料 props 驅動，不再由頁面傳入 card 內部 DOM；`/enrolled` 與 `/browse` 共用同一套 card 結構
-- `SessionCard` 於日期資訊上方顯示團主頭貼與名稱（有提供主揪資料時）
-- `SessionCard` 已取消 enrolled/browse 分支元件與 SharedSessionCardData，統一單一元件實作
-- `SessionDetailModal` 的掛號名冊區塊改為元件內建：每次開啟依 `session.id` 呼叫 `/api/games/{id}/players`，並固定文案為「掛號名冊 / Participants」、「正在讀取病友名冊...」、「尚無掛號紀錄」
-- `SessionDetailModal` 已移除由外部傳入的 participants DOM 與 actions DOM，頁面端僅傳資料/行為 props，不再插入自訂 footer DOM
 - 在 `browse` 由主揪檢視卡片時，提供：進入主控室、複製療程、終止療程
 - 在 `enrolled` 由主揪檢視卡片時，右上角標籤文案統一為「我開的」
 - 在 `enrolled` 若 joined/mygame 缺少主揪資料，前端會以 `activegames` 補齊主揪名稱與頭貼
