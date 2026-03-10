@@ -15,7 +15,7 @@ import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import AvatarBadge from "../components/AvatarBadge";
-import { Card, TabButton, Tabs } from "../components/ui";
+import { Button, Card, Modal, TabButton, Tabs } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -46,6 +46,7 @@ interface RankRow {
   currentWeekWinRate: number | null;
   prevWeekWinRate: number | null;
   score: number | null;
+  mentorBonus?: number | null;
   activityScore: number | null;
   progressScore: number | null;
   progressWinRateDelta: number | null;
@@ -92,6 +93,7 @@ export default function RankingPage() {
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isRankingPublic, setIsRankingPublic] = useState(true);
+  const [showScoreDetail, setShowScoreDetail] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -244,6 +246,25 @@ export default function RankingPage() {
     return <Minus size={14} className="text-ink/50" />;
   };
 
+  const myRank = payload?.myRank || null;
+  const myScoreBreakdown = useMemo(() => {
+    if (!myRank || myRank.masked || activeType !== "score") return null;
+    const levelBase = Math.round((myRank.level || 1) * 100);
+    const winBonus = (myRank.wins || 0) * 8;
+    const verifiedBonus = (myRank.verifiedMatches || 0) * 3;
+    const recentBonus = (myRank.recentMatches || 0) * 4;
+    const mentorBonus = Number(myRank.mentorBonus || 0);
+    const lossPenalty = (myRank.losses || 0) * 2;
+    const total = myRank.score ?? levelBase + winBonus + verifiedBonus + recentBonus + mentorBonus - lossPenalty;
+    return { levelBase, winBonus, verifiedBonus, recentBonus, mentorBonus, lossPenalty, total };
+  }, [activeType, myRank]);
+
+  useEffect(() => {
+    if (activeType !== "score" && showScoreDetail) {
+      setShowScoreDetail(false);
+    }
+  }, [activeType, showScoreDetail]);
+
   if (loading) return <PageLoading message="排行榜計算中..." showHeader />;
 
   if (!isLoggedIn) {
@@ -262,7 +283,6 @@ export default function RankingPage() {
 
   const leaderboard = payload?.leaderboard || [];
   const podium = payload?.podium || [];
-  const myRank = payload?.myRank || null;
   const publicLimit = payload?.publicLimit || 10;
 
   return (
@@ -337,6 +357,13 @@ export default function RankingPage() {
               <p>{metricSubText(myRank)}</p>
               <p className="font-bold">{metricText(myRank)}</p>
             </div>
+            {myScoreBreakdown && (
+              <div className="mt-2 flex items-center justify-end gap-2">
+                <Button className="px-3 py-1.5 text-xs font-bold" onClick={() => setShowScoreDetail(true)}>
+                  查看積分明細
+                </Button>
+              </div>
+            )}
           </Card>
         )}
 
@@ -433,6 +460,48 @@ export default function RankingPage() {
           </Card>
         </>
       </main>
+
+      <Modal open={showScoreDetail && !!myScoreBreakdown} className="max-w-md p-0">
+        <div className="p-4 md:p-5">
+          <p className="text-xs tracking-[0.2em] text-sage font-bold">積分明細（測試版）</p>
+          <h3 className="text-lg font-black mt-2">我的積分來源</h3>
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex items-center justify-between border-b border-ink/20 pb-1">
+              <span>等級基礎分</span>
+              <span className="font-bold">+{myScoreBreakdown?.levelBase ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-ink/20 pb-1">
+              <span>勝場加分（8/勝）</span>
+              <span className="font-bold">+{myScoreBreakdown?.winBonus ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-ink/20 pb-1">
+              <span>認證場次加分（3/場）</span>
+              <span className="font-bold">+{myScoreBreakdown?.verifiedBonus ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-ink/20 pb-1">
+              <span>近期活躍加分（4/場）</span>
+              <span className="font-bold">+{myScoreBreakdown?.recentBonus ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-ink/20 pb-1">
+              <span>帶新人加分</span>
+              <span className="font-bold">+{myScoreBreakdown?.mentorBonus ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-ink/20 pb-1">
+              <span>敗場扣分（2/敗）</span>
+              <span className="font-bold">-{myScoreBreakdown?.lossPenalty ?? 0}</span>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between border-2 border-ink p-2">
+            <span className="font-bold">總分</span>
+            <span className="text-lg font-black text-sage">{myScoreBreakdown?.total ?? 0}</span>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button className="px-4 py-2 font-bold" onClick={() => setShowScoreDetail(false)}>
+              關閉
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
