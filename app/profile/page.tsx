@@ -694,7 +694,9 @@ export default function ProfilePage() {
             ].map((item, i) => (
               <div key={i} className="bg-white/60 rounded-2xl border border-white shadow-sm p-4 flex flex-col items-center gap-2">
                 <p className="text-2xl md:text-3xl font-black italic text-sage tracking-tight">{item.value}</p>
-                <p className="text-[8px] md:text-[9px] text-stone-400 font-bold tracking-widest uppercase">{item.label}</p>
+                <p className="text-[7px] md:text-[9px] text-stone-400 font-bold tracking-[0.08em] md:tracking-widest uppercase whitespace-nowrap leading-none">
+                  {item.label}
+                </p>
               </div>
             ))}
           </div>

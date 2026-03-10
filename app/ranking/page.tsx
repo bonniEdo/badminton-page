@@ -51,6 +51,7 @@ interface RankRow {
   progressScore: number | null;
   progressWinRateDelta: number | null;
   trend: number | null;
+  weeklyRankDelta?: number | null;
   masked?: boolean;
 }
 
@@ -247,6 +248,21 @@ export default function RankingPage() {
   };
 
   const myRank = payload?.myRank || null;
+  const myWeeklyRankDelta = myRank?.weeklyRankDelta ?? null;
+  const weeklyDeltaText = myWeeklyRankDelta === null
+    ? "-"
+    : myWeeklyRankDelta > 0
+      ? `↑${myWeeklyRankDelta}`
+      : myWeeklyRankDelta < 0
+        ? `↓${Math.abs(myWeeklyRankDelta)}`
+        : "→0";
+  const weeklyDeltaClassName = myWeeklyRankDelta === null
+    ? "text-ink/60"
+    : myWeeklyRankDelta > 0
+      ? "text-sage"
+      : myWeeklyRankDelta < 0
+        ? "text-rose-700"
+        : "text-ink/70";
   const myScoreBreakdown = useMemo(() => {
     if (!myRank || myRank.masked || activeType !== "score") return null;
     const levelBase = Math.round((myRank.level || 1) * 100);
@@ -318,7 +334,7 @@ export default function RankingPage() {
               </TabButton>
             </Tabs>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 text-center">
               <Card className="p-3">
                 <p className="text-xs tracking-[0.12em] text-ink/60">排行榜人數</p>
                 <p className="text-xl font-black mt-1">{payload?.total || 0}</p>
@@ -326,6 +342,10 @@ export default function RankingPage() {
               <Card className="p-3">
                 <p className="text-xs tracking-[0.12em] text-ink/60">我的名次</p>
                 <p className="text-xl font-black mt-1">{myRank ? `#${myRank.rank}` : "-"}</p>
+              </Card>
+              <Card className="p-3">
+                <p className="text-xs tracking-[0.12em] text-ink/60">本週名次變化</p>
+                <p className={`text-xl font-black mt-1 ${weeklyDeltaClassName}`}>{weeklyDeltaText}</p>
               </Card>
               <Card className="p-3">
                 <p className="text-xs tracking-[0.12em] text-ink/60">詳細數據</p>

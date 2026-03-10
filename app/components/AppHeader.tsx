@@ -15,7 +15,7 @@ const navItems = [
 
 const bottomBarItems = [
   ...navItems,
-  { href: "/profile", label: "病歷", icon: User },
+  { href: "/profile", label: "Me", icon: User },
 ];
 
 export default function AppHeader() {

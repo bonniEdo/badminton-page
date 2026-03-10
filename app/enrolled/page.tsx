@@ -220,14 +220,14 @@ export default function EnrolledPage() {
     return showExpired ? [...active.filter(filterFn), ...expired.filter(filterFn)] : active.filter(filterFn);
   }, [allSessions, showExpired, filterType]);
 
-  if (loading) return <PageLoading message="正在調閱病歷..." showHeader />;
+  if (loading) return <PageLoading message="正在調閱已報名球局..." showHeader />;
 
   if (!isLoggedIn) {
     return (
       <div className="min-h-dvh neu-page text-stone-800 font-serif pb-20 overflow-x-hidden">
         <AppHeader />
         <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6">
-          <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的療程</h2>
+          <h2 className="text-base tracking-[0.2em] text-sage font-bold">我的球局</h2>
         </div>
         <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
           <LoginPrompt />
