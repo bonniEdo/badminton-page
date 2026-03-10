@@ -367,7 +367,51 @@ export default function SchedulePage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 md:gap-2">
+            <div className="md:hidden space-y-2">
+              {weekDays.map(cell => {
+                const daySessions = sessionsByDate[cell.date] || [];
+                const isToday = cell.date === todayStr;
+                return (
+                  <div
+                    key={cell.date}
+                    className={`rounded-lg border p-3 transition-colors ${
+                      isToday ? "border-sage/40 bg-sage/5" : "border-stone/20 bg-white"
+                    }`}
+                  >
+                    <div className={`flex items-center justify-between pb-2 mb-2 border-b border-stone/10 ${isToday ? "text-sage" : "text-ink/70"}`}>
+                      <p className="text-xs tracking-widest">{`週${cell.weekday}`}</p>
+                      <p className={`text-base font-bold ${isToday ? "text-sage" : "text-ink"}`}>{`${cell.month}/${cell.day}`}</p>
+                    </div>
+
+                    {daySessions.length === 0 ? (
+                      <p className="text-xs text-ink/45 italic py-1">無排程</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {daySessions.map(session => {
+                          const borderColor = session.isHostCanceled ? 'border-l-red-300'
+                            : session.isExpired ? 'border-l-gray-300'
+                            : session.isHosted ? 'border-l-amber-400'
+                            : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
+                            : 'border-l-sage';
+                          return (
+                            <button
+                              key={session.id}
+                              onClick={() => handleOpenDetail(session)}
+                              className={`w-full text-left px-2.5 py-2 rounded-lg text-xs leading-tight transition-all border-l-2 neu-soft-panel hover:brightness-[1.02] ${borderColor} ${getSessionStyle(session)}`}
+                            >
+                              <div className="font-bold truncate">{session.time} · {session.title}</div>
+                              <div className="truncate text-[11px] opacity-60 mt-0.5">{session.location}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden md:grid md:grid-cols-7 gap-1 md:gap-2">
               {weekDays.map(cell => {
                 const daySessions = sessionsByDate[cell.date] || [];
                 const isToday = cell.date === todayStr;

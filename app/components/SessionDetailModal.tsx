@@ -75,6 +75,8 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   modalClassName = "",
 }: SessionDetailModalProps<T>) {
   const ANIMATION_MS = 240;
+  const MOBILE_SHEET_MIN_VH = 90;
+  const MOBILE_SHEET_MAX_VH = 95;
   const [renderSession, setRenderSession] = useState<T | null>(session);
   const [isPresented, setIsPresented] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -85,9 +87,9 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     avatarUrl: null,
     username: null,
   });
-  const [sheetHeightVh, setSheetHeightVh] = useState(52);
+  const [sheetHeightVh, setSheetHeightVh] = useState(MOBILE_SHEET_MIN_VH);
   const dragStartYRef = useRef(0);
-  const dragStartHeightRef = useRef(52);
+  const dragStartHeightRef = useRef(MOBILE_SHEET_MIN_VH);
   const sessionId = renderSession?.id;
 
   useEffect(() => {
@@ -181,7 +183,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
 
   useEffect(() => {
     if (!renderSession) return;
-    setSheetHeightVh(52);
+    setSheetHeightVh(MOBILE_SHEET_MIN_VH);
   }, [renderSession?.id]);
 
   useEffect(() => {
@@ -256,12 +258,12 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     const currentY = e.touches[0].clientY;
     const deltaY = dragStartYRef.current - currentY;
     const vhDelta = (deltaY / window.innerHeight) * 100;
-    const next = Math.max(52, Math.min(92, dragStartHeightRef.current + vhDelta));
+    const next = Math.max(MOBILE_SHEET_MIN_VH, Math.min(MOBILE_SHEET_MAX_VH, dragStartHeightRef.current + vhDelta));
     setSheetHeightVh(next);
   };
 
   const handleSheetTouchEnd = () => {
-    setSheetHeightVh((prev) => (prev >= 72 ? 92 : 52));
+    setSheetHeightVh((prev) => (prev >= 88 ? MOBILE_SHEET_MAX_VH : MOBILE_SHEET_MIN_VH));
   };
 
   const detailBody = (
@@ -471,8 +473,8 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     <div className={`fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 transition-opacity duration-200 ${isPresented ? "opacity-100" : "opacity-0"} ${overlayClassName}`}>
       {isMobile ? (
         <div
-          className={`neu-modal !p-0 w-full rounded-t-md md:rounded-md border-2 border-ink transition-transform duration-200 ease-out ${isPresented ? "translate-y-0" : "translate-y-full"} ${renderSession.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}
-          style={{ height: `${sheetHeightVh}dvh`, maxHeight: "92dvh" }}
+          className={`neu-modal !p-0 w-full rounded-t-md md:rounded-md border-2 border-ink flex flex-col transition-transform duration-200 ease-out ${isPresented ? "translate-y-0" : "translate-y-full"} ${renderSession.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}
+          style={{ height: `${sheetHeightVh}dvh`, maxHeight: `${MOBILE_SHEET_MAX_VH}dvh` }}
           onClick={(e) => e.stopPropagation()}
         >
           <div
@@ -490,7 +492,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
               </button>
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-4 flex-1 overflow-y-auto">
             {detailBody}
           </div>
         </div>
