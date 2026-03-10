@@ -36,14 +36,42 @@ export default function Browse() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
-  const [friendLevelModal, setFriendLevelModal] = useState<{ isOpen: boolean; type: "join" | "add" }>({ isOpen: false, type: "join" });
+  const [friendLevelModal, setFriendLevelModal] = useState<{ isOpen: boolean; type: "join" | "add"; session: Session | null }>({ isOpen: false, type: "join", session: null });
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
+  const [joinModal, setJoinModal] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
+
+  const syncCurrentUserFromStorage = () => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return;
+    try {
+      const user = JSON.parse(userStr);
+      setCurrentUserId(user?.id ?? null);
+    } catch {}
+  };
+
+  const refreshCurrentUserMeta = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const resUser = await fetch(`${API_URL}/api/user/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+      }).then((res) => res.json());
+      if (resUser?.success && resUser?.user) {
+        localStorage.setItem("user", JSON.stringify(resUser.user));
+        setCurrentUserId(resUser.user.id ?? null);
+      }
+    } catch (error) {
+      console.error("Refresh user meta error:", error);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
-    const userStr = localStorage.getItem("user");
-    if (userStr) try { setCurrentUserId(JSON.parse(userStr)?.id ?? null); } catch {}
+    syncCurrentUserFromStorage();
     fetchData(false, !!token);
   }, []);
 
@@ -56,19 +84,30 @@ export default function Browse() {
       const headers: Record<string, string> = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const gamesRes = await fetch(`${API_URL}/api/games/activegames`, { headers }).then(res => res.json());
+      const gamesRes = await fetch(`${API_URL}/api/games/activegames`, { headers, cache: "no-store" }).then(res => res.json());
 
       if (gamesRes.success && gamesRes.data) {
-        setSessions((gamesRes.data || []).map((g: any) => ({
+        const fetchedSessions: Session[] = (gamesRes.data || []).map((g: any) => ({
           id: g.GameId, hostId: g.HostID, hostName: g.hostName, hostAvatarUrl: g.hostAvatarUrl || null, title: g.Title,
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
           endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "",
           currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
           maxPlayers: Number(g.MaxPlayers), price: Number(g.Price), notes: g.Notes || "",
-          isExpired: !!g.isExpired, friendCount: Number(g.MyFriendCount || 0),
+          isExpired: !!g.isExpired, friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
           badminton_level: g.badminton_level || "", courtCount: Number(g.CourtCount || 1),
-        })));
+        }));
+        setSessions((prev) => {
+          const prevMap = new Map(prev.map((s) => [s.id, s]));
+          return fetchedSessions.map((session: Session) => {
+            const previous = prevMap.get(session.id);
+            if (!previous) return session;
+            return {
+              ...session,
+              friendCount: Math.max(Number(previous.friendCount || 0), Number(session.friendCount || 0)),
+            };
+          });
+        });
       }
 
       // Render board as soon as game list is ready, do auth-related refresh in background.
@@ -79,8 +118,8 @@ export default function Browse() {
 
       if (isAuth && token) {
         Promise.all([
-          fetch(`${API_URL}/api/user/me`, { headers }).then(res => res.json()),
-          fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json())
+          fetch(`${API_URL}/api/user/me`, { headers, cache: "no-store" }).then(res => res.json()),
+          fetch(`${API_URL}/api/games/joined`, { headers, cache: "no-store" }).then(res => res.json())
         ]).then(([resUser, resJoined]) => {
           if (resUser.success && resUser.user) {
             localStorage.setItem("user", JSON.stringify(resUser.user));
@@ -143,6 +182,20 @@ export default function Browse() {
     setJoinForm({ phone: "", numPlayers: 1 });
   };
 
+  const openJoinModal = (session: Session) => {
+    if (!isLoggedIn) {
+      setMsg({ isOpen: true, title: "提醒", content: "請先登入再報名", type: "info" });
+      return;
+    }
+    setSelectedSession(session);
+    setJoinForm({ phone: "", numPlayers: 1 });
+    setJoinModal({ isOpen: true, session });
+  };
+
+  const closeJoinModal = () => {
+    setJoinModal({ isOpen: false, session: null });
+  };
+
   const handleLineLogin = async () => {
     localStorage.setItem("loginReturnPath", "/browse");
     const isLineBrowser = /Line/i.test(window.navigator.userAgent);
@@ -161,16 +214,24 @@ export default function Browse() {
     }
   };
 
-  const handleAddFriend = () => {
-    if (!selectedSession) return;
-    const hasAddedFriend = selectedSession.friendCount && selectedSession.friendCount >= 1;
+  const isSessionPayload = (value: unknown): value is Session => {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<Session>;
+    return typeof candidate.id === "number" && Number.isFinite(candidate.id);
+  };
+
+  const handleAddFriend = (sessionArg?: unknown) => {
+    const targetSession = isSessionPayload(sessionArg) ? sessionArg : selectedSession;
+    if (!targetSession) return;
+
+    const hasAddedFriend = targetSession.friendCount && targetSession.friendCount >= 1;
     if (hasAddedFriend) {
       setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
       return;
     }
 
     // 檢查名額是否不足 (+1)
-    if (selectedSession.currentPlayers + 1 > selectedSession.maxPlayers) {
+    if (targetSession.currentPlayers + 1 > targetSession.maxPlayers) {
       setMsg({ 
         isOpen: true, 
         title: "人數已滿", 
@@ -180,42 +241,76 @@ export default function Browse() {
       return;
     }
 
-    setFriendLevelModal({ isOpen: true, type: "add" });
+    setFriendLevelModal({ isOpen: true, type: "add", session: targetSession });
   };
 
-  const executeJoin = async (friendLevel?: number) => {
-    if (!selectedSession) return;
+  const executeJoin = async (friendLevel?: number, phoneOverride?: string) => {
+    const sessionForJoin = selectedSession ?? joinModal.session;
+    if (!sessionForJoin) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/join`, {
+    const payloadPhone = phoneOverride ?? joinForm.phone;
+    const res = await fetch(`${API_URL}/api/games/${sessionForJoin.id}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...joinForm, friendLevel }),
+      body: JSON.stringify({ ...joinForm, phone: payloadPhone, friendLevel }),
     });
     const json = await res.json();
     if (json.success) {
-      setMsg({ isOpen: true, title: "掛號成功", content: "期待在場上與你相遇。", type: "success" });
+      syncCurrentUserFromStorage();
+      void refreshCurrentUserMeta();
+      setMsg({ isOpen: true, title: "報名成功", content: "報名成功", type: "success" });
       fetchData(true);
-      setJoinedIds(prev => [...prev, selectedSession.id]);
-      setFriendLevelModal({ ...friendLevelModal, isOpen: false });
+      setJoinedIds((prev) => (prev.includes(sessionForJoin.id) ? prev : [...prev, sessionForJoin.id]));
+      setSessions((prev) => prev.map((s) => {
+        if (s.id !== sessionForJoin.id) return s;
+        return { ...s, friendCount: joinForm.numPlayers === 2 ? 1 : s.friendCount };
+      }));
+      setFriendLevelModal((prev) => ({ ...prev, isOpen: false, session: null }));
+      closeJoinModal();
     } else {
       setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
     }
   };
 
+  const submitJoin = async () => {
+    const target = joinModal.session;
+    if (!target) return;
+    const phone = joinForm.phone.replace(/\D/g, "");
+    if (!/^09\d{8}$/.test(phone)) {
+      setMsg({ isOpen: true, title: "提醒", content: "電話需為 09 開頭、共 10 碼", type: "info" });
+      return;
+    }
+
+    setSelectedSession(target);
+    setJoinForm((prev) => ({ ...prev, phone }));
+
+    if (joinForm.numPlayers === 2) {
+      closeJoinModal();
+      setFriendLevelModal({ isOpen: true, type: "join", session: target });
+      return;
+    }
+
+    await executeJoin(undefined, phone);
+  };
+
   const executeAddFriend = async (friendLevel: number) => {
-    if (!selectedSession) return;
+    const targetSession = friendLevelModal.session ?? selectedSession;
+    if (!targetSession) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/add-friend`, {
+    const res = await fetch(`${API_URL}/api/games/${targetSession.id}/add-friend`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify({ friendLevel })
     });
     const json = await res.json();
     if (json.success) {
-      setFriendLevelModal({ ...friendLevelModal, isOpen: false });
-      setSelectedSession(prev => prev ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : null);
+      syncCurrentUserFromStorage();
+      void refreshCurrentUserMeta();
+      setFriendLevelModal((prev) => ({ ...prev, isOpen: false, session: null }));
+      setSelectedSession(prev => prev && prev.id === targetSession.id ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : prev);
+      setSessions((prev) => prev.map((s) => s.id === targetSession.id ? { ...s, friendCount: 1, currentPlayers: s.currentPlayers + 1 } : s));
       fetchData(true);
-      setMsg({ isOpen: true, title: "+ 朋友", content: "已為同伴辦理入所手續。", type: "success" });
+      setMsg({ isOpen: true, title: "報名成功", content: "報名成功", type: "success" });
     } else {
       setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
     }
@@ -272,7 +367,7 @@ export default function Browse() {
               <button key={l.n} onClick={() => handleLevelSelect(l.n)}
                 className="w-full py-4 border-2 border-ink bg-paper hover:bg-sage hover:text-white transition-all text-[12px] tracking-[0.2em] rounded-full uppercase italic font-bold shadow-[4px_4px_0_0_#1A1A1A]">{l.label}</button>
             ))}
-            <button onClick={() => setFriendLevelModal({ ...friendLevelModal, isOpen: false })}
+            <button onClick={() => setFriendLevelModal((prev) => ({ ...prev, isOpen: false, session: null }))}
               className="w-full py-2 text-stone-500 text-[10px] tracking-widest uppercase mt-4">取消</button>
           </div>
         </div>
@@ -386,9 +481,13 @@ export default function Browse() {
                 todayStr={todayStr}
                 isHost={isHost}
                 isJoined={isJoined}
+                canJoin={isLoggedIn && !isHost && !isJoined}
+                canAddFriend={isLoggedIn && !isHost && isJoined && s.friendCount < 1}
                 statusLabel={s.isExpired ? "已散場" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
                 locationLink={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`}
                 onOpenDetail={handleOpenDetail}
+                onJoin={openJoinModal}
+                onAddFriend={(session) => handleAddFriend(session)}
                 onOpenLive={isHost ? () => router.push(`/dashboard/live/${s.id}`) : undefined}
                 onEdit={isHost ? () => router.push(`/create?editGameId=${s.id}`) : undefined}
                 onCopy={isHost ? () => handleCopy(s) : undefined}
@@ -410,13 +509,69 @@ export default function Browse() {
           setSelectedSession(null);
           router.push(`/dashboard/live/${selectedSession.id}`);
         } : undefined}
-        onAddFriend={selectedSession ? handleAddFriend : undefined}
+        onAddFriend={selectedSession ? () => handleAddFriend() : undefined}
         onCopy={selectedSession ? () => { handleCopy(selectedSession); setSelectedSession(null); } : undefined}
         onDelete={selectedSession ? () => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); } : undefined}
         onLoginLine={handleLineLogin}
         onLoginGoogle={handleGoogleLogin}
         onLoginFacebook={handleFbLogin}
       />
+
+      {joinModal.isOpen && joinModal.session && (
+        <div className="fixed inset-0 z-[105] flex items-end md:items-center justify-center p-0 md:p-4 bg-ink/40 animate-in fade-in">
+          <div className="neu-modal w-full max-w-md rounded-t-2xl md:rounded-2xl p-8 text-center">
+            <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-3">我要報名</h2>
+            <p className="text-sm text-ink/70 mb-6 tracking-wide">{joinModal.session.title}</p>
+
+            <div className="space-y-4 text-left">
+              <label className="block">
+                <span className="text-[11px] tracking-widest text-stone-500 mb-1 block">聯絡電話</span>
+                <input
+                  value={joinForm.phone}
+                  onChange={(e) => setJoinForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                  placeholder="請輸入電話"
+                  inputMode="numeric"
+                  maxLength={10}
+                  className="w-full border-2 border-ink bg-paper px-3 py-3 text-sm focus:outline-none"
+                />
+              </label>
+
+              <div>
+                <span className="text-[11px] tracking-widest text-stone-500 block mb-2">報名人數</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setJoinForm((prev) => ({ ...prev, numPlayers: 1 }))}
+                    className={`py-3 border-2 border-ink text-sm font-bold tracking-widest ${joinForm.numPlayers === 1 ? "bg-sage/20" : "bg-paper"}`}
+                  >
+                    只報自己
+                  </button>
+                  <button
+                    onClick={() => setJoinForm((prev) => ({ ...prev, numPlayers: 2 }))}
+                    className={`py-3 border-2 border-ink text-sm font-bold tracking-widest ${joinForm.numPlayers === 2 ? "bg-sage/20" : "bg-paper"}`}
+                  >
+                    我 + 朋友
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 space-y-3">
+              <button
+                onClick={submitJoin}
+                className="w-full py-4 bg-sage text-ink text-sm tracking-[0.4em] uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink font-bold"
+              >
+                確認報名
+              </button>
+              <button
+                onClick={closeJoinModal}
+                className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] uppercase hover:bg-sage/15 transition-all rounded-sm shadow-[4px_4px_0_0_#1A1A1A]"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {msg.isOpen && (
         <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-4 bg-ink/40 animate-in fade-in">

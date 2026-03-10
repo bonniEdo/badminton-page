@@ -80,6 +80,11 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [viewerMeta, setViewerMeta] = useState<{ id: number | null; avatarUrl: string | null; username: string | null }>({
+    id: null,
+    avatarUrl: null,
+    username: null,
+  });
   const [sheetHeightVh, setSheetHeightVh] = useState(52);
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(52);
@@ -154,6 +159,25 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const rawUser = localStorage.getItem("user");
+    if (!rawUser) return;
+    try {
+      const user = JSON.parse(rawUser);
+      const id = Number(user?.id);
+      const avatarUrlRaw = user?.avatarUrl || user?.avatar_url || user?.AvatarUrl || null;
+      const usernameRaw = user?.username || user?.Username || null;
+      setViewerMeta({
+        id: Number.isInteger(id) && id > 0 ? id : null,
+        avatarUrl: typeof avatarUrlRaw === "string" && avatarUrlRaw.trim() ? avatarUrlRaw : null,
+        username: typeof usernameRaw === "string" && usernameRaw.trim() ? usernameRaw : null,
+      });
+    } catch {
+      setViewerMeta({ id: null, avatarUrl: null, username: null });
+    }
+  }, [renderSession?.id]);
 
   useEffect(() => {
     if (!renderSession) return;
@@ -288,12 +312,35 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
         <div className="max-h-40 overflow-y-auto">
           {loadingParticipants ? (
             <div className="text-[11px] text-stone-500 italic animate-pulse">正在讀取病友名冊...</div>
-          ) : participants.length > 0 ? (
+          ) : (() => {
+              const participantSource = [...participants];
+              const shouldInjectViewer =
+                canAddFriend &&
+                viewerMeta.id !== null &&
+                !participantSource.some((p) => Number(p.UserId) === viewerMeta.id);
+
+              if (shouldInjectViewer) {
+                participantSource.push({
+                  Username: viewerMeta.username || "我",
+                  Status: "CONFIRMED",
+                  FriendCount: Number(renderSession.friendCount || 0),
+                  AvatarUrl: viewerMeta.avatarUrl,
+                  UserId: viewerMeta.id,
+                });
+              }
+
+              if (participantSource.length === 0) {
+                return <div className="text-[11px] text-stone-500 italic">尚無掛號紀錄</div>;
+              }
+
+              return (
             <div className="flex flex-wrap gap-2">
-              {participants.flatMap((p) => {
-                const list = [{ ...p, displayName: p.Username }];
+              {participantSource.flatMap((p) => {
+                const isViewer = viewerMeta.id !== null && Number(p.UserId) === viewerMeta.id;
+                const resolvedAvatarUrl = p.AvatarUrl || (isViewer ? viewerMeta.avatarUrl : null);
+                const list = [{ ...p, AvatarUrl: resolvedAvatarUrl, displayName: p.Username }];
                 if ((p.FriendCount ?? 0) > 0) {
-                  list.push({ ...p, displayName: `${p.Username} +1`, UserId: null });
+                  list.push({ ...p, AvatarUrl: resolvedAvatarUrl, displayName: `${p.Username} +1`, UserId: null });
                 }
                 return list;
               }).map((p, idx) => {
@@ -322,9 +369,8 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                 );
               })}
             </div>
-          ) : (
-            <div className="text-[11px] text-stone-500 italic">尚無掛號紀錄</div>
-          )}
+              );
+            })()}
         </div>
       </div>
 
@@ -372,10 +418,21 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                       我到了，報到
                     </button>
                   )}
-                  {canAddFriend && !hasAddedFriend && onAddFriend && (
-                    <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
-                      + 朋友 (限一位)
-                    </button>
+                  {canAddFriend && (
+                    <>
+                      <div className="w-full py-2 text-center text-[11px] tracking-widest uppercase font-bold neu-soft-panel text-sage">
+                        報名成功
+                      </div>
+                      {hasAddedFriend ? (
+                        <div className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-stone-100 text-stone-500 text-center cursor-not-allowed">
+                          已報名兩位
+                        </div>
+                      ) : onAddFriend ? (
+                        <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                          + 朋友 (限一位)
+                        </button>
+                      ) : null}
+                    </>
                   )}
                   {isHost && (onCopy || onDelete) && (
                     <div className="flex gap-2">

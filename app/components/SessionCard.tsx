@@ -16,6 +16,7 @@ interface SessionCardData {
   price?: number;
   currentPlayers?: number;
   maxPlayers?: number | string;
+  friendCount?: number;
   check_in_at?: string | null;
   status?: string;
   isExpired: boolean;
@@ -30,7 +31,11 @@ interface SessionCardProps<TSession extends SessionCardData = SessionCardData> {
   locationLink?: string;
   isHost: boolean;
   isJoined: boolean;
+  canJoin?: boolean;
+  canAddFriend?: boolean;
   onOpenDetail: (session: TSession) => void;
+  onJoin?: (session: TSession) => void;
+  onAddFriend?: (session: TSession) => void;
   onOpenLive?: (session: TSession) => void;
   onCheckIn?: (session: TSession) => void;
   onEdit?: (session: TSession) => void;
@@ -45,7 +50,11 @@ export default function SessionCard<TSession extends SessionCardData>({
   locationLink,
   isHost,
   isJoined,
+  canJoin = false,
+  canAddFriend = false,
   onOpenDetail,
+  onJoin,
+  onAddFriend,
   onOpenLive,
   onCheckIn,
   onEdit,
@@ -113,6 +122,43 @@ export default function SessionCard<TSession extends SessionCardData>({
       </div>
 
       <div className="mt-8 flex flex-col gap-3">
+        {isJoined && !isHost && (
+          <div className="flex items-center justify-between border-2 border-ink rounded-lg px-3 py-2">
+            <span className="text-[11px] tracking-widest text-stone-600">已報名球員</span>
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full border border-ink text-[11px] font-bold flex items-center justify-center bg-paper">
+                我
+              </span>
+              {(Number(session.friendCount || 0) > 0) && (
+                <div className="w-6 h-6 rounded-full border border-ink/40 text-[10px] font-bold flex items-center justify-center bg-paper">
+                  +1
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {(canJoin || canAddFriend) && !session.isExpired && (
+          <div className="flex gap-2">
+            {canJoin && onJoin && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onJoin(session); }}
+                className="flex-1 py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.2em] rounded-xl font-bold"
+              >
+                我要報名
+              </button>
+            )}
+            {canAddFriend && onAddFriend && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onAddFriend(session); }}
+                className="flex-1 py-3.5 neu-btn text-sm tracking-[0.1em] rounded-xl font-bold"
+              >
+                朋友 +1
+              </button>
+            )}
+          </div>
+        )}
+
         {!session.isExpired && isToday && onCheckIn && (
           needsCheckIn ? (
             <button onClick={(e) => { e.stopPropagation(); onCheckIn(session); }} className="w-full py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.4em] rounded-xl font-bold">

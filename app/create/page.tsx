@@ -55,7 +55,10 @@ export default function CreatePage() {
       setIsEditLoading(true);
       try {
         const res = await fetch(`${API_URL}/api/games/${editGameId}`, {
-          headers: { "Authorization": `Bearer ${token}` },
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "ngrok-skip-browser-warning": "true",
+          },
         });
         const json = await res.json();
         if (!res.ok || !json.success || !json.data) {
@@ -105,7 +108,11 @@ export default function CreatePage() {
     const method = isEditMode ? "PUT" : "POST";
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true",
+      },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
@@ -117,8 +124,14 @@ export default function CreatePage() {
       });
       setTimeout(() => router.push("/enrolled"), 1500);
     } else {
-      const err = await res.json();
-      setMsg({ isOpen: true, title: isEditMode ? "更新失敗" : "開診失敗", content: err.message, type: "error" });
+      let errorMessage = "請稍後再試";
+      try {
+        const err = await res.json();
+        errorMessage = err?.message || errorMessage;
+      } catch {
+        // Ignore non-JSON error payloads.
+      }
+      setMsg({ isOpen: true, title: isEditMode ? "更新失敗" : "開診失敗", content: errorMessage, type: "error" });
     }
   };
 
