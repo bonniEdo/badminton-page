@@ -26,6 +26,8 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   const [loading, setLoading] = useState(true);
   
   const [isBenchOpen, setIsBenchOpen] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const [activeMobileSlotIdx, setActiveMobileSlotIdx] = useState<number | null>(null);
   const [courtCount, setCourtCount] = useState(0); 
   const [courtLabels, setCourtLabels] = useState<string[]>([]);
 
@@ -52,8 +54,103 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   const nextGroupLoadedRef = useRef(nextGroupLoaded);
   nextGroupLoadedRef.current = nextGroupLoaded;
   const fetchDataRef = useRef<() => Promise<void>>(async () => {});
+  const selectedPlayerIdsRef = useRef<number[]>(selectedPlayerIds);
+  const swappingSlotIdxRef = useRef<number | null>(swappingSlotIdx);
+  const activeMobileSlotIdxRef = useRef<number | null>(activeMobileSlotIdx);
+  const isFetchingRef = useRef(false);
+  const pendingFetchRef = useRef(false);
+  const wsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionUnlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRemoteRefreshAtRef = useRef(0);
+  const pendingRemoteRefreshRef = useRef(false);
+  const selectionLockUntilRef = useRef(0);
 
-  const fetchData = useCallback(async () => {
+  const WS_REFRESH_THROTTLE_MS = 500;
+  const SELECTION_LOCK_MS = 900;
+
+  const isSelectionLocked = () =>
+    selectedPlayerIdsRef.current.length > 0 ||
+    swappingSlotIdxRef.current !== null ||
+    activeMobileSlotIdxRef.current !== null ||
+    Date.now() < selectionLockUntilRef.current;
+
+  const scheduleRemoteRefresh = () => {
+    if (isSelectionLocked()) {
+      pendingRemoteRefreshRef.current = true;
+      return;
+    }
+
+    const elapsed = Date.now() - lastRemoteRefreshAtRef.current;
+    const waitMs = Math.max(0, WS_REFRESH_THROTTLE_MS - elapsed);
+    if (wsRefreshTimerRef.current) return;
+
+    wsRefreshTimerRef.current = setTimeout(() => {
+      wsRefreshTimerRef.current = null;
+      if (isSelectionLocked()) {
+        pendingRemoteRefreshRef.current = true;
+        return;
+      }
+
+      pendingRemoteRefreshRef.current = false;
+      lastRemoteRefreshAtRef.current = Date.now();
+      void fetchDataRef.current();
+    }, waitMs);
+  };
+
+  const markLocalSelectionInteraction = () => {
+    selectionLockUntilRef.current = Date.now() + SELECTION_LOCK_MS;
+    if (selectionUnlockTimerRef.current) clearTimeout(selectionUnlockTimerRef.current);
+    selectionUnlockTimerRef.current = setTimeout(() => {
+      if (pendingRemoteRefreshRef.current && !isSelectionLocked()) {
+        scheduleRemoteRefresh();
+      }
+    }, SELECTION_LOCK_MS + 20);
+  };
+
+  useEffect(() => {
+    selectedPlayerIdsRef.current = selectedPlayerIds;
+    if (pendingRemoteRefreshRef.current && !isSelectionLocked()) {
+      scheduleRemoteRefresh();
+    }
+  }, [selectedPlayerIds]);
+
+  useEffect(() => {
+    swappingSlotIdxRef.current = swappingSlotIdx;
+    if (pendingRemoteRefreshRef.current && !isSelectionLocked()) {
+      scheduleRemoteRefresh();
+    }
+  }, [swappingSlotIdx]);
+
+  useEffect(() => {
+    activeMobileSlotIdxRef.current = activeMobileSlotIdx;
+    if (pendingRemoteRefreshRef.current && !isSelectionLocked()) {
+      scheduleRemoteRefresh();
+    }
+  }, [activeMobileSlotIdx]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 767px)");
+    const applyLayout = () => {
+      const isMobile = media.matches;
+      setIsMobileLayout(isMobile);
+      if (!isMobile) {
+        setActiveMobileSlotIdx(null);
+      }
+    };
+
+    applyLayout();
+    const onChange = () => applyLayout();
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", onChange);
+      return () => media.removeEventListener("change", onChange);
+    }
+
+    media.addListener(onChange);
+    return () => media.removeListener(onChange);
+  }, []);
+
+  const fetchDataCore = useCallback(async () => {
     if (!gameId || gameId === 'undefined') { router.replace('/enrolled'); return; }
     try {
       const token = localStorage.getItem("token");
@@ -101,9 +198,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         const serverSlots = jsonStatus.data?.nextGroup?.slotPlayerIds;
         if (Array.isArray(serverSlots) && serverSlots.length === 4) {
           const next = serverSlots.map((id: number | null) => id ?? null);
-          const isDifferent = JSON.stringify(nextSlotsRef.current) !== JSON.stringify(next);
-          if (isDifferent || !nextGroupLoadedRef.current) {
-            setNextSlots(next);
+          if (isSelectionLocked()) {
+            pendingRemoteRefreshRef.current = true;
+          } else {
+            const isDifferent = JSON.stringify(nextSlotsRef.current) !== JSON.stringify(next);
+            if (isDifferent || !nextGroupLoadedRef.current) {
+              setNextSlots(next);
+            }
           }
         }
         nextGroupLoadedRef.current = true;
@@ -112,6 +213,21 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     } catch (e) { console.error(e); router.replace('/enrolled'); }
     finally { setLoading(false); }
   }, [gameId, router]);
+
+  const fetchData = useCallback(async () => {
+    pendingFetchRef.current = true;
+    if (isFetchingRef.current) return;
+
+    while (pendingFetchRef.current) {
+      pendingFetchRef.current = false;
+      isFetchingRef.current = true;
+      try {
+        await fetchDataCore();
+      } finally {
+        isFetchingRef.current = false;
+      }
+    }
+  }, [fetchDataCore]);
   fetchDataRef.current = fetchData;
 
   const syncNextGroup = useCallback(async (slots: (number | null)[]) => {
@@ -163,8 +279,10 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
   const wsRef = useRef<WebSocket | null>(null);
   useEffect(() => {
-    fetchData();
-    const fallbackInterval = setInterval(fetchData, 60000);
+    void fetchData();
+    const fallbackInterval = setInterval(() => {
+      scheduleRemoteRefresh();
+    }, 60000);
     function connectWs() {
       if (wsRef.current?.readyState === WebSocket.OPEN) return;
       try {
@@ -174,14 +292,19 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         ws.onmessage = (e) => {
           try {
             const msgData = JSON.parse(e.data);
-            if (msgData.type === 'refresh') fetchData();
+            if (msgData.type === 'refresh') scheduleRemoteRefresh();
           } catch (_) {}
         };
         ws.onclose = () => { setTimeout(connectWs, 3000); };
       } catch (_) {}
     }
     connectWs();
-    return () => { clearInterval(fallbackInterval); wsRef.current?.close(); };
+    return () => {
+      clearInterval(fallbackInterval);
+      if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+      if (selectionUnlockTimerRef.current) clearTimeout(selectionUnlockTimerRef.current);
+      wsRef.current?.close();
+    };
   }, [gameId, fetchData]);
 
   useEffect(() => {
@@ -253,6 +376,36 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   };
 
   const handleBenchPlayerClick = (playerId: number) => {
+    markLocalSelectionInteraction();
+    if (isMobileLayout) {
+      if (activeMobileSlotIdx === null) {
+        setMsg({
+          isOpen: true,
+          title: "先選位置",
+          content: "請先點選球場上的位置，再挑球員。",
+          type: "info",
+          teamANames: "",
+          teamBNames: "",
+          onConfirm: null,
+          onCancel: null
+        });
+        return;
+      }
+
+      const newSlots = [...nextSlots];
+      const oldIdx = newSlots.indexOf(playerId);
+      if (oldIdx !== -1 && oldIdx !== activeMobileSlotIdx) {
+        newSlots[oldIdx] = null;
+      }
+      newSlots[activeMobileSlotIdx] = playerId;
+      setNextSlots(newSlots);
+      setSelectedPlayerIds([]);
+      setSwappingSlotIdx(null);
+      setActiveMobileSlotIdx(null);
+      setIsBenchOpen(false);
+      return;
+    }
+
     const inNextIdx = nextSlots.indexOf(playerId);
     if (inNextIdx !== -1) {
       const newSlots = [...nextSlots];
@@ -268,6 +421,21 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   };
 
   const handleNextSlotClick = (idx: number) => {
+    markLocalSelectionInteraction();
+    if (isMobileLayout) {
+      if (isBenchOpen && activeMobileSlotIdx === idx) {
+        setIsBenchOpen(false);
+        setActiveMobileSlotIdx(null);
+        return;
+      }
+
+      setSelectedPlayerIds([]);
+      setSwappingSlotIdx(null);
+      setActiveMobileSlotIdx(idx);
+      setIsBenchOpen(true);
+      return;
+    }
+
     if (swappingSlotIdx !== null) {
       const newSlots = [...nextSlots];
       const temp = newSlots[idx];
@@ -292,6 +460,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   };
 
   const handleAIAutoFill = () => {
+    markLocalSelectionInteraction();
     const idle = players.filter(p => p.status === 'idle' && !nextSlots.includes(p.playerId));
     if (idle.length < 4) {
       setMsg({ isOpen: true, title: "遺憾", content: "待命病友不足四位，無法啟動智慧配對。", type: "info", teamANames:"", teamBNames:"", onConfirm:null, onCancel:null });
@@ -353,6 +522,15 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     ]);
   };
 
+  const handleClearNextSlots = () => {
+    markLocalSelectionInteraction();
+    setNextSlots([null, null, null, null]);
+    setSelectedPlayerIds([]);
+    setSwappingSlotIdx(null);
+    setActiveMobileSlotIdx(null);
+    if (isMobileLayout) setIsBenchOpen(false);
+  };
+
   const executeStartMatch = async (courtNum: string) => {
     if (nextSlots.some(s => s === null)) return;
     const token = localStorage.getItem("token");
@@ -364,7 +542,12 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         players: { a1: nextSlots[0], a2: nextSlots[1], b1: nextSlots[2], b2: nextSlots[3] } 
       })
     });
-    if (res.ok) { setNextSlots([null, null, null, null]); fetchData(); }
+    if (res.ok) {
+      setNextSlots([null, null, null, null]);
+      setActiveMobileSlotIdx(null);
+      if (isMobileLayout) setIsBenchOpen(false);
+      void fetchData();
+    }
   };
 
   const executeFinishMatch = async (matchId: number, winner: 'A' | 'B' | 'none') => {
@@ -374,7 +557,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ matchId, winner })
       });
-      fetchData();
+      void fetchData();
     } catch (e) { console.error(e); }
   };
 
@@ -384,7 +567,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ gameId, playerId })
     });
-    if ((await res.json()).success) fetchData();
+    if ((await res.json()).success) void fetchData();
   };
 
   const executeCloseGame = async () => {
@@ -480,6 +663,16 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     );
   };
 
+  const benchPlayers = [...players].sort((a, b) => {
+    const aPlaying = a.status === "playing";
+    const bPlaying = b.status === "playing";
+    if (aPlaying !== bPlaying) return aPlaying ? 1 : -1;
+    return Number(a.playerId) - Number(b.playerId);
+  });
+  const slotLabels = ["A區左上", "A區左下", "B區右上", "B區右下"];
+  const activeMobileSlotLabel =
+    activeMobileSlotIdx !== null ? slotLabels[activeMobileSlotIdx] : null;
+
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif flex flex-col overflow-hidden pb-20 md:pb-0">
       <AppHeader />
@@ -496,29 +689,74 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             <button onClick={executeCloseGame} className="text-[12px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border-2 border-ink text-ink hover:bg-sage/15 transition-all">
               關閉球團
             </button>
-            <button onClick={() => setIsBenchOpen(true)} className="md:hidden text-sage"><Users size={20} /></button>
+            <button
+              onClick={() => {
+                setActiveMobileSlotIdx(null);
+                setIsBenchOpen(true);
+              }}
+              className="md:hidden text-sage"
+            >
+              <Users size={20} />
+            </button>
           </div>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
+        {isMobileLayout && isBenchOpen && (
+          <button
+            type="button"
+            aria-label="關閉待命名冊"
+            onClick={() => {
+              setIsBenchOpen(false);
+              setActiveMobileSlotIdx(null);
+            }}
+            className="fixed inset-0 z-[70] bg-black/25 backdrop-blur-[1px] md:hidden"
+          />
+        )}
+
         {/* 左側：病友待命區 (已加回 Lv 與 場次) */}
-        <aside className={`fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 md:bg-transparent p-4 md:p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
-          <div className="neu-surface neu-surface-glass h-full rounded-2xl p-4 md:p-5">
+        <aside
+          className={
+            isMobileLayout
+              ? `fixed inset-x-0 bottom-0 z-[80] px-3 pb-3 transform transition-transform duration-300 ease-out md:hidden ${isBenchOpen ? "translate-y-0" : "translate-y-[110%]"}`
+              : `fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 md:bg-transparent p-4 md:p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`
+          }
+        >
+          <div className={isMobileLayout ? "neu-surface neu-surface-glass h-[52vh] rounded-3xl p-4" : "neu-surface neu-surface-glass h-full rounded-2xl p-4 md:p-5"}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[12px] tracking-[0.4em] text-stone-500 uppercase font-bold">待命名冊</h2>
-              <button className="md:hidden text-stone-400" onClick={() => setIsBenchOpen(false)}><X size={20} /></button>
+              <div className="space-y-1">
+                <h2 className="text-[12px] tracking-[0.4em] text-stone-500 uppercase font-bold">待命名冊</h2>
+                {isMobileLayout && (
+                  <p className="text-[11px] text-stone-500">
+                    {activeMobileSlotLabel
+                      ? `目標位置：${activeMobileSlotLabel}，點一位球員上場`
+                      : "先點選球場位置，再來挑球員"}
+                  </p>
+                )}
+              </div>
+              <button
+                className="text-stone-400"
+                onClick={() => {
+                  setIsBenchOpen(false);
+                  setActiveMobileSlotIdx(null);
+                }}
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div className="space-y-2 overflow-y-auto h-[calc(100dvh-220px)] custom-scrollbar pr-2">
-            {players.sort((a,b) => (a.status === 'playing' ? 1 : -1)).map(p => {
-              const isSelected = selectedPlayerIds.includes(p.playerId);
+            <div className={isMobileLayout ? "space-y-2 overflow-y-auto h-[calc(52vh-110px)] custom-scrollbar pr-1" : "space-y-2 overflow-y-auto h-[calc(100dvh-220px)] custom-scrollbar pr-2"}>
+            {benchPlayers.map(p => {
+              const isSelected = selectedPlayerIds.includes(p.playerId) || (activeMobileSlotIdx !== null && nextSlots[activeMobileSlotIdx] === p.playerId);
               const isPlaying = p.status === 'playing';
               const isInNext = nextSlots.includes(p.playerId);
+              const isMobilePickBlocked = isMobileLayout && activeMobileSlotIdx === null;
               return (
-                <div key={p.playerId} onClick={() => !isPlaying && handleBenchPlayerClick(p.playerId)}
+                <div key={p.playerId} onClick={() => !isPlaying && !isMobilePickBlocked && handleBenchPlayerClick(p.playerId)}
                   className={`p-3 rounded-xl border transition-all cursor-pointer ${
                     isSelected ? 'bg-sage border-sage text-white shadow-lg' :
                     isPlaying ? 'opacity-30 grayscale pointer-events-none' :
+                    isMobilePickBlocked ? 'opacity-50 cursor-not-allowed bg-stone-100 border-stone-200 text-stone-500' :
                     isInNext ? 'bg-sage/10 border-sage/30 text-sage' : 'bg-paper/70 border-stone/30 hover:border-sage/30'
                   }`}>
                   <div className="flex flex-col gap-1">
@@ -587,6 +825,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   ].map((slot) => {
                     const id = nextSlots[slot.idx];
                     const isSwapping = swappingSlotIdx === slot.idx;
+                    const isMobileTarget = isMobileLayout && activeMobileSlotIdx === slot.idx;
                     const player = players.find((p) => p.playerId === id);
                     const playerName = player?.displayName;
                     return (
@@ -598,7 +837,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                         style={slot.style}
                         className={`absolute flex items-center justify-center px-2 text-center text-[12px] font-bold transition-all ${
                           isSwapping ? "bg-alert/25 animate-pulse" : "hover:bg-paper/10"
-                        } ${playerName ? "text-paper" : "text-paper/80"}`}
+                        } ${isMobileTarget ? "ring-2 ring-paper/90 bg-paper/15" : ""} ${playerName ? "text-paper" : "text-paper/80"}`}
                       >
                         {player ? (
                           <div className="flex flex-col items-start w-full min-w-0 gap-0.5">
@@ -609,7 +848,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                             <span className="truncate">{player.displayName}</span>
                           </div>
                         ) : (
-                          <span className="truncate">點擊上場</span>
+                          <span className="truncate">{isMobileLayout ? "點這格挑人" : "點擊上場"}</span>
                         )}
                       </button>
                     );
@@ -617,7 +856,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 </div>
                 <div className="flex gap-3">
                   <button onClick={handleAIAutoFill} className="w-12 h-12 flex items-center justify-center rounded-full bg-sage/5 text-sage border border-sage/10 hover:bg-sage hover:text-white transition-all shadow-sm" title="智慧配對"><Zap size={20} fill="currentColor"/></button>
-                  <button onClick={() => setNextSlots([null,null,null,null])} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-50 text-stone-500 border border-stone-100 hover:text-red-500 transition-all" title="清空位置"><RotateCcw size={20}/></button>
+                  <button onClick={handleClearNextSlots} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-50 text-stone-500 border border-stone-100 hover:text-red-500 transition-all" title="清空位置"><RotateCcw size={20}/></button>
                 </div>
               </div>
               {isSyncingNextGroup && (
@@ -749,7 +988,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       )}
 
       {/* 手機版磁鐵收集區提示 */}
-      {selectedPlayerIds.length > 0 && (
+      {!isMobileLayout && selectedPlayerIds.length > 0 && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-stone-900/90 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-10 border border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-sage rounded-full animate-pulse shadow-[0_0_8px_#1A1A1A]" />

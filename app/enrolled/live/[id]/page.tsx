@@ -73,6 +73,13 @@ interface LiveStatusData {
   autoClosed?: boolean;
 }
 
+type CourtChipPlayer = {
+  userId?: number | null;
+  displayName: string;
+  avatarUrl?: string | null;
+  level: number;
+};
+
 export default function LiveViewPage({
   params,
 }: {
@@ -254,6 +261,28 @@ export default function LiveViewPage({
     const idx = parseInt(courtNum) - 1;
     return names[idx]?.trim() || courtNum;
   };
+  const nextCourtSlots = [0, 1, 2, 3].map((slotIdx) => {
+    const playerId = nextGroupSlots[slotIdx];
+    if (!playerId) return null;
+
+    const picked =
+      nextGroupPlayers.find(
+        (p) => p.playerId === playerId && p.slot === slotIdx + 1
+      ) || nextGroupPlayers.find((p) => p.playerId === playerId);
+    if (!picked) return null;
+
+    const source = players.find((p) => p.playerId === playerId);
+    return {
+      player: {
+        userId: picked.userId ?? source?.userId ?? null,
+        displayName: picked.displayName || source?.displayName || "待安排",
+        avatarUrl: picked.avatarUrl ?? source?.avatarUrl ?? null,
+        level: Number(picked.level ?? source?.level ?? 1),
+      } as CourtChipPlayer,
+      isMe: !!myPlayerId && playerId === myPlayerId,
+      verified: source ? isVerified(source) : false,
+    };
+  });
 
   if (loading) return <PageLoading message="讀取戰場實況..." showHeader />;
 
@@ -443,31 +472,45 @@ export default function LiveViewPage({
                 你是下一組，請在場邊準備
               </div>
             )}
-            <div className="space-y-3">
+            <div className="relative bg-sage border-2 border-ink rounded-md w-full aspect-[13.4/6.1] overflow-hidden">
+              <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "5.67%" }} />
+              <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "35.22%" }} />
+              <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "50%" }} />
+              <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "64.78%" }} />
+              <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "94.33%" }} />
+              <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "7.54%" }} />
+              <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "92.46%" }} />
+              <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "5.67%", width: "29.55%", top: "50%" }} />
+              <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "64.78%", width: "29.55%", top: "50%" }} />
+              <div
+                className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[20px] font-black tracking-wider text-paper/90"
+                style={{ WebkitTextStroke: "1.2px #1A1A1A" }}
+              >
+                VS
+              </div>
+
               {[
-                { label: "A 隊", slots: [0, 1], teamStyle: "border-sage/25 bg-sage/5", labelStyle: "text-sage" },
-                { label: "B 隊", slots: [2, 3], teamStyle: "border-ink/25 bg-sage/10", labelStyle: "text-ink/80" }
-              ].map((team) => (
-                <div key={team.label} className={`rounded-xl border p-3 ${team.teamStyle}`}>
-                  <div className={`text-[10px] font-bold tracking-[0.2em] mb-2.5 ${team.labelStyle}`}>
-                    {team.label}
+                { idx: 0, emptyLabel: "A隊左上待補", style: { top: "13%", left: "6.8%", width: "27.2%" } },
+                { idx: 1, emptyLabel: "A隊左下待補", style: { bottom: "13%", left: "6.8%", width: "27.2%" } },
+                { idx: 2, emptyLabel: "B隊右上待補", style: { top: "13%", left: "66%", width: "27.2%" } },
+                { idx: 3, emptyLabel: "B隊右下待補", style: { bottom: "13%", left: "66%", width: "27.2%" } },
+              ].map((slot) => {
+                const data = nextCourtSlots[slot.idx];
+                return (
+                  <div
+                    key={slot.idx}
+                    className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5"
+                    style={slot.style}
+                  >
+                    <MatchCourtPlayerChip
+                      player={data?.player}
+                      isMe={!!data?.isMe}
+                      verified={!!data?.verified}
+                      emptyLabel={slot.emptyLabel}
+                    />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {team.slots.map((slotIdx) => {
-                      const playerId = nextGroupSlots[slotIdx];
-                      const player = nextGroupPlayers.find((p) => p.playerId === playerId && p.slot === slotIdx + 1);
-                      const isMe = !!myPlayerId && playerId === myPlayerId;
-                      return (
-                        <NextGroupSlotPill
-                          key={slotIdx}
-                          player={player || null}
-                          isMe={isMe}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -582,6 +625,40 @@ function MatchCard({
   const a2 = getPlayer(match.player_a2);
   const b1 = getPlayer(match.player_b1);
   const b2 = getPlayer(match.player_b2);
+  const courtSlots = [
+    {
+      key: "a1",
+      player: a1,
+      isMe: !!a1 && a1.playerId === myPlayerId,
+      verified: !!a1 && isVerified(a1),
+      emptyLabel: "A隊左上待補",
+      style: { top: "13%", left: "6.8%", width: "27.2%" } as React.CSSProperties,
+    },
+    {
+      key: "a2",
+      player: a2,
+      isMe: !!a2 && a2.playerId === myPlayerId,
+      verified: !!a2 && isVerified(a2),
+      emptyLabel: "A隊左下待補",
+      style: { bottom: "13%", left: "6.8%", width: "27.2%" } as React.CSSProperties,
+    },
+    {
+      key: "b1",
+      player: b1,
+      isMe: !!b1 && b1.playerId === myPlayerId,
+      verified: !!b1 && isVerified(b1),
+      emptyLabel: "B隊右上待補",
+      style: { top: "13%", left: "66%", width: "27.2%" } as React.CSSProperties,
+    },
+    {
+      key: "b2",
+      player: b2,
+      isMe: !!b2 && b2.playerId === myPlayerId,
+      verified: !!b2 && isVerified(b2),
+      emptyLabel: "B隊右下待補",
+      style: { bottom: "13%", left: "66%", width: "27.2%" } as React.CSSProperties,
+    },
+  ];
 
   return (
     <div className="neu-card rounded-2xl overflow-hidden">
@@ -600,119 +677,80 @@ function MatchCard({
       </div>
 
       <div className="p-4">
-        <div className="rounded-xl border border-sage/30 bg-sage/5 p-3">
-          <div className="text-[10px] font-bold tracking-[0.2em] text-sage mb-2">A 隊</div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {[a1, a2].map(
-              (p, i) =>
-                p && (
-                  <TeamPlayerBadge
-                    key={i}
-                    player={p}
-                    verified={isVerified(p)}
-                    isMe={p.playerId === myPlayerId}
-                  />
-                )
-            )}
-          </div>
-        </div>
+        <div className="relative bg-sage border-2 border-ink rounded-md w-full aspect-[13.4/6.1] overflow-hidden">
+          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "5.67%" }} />
+          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "35.22%" }} />
+          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "50%" }} />
+          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "64.78%" }} />
+          <div className="pointer-events-none absolute inset-y-0 border-l-2 border-paper" style={{ left: "94.33%" }} />
+          <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "7.54%" }} />
+          <div className="pointer-events-none absolute inset-x-0 border-t-2 border-paper" style={{ top: "92.46%" }} />
+          <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "5.67%", width: "29.55%", top: "50%" }} />
+          <div className="pointer-events-none absolute border-t-2 border-paper" style={{ left: "64.78%", width: "29.55%", top: "50%" }} />
 
-        <div className="relative my-3">
-          <div className="h-[1px] bg-stone/20" />
-          <div className="absolute inset-0 flex items-center justify-center -translate-y-1/2 top-1/2">
-            <span className="px-3 py-0.5 rounded-full bg-paper border border-ink/20 text-[11px] tracking-[0.22em] text-ink/70 uppercase font-bold">
-              VS
-            </span>
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[20px] font-black tracking-wider text-paper/90"
+            style={{ WebkitTextStroke: "1.2px #1A1A1A" }}
+          >
+            VS
           </div>
-        </div>
 
-        <div className="rounded-xl border border-ink/25 bg-sage/10 p-3 mt-3">
-          <div className="text-[10px] font-bold tracking-[0.2em] text-stone-600 mb-2">B 隊</div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {[b1, b2].map(
-              (p, i) =>
-                p && (
-                  <TeamPlayerBadge
-                    key={i}
-                    player={p}
-                    verified={isVerified(p)}
-                    isMe={p.playerId === myPlayerId}
-                  />
-                )
-            )}
-          </div>
+          {courtSlots.map((slot) => (
+            <div
+              key={slot.key}
+              className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5"
+              style={slot.style}
+            >
+              <MatchCourtPlayerChip
+                player={slot.player}
+                isMe={slot.isMe}
+                verified={slot.verified}
+                emptyLabel={slot.emptyLabel}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function TeamPlayerBadge({
+function MatchCourtPlayerChip({
   player,
   verified,
   isMe,
+  emptyLabel,
 }: {
-  player: Player;
+  player: CourtChipPlayer | undefined;
   verified: boolean;
   isMe: boolean;
-}) {
-  return (
-    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
-      isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
-    }`}>
-      <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
-      <span className={`text-sm font-bold truncate max-w-[100px] ${isMe ? "text-sage" : "text-stone-800"}`}>
-        {player.displayName}
-      </span>
-      {isMe && (
-        <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold">
-          我
-        </span>
-      )}
-      {verified && (
-        <CheckCircle
-          size={10}
-          className="text-sage fill-paper shrink-0"
-        />
-      )}
-      <span className="text-[10px] text-sage italic font-serif font-bold">
-        L{Math.floor(player.level)}
-      </span>
-    </div>
-  );
-}
-
-function NextGroupSlotPill({
-  player,
-  isMe,
-}: {
-  player: NextGroupPlayer | null;
-  isMe: boolean;
+  emptyLabel: string;
 }) {
   if (!player) {
-    return (
-      <div className="flex items-center rounded-full border border-dashed border-stone/25 bg-paper px-4 py-2 min-h-[44px]">
-        <span className="text-[11px] text-stone-300 italic">待安排</span>
-      </div>
-    );
+    return <div className="text-[10px] text-stone-400 italic truncate">{emptyLabel}</div>;
   }
 
   return (
-    <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full border min-h-[44px] ${
-      isMe ? "bg-sage/10 border-sage/35" : "bg-stone/5 border-stone/20"
-    }`}>
+    <div
+      className={`flex items-center gap-1.5 min-w-0 ${
+        isMe ? "text-sage" : "text-ink"
+      }`}
+    >
       <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
-      <span className={`text-sm font-bold truncate ${isMe ? "text-sage" : "text-stone-800"}`}>
-        {player.displayName}
-      </span>
-      {isMe && (
-        <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold">
-          我
+      <div className="flex items-center gap-1 min-w-0">
+        <span className={`text-[11px] font-bold truncate ${isMe ? "text-sage" : "text-stone-800"}`}>
+          {player.displayName}
         </span>
-      )}
-      <span className={`text-[10px] italic font-serif font-bold ml-auto ${isMe ? "text-sage" : "text-stone-500"}`}>
-        L{Math.floor(player.level)}
-      </span>
+        {isMe && (
+          <span className="text-[8px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold shrink-0">
+            我
+          </span>
+        )}
+        {verified && <CheckCircle size={9} className="text-sage fill-paper shrink-0" />}
+        <span className="text-[9px] text-sage italic font-serif font-bold shrink-0">
+          L{Math.floor(player.level)}
+        </span>
+      </div>
     </div>
   );
 }

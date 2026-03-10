@@ -51,51 +51,61 @@ export default function AvatarBadge({
 
   if (!isClickable) return badgeNode;
 
+  const handleOpenProfile = (target: HTMLElement) => {
+    const token = localStorage.getItem("token");
+    const rect = target.getBoundingClientRect();
+    if (!token) {
+      emitOpenPlayerProfile({
+        mode: "login_prompt",
+        fallbackName: name,
+        fallbackAvatarUrl: avatarUrl,
+        anchorRect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+          right: rect.right,
+        },
+      });
+      return;
+    }
+
+    emitOpenPlayerProfile({
+      mode: "profile",
+      userId: Number(playerUserId),
+      fallbackName: name,
+      fallbackAvatarUrl: avatarUrl,
+      anchorRect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        bottom: rect.bottom,
+        right: rect.right,
+      },
+    });
+  };
+
   return (
-    <button
-      type="button"
+    <span
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-
-        const token = localStorage.getItem("token");
-        const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-        if (!token) {
-          emitOpenPlayerProfile({
-            mode: "login_prompt",
-            fallbackName: name,
-            fallbackAvatarUrl: avatarUrl,
-            anchorRect: {
-              left: rect.left,
-              top: rect.top,
-              width: rect.width,
-              height: rect.height,
-              bottom: rect.bottom,
-              right: rect.right,
-            },
-          });
-          return;
-        }
-
-        emitOpenPlayerProfile({
-          mode: "profile",
-          userId: Number(playerUserId),
-          fallbackName: name,
-          fallbackAvatarUrl: avatarUrl,
-          anchorRect: {
-            left: rect.left,
-            top: rect.top,
-            width: rect.width,
-            height: rect.height,
-            bottom: rect.bottom,
-            right: rect.right,
-          },
-        });
+        handleOpenProfile(e.currentTarget);
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        e.stopPropagation();
+        handleOpenProfile(e.currentTarget);
       }}
       className="inline-flex items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sage/50"
       title="View Player Info"
     >
       {badgeNode}
-    </button>
+    </span>
   );
 }
