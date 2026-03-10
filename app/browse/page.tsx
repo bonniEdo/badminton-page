@@ -474,6 +474,7 @@ export default function Browse() {
           {sortedSessions.map((s) => {
             const isJoined = joinedIds.includes(s.id);
             const isHost = currentUserId !== null && s.hostId === currentUserId;
+            const canUseFriendFeature = isLoggedIn && (isHost || isJoined);
               return (
               <SessionCard
                 key={s.id}
@@ -482,7 +483,7 @@ export default function Browse() {
                 isHost={isHost}
                 isJoined={isJoined}
                 canJoin={isLoggedIn && !isHost && !isJoined}
-                canAddFriend={isLoggedIn && !isHost && isJoined && s.friendCount < 1}
+                canAddFriend={canUseFriendFeature && s.friendCount < 1}
                 statusLabel={s.isExpired ? "已散場" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
                 locationLink={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`}
                 onOpenDetail={handleOpenDetail}
@@ -504,7 +505,7 @@ export default function Browse() {
         locationHref={selectedSession ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSession.location)}` : undefined}
         isLoggedIn={isLoggedIn}
         isHost={!!(selectedSession && currentUserId !== null && currentUserId === selectedSession.hostId)}
-        canAddFriend={!!(selectedSession && joinedIds.includes(selectedSession.id) && currentUserId !== selectedSession.hostId)}
+        canAddFriend={!!(selectedSession && currentUserId !== null && (joinedIds.includes(selectedSession.id) || currentUserId === selectedSession.hostId))}
         onHostLive={selectedSession ? () => {
           setSelectedSession(null);
           router.push(`/dashboard/live/${selectedSession.id}`);
