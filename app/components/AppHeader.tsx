@@ -1,7 +1,7 @@
 "use client";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, CalendarDays, CalendarCheck, User, CheckCircle } from "lucide-react";
+import { Search, CalendarDays, CalendarCheck, User, CheckCircle, Trophy } from "lucide-react";
 import ShuttlecockIcon from "./ShuttlecockIcon";
 import { useEffect, useState } from "react";
 import PlayerProfileModalHost from "./PlayerProfileModalHost";
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/browse", label: "勒戒看板", icon: Search },
   { href: "/enrolled", label: "已報名", icon: CalendarCheck },
   { href: "/schedule", label: "排程管理", icon: CalendarDays },
+  { href: "/ranking", label: "排行榜", icon: Trophy },
 ];
 
 const bottomBarItems = [
