@@ -280,7 +280,6 @@ export default function LiveViewPage({
         level: Number(picked.level ?? source?.level ?? 1),
       } as CourtChipPlayer,
       isMe: !!myPlayerId && playerId === myPlayerId,
-      verified: source ? isVerified(source) : false,
     };
   });
 
@@ -452,7 +451,6 @@ export default function LiveViewPage({
                 key={match.id}
                 match={match}
                 getPlayer={getPlayerById}
-                isVerified={isVerified}
                 formatDuration={formatDuration}
                 getCourtLabel={getCourtLabel}
                 myPlayerId={myPlayerId}
@@ -490,22 +488,21 @@ export default function LiveViewPage({
               </div>
 
               {[
-                { idx: 0, emptyLabel: "A隊左上待補", style: { top: "13%", left: "6.8%", width: "27.2%" } },
-                { idx: 1, emptyLabel: "A隊左下待補", style: { bottom: "13%", left: "6.8%", width: "27.2%" } },
-                { idx: 2, emptyLabel: "B隊右上待補", style: { top: "13%", left: "66%", width: "27.2%" } },
-                { idx: 3, emptyLabel: "B隊右下待補", style: { bottom: "13%", left: "66%", width: "27.2%" } },
+                { idx: 0, emptyLabel: "待補", style: { left: "5.67%", top: "7.54%", width: "29.55%", height: "42.46%" } },
+                { idx: 1, emptyLabel: "待補", style: { left: "5.67%", top: "50%", width: "29.55%", height: "42.46%" } },
+                { idx: 2, emptyLabel: "待補", style: { left: "64.78%", top: "7.54%", width: "29.55%", height: "42.46%" } },
+                { idx: 3, emptyLabel: "待補", style: { left: "64.78%", top: "50%", width: "29.55%", height: "42.46%" } },
               ].map((slot) => {
                 const data = nextCourtSlots[slot.idx];
                 return (
                   <div
                     key={slot.idx}
-                    className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5"
+                    className="absolute flex items-center justify-center px-2 text-center"
                     style={slot.style}
                   >
                     <MatchCourtPlayerChip
                       player={data?.player}
                       isMe={!!data?.isMe}
-                      verified={!!data?.verified}
                       emptyLabel={slot.emptyLabel}
                     />
                   </div>
@@ -609,14 +606,12 @@ export default function LiveViewPage({
 function MatchCard({
   match,
   getPlayer,
-  isVerified,
   formatDuration,
   getCourtLabel,
   myPlayerId,
 }: {
   match: Match;
   getPlayer: (id: number) => Player | undefined;
-  isVerified: (p: Player) => boolean;
   formatDuration: (startTime: string) => string;
   getCourtLabel: (courtNum: string) => string;
   myPlayerId: number | null;
@@ -630,36 +625,31 @@ function MatchCard({
       key: "a1",
       player: a1,
       isMe: !!a1 && a1.playerId === myPlayerId,
-      verified: !!a1 && isVerified(a1),
-      emptyLabel: "A隊左上待補",
-      style: { top: "13%", left: "6.8%", width: "27.2%" } as React.CSSProperties,
+      emptyLabel: "待補",
+      style: { left: "5.67%", top: "7.54%", width: "29.55%", height: "42.46%" } as React.CSSProperties,
     },
     {
       key: "a2",
       player: a2,
       isMe: !!a2 && a2.playerId === myPlayerId,
-      verified: !!a2 && isVerified(a2),
-      emptyLabel: "A隊左下待補",
-      style: { bottom: "13%", left: "6.8%", width: "27.2%" } as React.CSSProperties,
+      emptyLabel: "待補",
+      style: { left: "5.67%", top: "50%", width: "29.55%", height: "42.46%" } as React.CSSProperties,
     },
     {
       key: "b1",
       player: b1,
       isMe: !!b1 && b1.playerId === myPlayerId,
-      verified: !!b1 && isVerified(b1),
-      emptyLabel: "B隊右上待補",
-      style: { top: "13%", left: "66%", width: "27.2%" } as React.CSSProperties,
+      emptyLabel: "待補",
+      style: { left: "64.78%", top: "7.54%", width: "29.55%", height: "42.46%" } as React.CSSProperties,
     },
     {
       key: "b2",
       player: b2,
       isMe: !!b2 && b2.playerId === myPlayerId,
-      verified: !!b2 && isVerified(b2),
-      emptyLabel: "B隊右下待補",
-      style: { bottom: "13%", left: "66%", width: "27.2%" } as React.CSSProperties,
+      emptyLabel: "待補",
+      style: { left: "64.78%", top: "50%", width: "29.55%", height: "42.46%" } as React.CSSProperties,
     },
   ];
-
   return (
     <div className="neu-card rounded-2xl overflow-hidden">
       {/* Court label + timer */}
@@ -698,13 +688,12 @@ function MatchCard({
           {courtSlots.map((slot) => (
             <div
               key={slot.key}
-              className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5"
+              className="absolute flex items-center justify-center px-2 text-center"
               style={slot.style}
             >
               <MatchCourtPlayerChip
                 player={slot.player}
                 isMe={slot.isMe}
-                verified={slot.verified}
                 emptyLabel={slot.emptyLabel}
               />
             </div>
@@ -717,40 +706,31 @@ function MatchCard({
 
 function MatchCourtPlayerChip({
   player,
-  verified,
   isMe,
   emptyLabel,
 }: {
   player: CourtChipPlayer | undefined;
-  verified: boolean;
   isMe: boolean;
   emptyLabel: string;
 }) {
   if (!player) {
-    return <div className="text-[10px] text-stone-400 italic truncate">{emptyLabel}</div>;
+    return <div className="text-[11px] text-paper/70 italic truncate">{emptyLabel}</div>;
   }
 
+  const displayName = isMe ? "我" : player.displayName;
+
   return (
-    <div
-      className={`flex items-center gap-1.5 min-w-0 ${
-        isMe ? "text-sage" : "text-ink"
-      }`}
-    >
-      <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
-      <div className="flex items-center gap-1 min-w-0">
-        <span className={`text-[11px] font-bold truncate ${isMe ? "text-sage" : "text-stone-800"}`}>
-          {player.displayName}
-        </span>
-        {isMe && (
-          <span className="text-[8px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold shrink-0">
-            我
-          </span>
-        )}
-        {verified && <CheckCircle size={9} className="text-sage fill-paper shrink-0" />}
-        <span className="text-[9px] text-sage italic font-serif font-bold shrink-0">
-          L{Math.floor(player.level)}
-        </span>
+    <div className="flex flex-col items-start w-full min-w-0 gap-0.5 text-paper">
+      <div className="flex items-center gap-2 w-full min-w-0 whitespace-nowrap">
+        <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
+        <span className="text-[12px] italic text-paper/90">L{Math.floor(player.level)}</span>
       </div>
+      <span
+        title={player.displayName}
+        className={`text-[12px] font-bold truncate ${isMe ? "text-paper" : "text-paper/95"}`}
+      >
+        {displayName}
+      </span>
     </div>
   );
 }
