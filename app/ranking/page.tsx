@@ -69,19 +69,10 @@ interface RankingPayload {
   publicLimit: number;
 }
 
-const TYPE_META: Record<RankType, { title: string; subtitle: string }> = {
-  score: {
-    title: "綜合積分",
-    subtitle: "等級、勝場、近況綜合評估",
-  },
-  active: {
-    title: "活躍排行",
-    subtitle: "近期出席與戰績的活躍指標",
-  },
-  progress: {
-    title: "進步榜",
-    subtitle: "和上週相比的成長幅度",
-  },
+const TYPE_HEADER_LABEL: Record<RankType, string> = {
+  score: "綜合積分排行榜",
+  active: "活躍排行榜",
+  progress: "進步排行榜",
 };
 
 export default function RankingPage() {
@@ -213,15 +204,12 @@ export default function RankingPage() {
   };
 
   const generatedAtText = useMemo(() => {
-    if (!payload?.generatedAt) return "尚未更新";
+    if (!payload?.generatedAt) return "每日 00:00";
     const dt = new Date(payload.generatedAt);
-    if (Number.isNaN(dt.getTime())) return "尚未更新";
-    return dt.toLocaleString("zh-TW", {
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (Number.isNaN(dt.getTime())) return "每日 00:00";
+    const month = String(dt.getMonth() + 1).padStart(2, "0");
+    const day = String(dt.getDate()).padStart(2, "0");
+    return `${month}/${day} 00:00`;
   }, [payload?.generatedAt]);
 
   const metricText = (row: RankRow) => {
@@ -312,55 +300,49 @@ export default function RankingPage() {
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-5">
         <Card className="p-4 md:p-6 border-2 border-ink">
           <div className="flex flex-col gap-4 md:gap-5">
-            <Tabs className="w-full">
-              <TabButton active={activeType === "score"} onClick={() => setActiveType("score")} className="px-4">
-                積分
-              </TabButton>
-              <TabButton active={activeType === "active"} onClick={() => setActiveType("active")} className="px-4">
-                活躍
-              </TabButton>
-              <TabButton active={activeType === "progress"} onClick={() => setActiveType("progress")} className="px-4">
-                進步
-              </TabButton>
-            </Tabs>
-            <div className="flex items-center justify-between gap-3 text-xs text-ink/70">
-              <p className="tracking-[0.2em]">排名項目</p>
-              <div className="text-right">
-                <p>更新時間</p>
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+              <div className="w-full md:max-w-[60%]">
+                <p className="mb-2 text-xs tracking-[0.2em] text-ink/65">排名項目</p>
+                <Tabs className="w-full grid grid-cols-3 gap-1 p-1">
+                  <TabButton active={activeType === "score"} onClick={() => setActiveType("score")} className="w-full py-2.5 text-sm font-bold tracking-[0.08em]">
+                    積分
+                  </TabButton>
+                  <TabButton active={activeType === "active"} onClick={() => setActiveType("active")} className="w-full py-2.5 text-sm font-bold tracking-[0.08em]">
+                    活躍
+                  </TabButton>
+                  <TabButton active={activeType === "progress"} onClick={() => setActiveType("progress")} className="w-full py-2.5 text-sm font-bold tracking-[0.08em]">
+                    進步
+                  </TabButton>
+                </Tabs>
+              </div>
+              <div className="text-right text-xs text-ink/70">
+                <p>榜單更新日</p>
                 <p className="font-bold text-sage">{generatedAtText}</p>
+                {refreshing && <p className="italic mt-1">更新中...</p>}
               </div>
             </div>
-          </div>
-        </Card>
 
-        <Card className="p-4 md:p-6 border-2 border-ink">
-          <div className="flex flex-col gap-4 md:gap-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs tracking-[0.24em] text-sage font-bold flex items-center gap-1.5">
-                  <Sparkles size={14} />
-                  排行榜
-                </p>
-                <h1 className="text-2xl md:text-3xl font-black mt-2 leading-tight">{TYPE_META[activeType].title}</h1>
-                <p className="text-sm text-ink/70 italic mt-1">{TYPE_META[activeType].subtitle}</p>
-              </div>
-              {refreshing && <p className="text-xs text-ink/60 italic">更新中...</p>}
+            <div className="border-t border-ink/20 pt-4">
+              <h1 className="text-xl md:text-2xl font-black leading-tight text-sage flex items-center gap-2">
+                <Sparkles size={18} />
+                {TYPE_HEADER_LABEL[activeType]}
+              </h1>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 text-center">
-              <Card className="p-3">
+              <div className="p-3 bg-paper/70 border border-ink/20">
                 <p className="text-xs tracking-[0.12em] text-ink/60">排行榜人數</p>
                 <p className="text-xl font-black mt-1">{payload?.total || 0}</p>
-              </Card>
-              <Card className="p-3">
+              </div>
+              <div className="p-3 bg-paper/70 border border-ink/20">
                 <p className="text-xs tracking-[0.12em] text-ink/60">我的名次</p>
                 <p className="text-xl font-black mt-1">{myRank ? `#${myRank.rank}` : "-"}</p>
-              </Card>
-              <Card className="p-3">
+              </div>
+              <div className="p-3 bg-paper/70 border border-ink/20">
                 <p className="text-xs tracking-[0.12em] text-ink/60">本週名次變化</p>
                 <p className={`text-xl font-black mt-1 ${weeklyDeltaClassName}`}>{weeklyDeltaText}</p>
-              </Card>
-              <Card className="p-3">
+              </div>
+              <div className="p-3 bg-paper/70 border border-ink/20">
                 <p className="text-xs tracking-[0.12em] text-ink/60">詳細數據</p>
                 <button
                   type="button"
@@ -369,7 +351,7 @@ export default function RankingPage() {
                 >
                   {isRankingPublic ? "公開" : "隱藏"}
                 </button>
-              </Card>
+              </div>
             </div>
           </div>
         </Card>
@@ -423,7 +405,7 @@ export default function RankingPage() {
                     return (
                       <Card
                         key={`top-${row.rank}-${row.userId}`}
-                        className={`p-3 border-2 border-ink ${row.rank === 1 ? "bg-sage/30" : "bg-paper"}`}
+                        className={`p-3 border-2 border-ink ${isMe ? "bg-sage/45" : row.rank === 1 ? "bg-sage/30" : "bg-paper"}`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs tracking-[0.2em] font-bold">#{row.rank}</span>
@@ -458,7 +440,7 @@ export default function RankingPage() {
                       <div
                         key={`${row.rank}-${row.userId}`}
                         className={`flex items-center gap-2 md:gap-3 p-2.5 border-2 border-ink rounded-md ${
-                          isMe ? "bg-sage/25" : "bg-paper"
+                          isMe ? "bg-sage/35" : "bg-paper"
                         }`}
                       >
                         <div className="w-9 text-center font-black">#{row.rank}</div>
