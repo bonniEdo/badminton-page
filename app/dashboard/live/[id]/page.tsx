@@ -685,7 +685,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     if (aPlaying !== bPlaying) return aPlaying ? 1 : -1;
     return Number(a.playerId) - Number(b.playerId);
   });
-  const slotLabels = ["A區左上", "A區左下", "B區右上", "B區右下"];
+  const slotLabels = ["左上", "左下", "右上", "右下"];
   const activeMobileSlotLabel =
     activeMobileSlotIdx !== null ? slotLabels[activeMobileSlotIdx] : null;
 
@@ -725,7 +725,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         {isMobileLayout && isBenchOpen && (
           <button
             type="button"
-            aria-label="關閉待命名冊"
+            aria-label="關閉球員池"
             onClick={() => {
               setIsBenchOpen(false);
               setActiveMobileSlotIdx(null);
@@ -754,11 +754,11 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             {isMobileLayout && <div className="w-12 h-1 bg-ink/25 rounded-full mx-auto mb-3" />}
             <div className="flex justify-between items-center mb-6">
               <div className="space-y-1">
-                <h2 className="text-[12px] tracking-[0.4em] text-stone-500 uppercase font-bold">待命名冊</h2>
+                <h2 className="text-[12px] tracking-[0.4em] text-stone-500 uppercase font-bold">球員池</h2>
                 {isMobileLayout && (
-                  <p className="text-[11px] text-stone-500">
+                  <p className={`leading-relaxed ${activeMobileSlotLabel ? "text-[14px] font-bold text-ink" : "text-[13px] text-stone-600"}`}>
                     {activeMobileSlotLabel
-                      ? `目標位置：${activeMobileSlotLabel}，點一位球員上場`
+                      ? `目前選擇：${activeMobileSlotLabel}，請點一位球員上場`
                       : "先點選球場位置，再來挑球員"}
                   </p>
                 )}

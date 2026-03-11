@@ -1086,7 +1086,7 @@ export default function ProfilePage() {
               意見回饋
             </span>
           </button>
-          <button onClick={handleLogout} className="w-full py-5 border border-sage-100 text-sage-300 text-[10px] tracking-[0.6em] uppercase font-bold rounded-3xl hover:bg-sage-300 transition-all">
+          <button onClick={handleLogout} className="w-full py-3 text-[11px] tracking-[0.3em] uppercase font-bold neu-btn neu-btn-primary !rounded-none">
             Logout 
           </button>
         </section>
