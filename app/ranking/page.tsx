@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -74,6 +74,13 @@ const TYPE_HEADER_LABEL: Record<RankType, string> = {
   active: "活躍排行榜",
   progress: "進步排行榜",
 };
+const RANK_TYPES: RankType[] = ["score", "active", "progress"];
+
+type FetchRankingOptions = {
+  silent?: boolean;
+  showRefreshing?: boolean;
+  surfaceError?: boolean;
+};
 
 export default function RankingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -81,11 +88,12 @@ export default function RankingPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeType, setActiveType] = useState<RankType>("score");
-  const [payload, setPayload] = useState<RankingPayload | null>(null);
+  const [payloadByType, setPayloadByType] = useState<Partial<Record<RankType, RankingPayload>>>({});
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isRankingPublic, setIsRankingPublic] = useState(true);
   const [showScoreDetail, setShowScoreDetail] = useState(false);
+  const requestSeqRef = useRef<Record<RankType, number>>({ score: 0, active: 0, progress: 0 });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -94,9 +102,10 @@ export default function RankingPage() {
       const userRaw = localStorage.getItem("user");
       if (userRaw) {
         try {
-          const user = JSON.parse(userRaw) as { id?: number; is_ranking_public?: boolean };
-          if (Number.isInteger(user?.id) && Number(user.id) > 0) {
-            setCurrentUserId(Number(user.id));
+          const user = JSON.parse(userRaw) as { id?: number | string; is_ranking_public?: boolean };
+          const parsedId = Number(user?.id);
+          if (Number.isInteger(parsedId) && parsedId > 0) {
+            setCurrentUserId(parsedId);
           }
           if (typeof user?.is_ranking_public === "boolean") {
             setIsRankingPublic(user.is_ranking_public);
@@ -113,14 +122,33 @@ export default function RankingPage() {
       setLoading(false);
       return;
     }
-    void fetchRankings(activeType, payload !== null);
+    const hasCached = !!payloadByType[activeType];
+    void fetchRankings(activeType, {
+      silent: hasCached,
+      showRefreshing: hasCached,
+      surfaceError: true,
+    });
   }, [activeType, bootstrapped, isLoggedIn]);
 
-  const fetchRankings = async (type: RankType, silent = false) => {
+  useEffect(() => {
+    if (!bootstrapped || !isLoggedIn) return;
+    const missingTypes = RANK_TYPES.filter(
+      (type) => type !== activeType && !payloadByType[type] && requestSeqRef.current[type] === 0
+    );
+    if (missingTypes.length === 0) return;
+    for (const type of missingTypes) {
+      void fetchRankings(type, { silent: true, showRefreshing: false, surfaceError: false });
+    }
+  }, [activeType, bootstrapped, isLoggedIn, payloadByType]);
+
+  const fetchRankings = async (type: RankType, options: FetchRankingOptions = {}) => {
+    const { silent = false, showRefreshing = silent, surfaceError = true } = options;
+    const requestSeq = (requestSeqRef.current[type] || 0) + 1;
+    requestSeqRef.current[type] = requestSeq;
     try {
-      if (silent) setRefreshing(true);
+      if (silent && showRefreshing) setRefreshing(true);
       else setLoading(true);
-      setError("");
+      if (surfaceError) setError("");
 
       const token = localStorage.getItem("token");
       if (!token) {
@@ -136,25 +164,34 @@ export default function RankingPage() {
         cache: "no-store",
       });
 
+      if (requestSeq !== requestSeqRef.current[type]) return;
+
       if (res.status === 401) {
         setIsLoggedIn(false);
-        setPayload(null);
+        setPayloadByType({});
         return;
       }
 
       const json = (await res.json()) as { success?: boolean; data?: RankingPayload; message?: string };
+      if (requestSeq !== requestSeqRef.current[type]) return;
       if (json.success && json.data) {
-        setPayload(json.data);
+        setPayloadByType((prev) => ({ ...prev, [type]: json.data }));
         setIsRankingPublic(json.data.myVisibility !== false);
         return;
       }
-      setError(json.message || "排行榜暫時讀取失敗");
+      if (surfaceError) {
+        setError(json.message || "排行榜暫時讀取失敗");
+      }
     } catch (e) {
+      if (requestSeq !== requestSeqRef.current[type]) return;
       console.error("Fetch rankings failed:", e);
-      setError("排行榜暫時讀取失敗");
+      if (surfaceError) {
+        setError("排行榜暫時讀取失敗");
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestSeq !== requestSeqRef.current[type]) return;
+      if (!silent) setLoading(false);
+      if (silent && showRefreshing) setRefreshing(false);
     }
   };
 
@@ -195,13 +232,15 @@ export default function RankingPage() {
         } catch {}
       }
 
-      void fetchRankings(activeType, true);
+      void fetchRankings(activeType, { silent: true, showRefreshing: true, surfaceError: true });
     } catch (e) {
       console.error("Update ranking visibility failed:", e);
       setIsRankingPublic(!nextValue);
       setError("公開設定更新失敗");
     }
   };
+
+  const payload = payloadByType[activeType] || null;
 
   const generatedAtText = useMemo(() => {
     if (!payload?.generatedAt) return "每日 00:00";
@@ -271,7 +310,7 @@ export default function RankingPage() {
     }
   }, [activeType, showScoreDetail]);
 
-  if (loading) return <PageLoading message="排行榜計算中..." showHeader />;
+  if (loading && !payload) return <PageLoading message="排行榜計算中..." showHeader />;
 
   if (!isLoggedIn) {
     return (
@@ -291,8 +330,10 @@ export default function RankingPage() {
   const publicLimit = payload?.publicLimit || 10;
   const topThreeRows = leaderboard.slice(0, 3);
   const remainingRows = leaderboard.slice(3);
-  const isMeInTopList = currentUserId !== null && leaderboard.some((row) => row.userId === currentUserId);
+  const isMeInTopList = currentUserId !== null && leaderboard.some((row) => Number(row.userId) === currentUserId);
   const shouldAppendMyRow = !!myRank && !isMeInTopList;
+  const hasRanksAfterMe = !!myRank && (payload?.total || 0) > myRank.rank;
+  const myRowHighlightStyle = { backgroundColor: "#fde68a" } as const;
 
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif pb-20 overflow-x-hidden">
@@ -362,26 +403,6 @@ export default function RankingPage() {
           </Card>
         )}
 
-        {myRank && (
-          <Card className="p-4 border-2 border-ink bg-sage/20">
-            <div className="flex items-center justify-between">
-              <p className="text-xs tracking-[0.2em] font-bold">我的成績</p>
-              <p className="text-lg font-black text-sage">#{myRank.rank}</p>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <p>{metricSubText(myRank)}</p>
-              <p className="font-bold">{metricText(myRank)}</p>
-            </div>
-            {myScoreBreakdown && (
-              <div className="mt-2 flex items-center justify-end gap-2">
-                <Button className="px-3 py-1.5 text-xs font-bold" onClick={() => setShowScoreDetail(true)}>
-                  查看積分明細
-                </Button>
-              </div>
-            )}
-          </Card>
-        )}
-
         {!isRankingPublic && (
           <Card className="p-4 border-2 border-ink text-sm">
             你已隱藏詳細數據，其他人仍可看到你的名次與名稱。
@@ -401,11 +422,12 @@ export default function RankingPage() {
               {topThreeRows.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {topThreeRows.map((row) => {
-                    const isMe = currentUserId !== null && row.userId === currentUserId;
+                    const isMe = currentUserId !== null && Number(row.userId) === currentUserId;
                     return (
                       <Card
                         key={`top-${row.rank}-${row.userId}`}
-                        className={`p-3 border-2 border-ink ${isMe ? "bg-sage/45" : row.rank === 1 ? "bg-sage/30" : "bg-paper"}`}
+                        className={`p-3 border-2 border-ink ${isMe ? "ring-2 ring-amber-400/80" : row.rank === 1 ? "bg-sage/30" : "bg-paper"}`}
+                        style={isMe ? myRowHighlightStyle : undefined}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs tracking-[0.2em] font-bold">#{row.rank}</span>
@@ -426,6 +448,13 @@ export default function RankingPage() {
                           </div>
                         </div>
                         <p className="text-xs text-ink/60 mt-1">{metricSubText(row)}</p>
+                        {isMe && myScoreBreakdown && (
+                          <div className="mt-2 flex justify-end">
+                            <Button className="px-2.5 py-1 text-[11px] font-bold" onClick={() => setShowScoreDetail(true)}>
+                              查看積分明細
+                            </Button>
+                          </div>
+                        )}
                       </Card>
                     );
                   })}
@@ -435,13 +464,12 @@ export default function RankingPage() {
               {remainingRows.length > 0 && (
                 <div className="space-y-2">
                   {remainingRows.map((row) => {
-                    const isMe = currentUserId !== null && row.userId === currentUserId;
+                    const isMe = currentUserId !== null && Number(row.userId) === currentUserId;
                     return (
                       <div
                         key={`${row.rank}-${row.userId}`}
-                        className={`flex items-center gap-2 md:gap-3 p-2.5 border-2 border-ink rounded-md ${
-                          isMe ? "bg-sage/35" : "bg-paper"
-                        }`}
+                        className={`flex items-center gap-2 md:gap-3 p-2.5 border-2 border-ink rounded-md ${isMe ? "" : "bg-paper"}`}
+                        style={isMe ? myRowHighlightStyle : undefined}
                       >
                         <div className="w-9 text-center font-black">#{row.rank}</div>
                         <AvatarBadge avatarUrl={row.avatarUrl} name={row.username} size="sm" playerUserId={row.userId} />
@@ -449,12 +477,19 @@ export default function RankingPage() {
                           <p className="font-bold truncate">{isMe ? "我" : row.username}</p>
                           <p className="text-xs text-ink/60">{metricSubText(row)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-black text-sage">{metricText(row)}</p>
-                          <div className="flex items-center justify-end gap-1 text-xs text-ink/60">
-                            {trendIcon(row.trend)}
-                            <span>{trendText(row.trend)}</span>
+                        <div className="text-right self-stretch flex flex-col items-end justify-between gap-1">
+                          <div>
+                            <p className="font-black text-sage">{metricText(row)}</p>
+                            <div className="flex items-center justify-end gap-1 text-xs text-ink/60">
+                              {trendIcon(row.trend)}
+                              <span>{trendText(row.trend)}</span>
+                            </div>
                           </div>
+                          {isMe && myScoreBreakdown && (
+                            <Button className="px-2.5 py-1 text-[11px] font-bold" onClick={() => setShowScoreDetail(true)}>
+                              查看積分明細
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );
@@ -465,21 +500,34 @@ export default function RankingPage() {
               {shouldAppendMyRow && myRank && (
                 <div className="pt-1">
                   <div className="text-center text-xl leading-none text-ink/55 mb-2">...</div>
-                  <div className="flex items-center gap-2 md:gap-3 p-2.5 border-2 border-ink rounded-md bg-sage/20">
+                  <div
+                    className="flex items-center gap-2 md:gap-3 p-2.5 border-2 border-ink rounded-md"
+                    style={myRowHighlightStyle}
+                  >
                     <div className="w-9 text-center font-black">#{myRank.rank}</div>
                     <AvatarBadge avatarUrl={myRank.avatarUrl} name={myRank.username} size="sm" playerUserId={myRank.userId} />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold truncate">我</p>
                       <p className="text-xs text-ink/60">{metricSubText(myRank)}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-black text-sage">{metricText(myRank)}</p>
-                      <div className="flex items-center justify-end gap-1 text-xs text-ink/60">
-                        {trendIcon(myRank.trend)}
-                        <span>{trendText(myRank.trend)}</span>
+                    <div className="text-right self-stretch flex flex-col items-end justify-between gap-1">
+                      <div>
+                        <p className="font-black text-sage">{metricText(myRank)}</p>
+                        <div className="flex items-center justify-end gap-1 text-xs text-ink/60">
+                          {trendIcon(myRank.trend)}
+                          <span>{trendText(myRank.trend)}</span>
+                        </div>
                       </div>
+                      {myScoreBreakdown && (
+                        <Button className="px-2.5 py-1 text-[11px] font-bold" onClick={() => setShowScoreDetail(true)}>
+                          查看積分明細
+                        </Button>
+                      )}
                     </div>
                   </div>
+                  {hasRanksAfterMe && (
+                    <div className="text-center text-xl leading-none text-ink/55 mt-2">...</div>
+                  )}
                 </div>
               )}
             </div>
