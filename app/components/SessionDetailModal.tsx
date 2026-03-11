@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Activity, Banknote, Calendar, Copy, MapPin, Settings2, Trash2, UserCheck, X } from "lucide-react";
+import { Activity, Banknote, Calendar, Copy, LogIn, MapPin, Settings2, Trash2, UserCheck, UserPlus, X } from "lucide-react";
 import AvatarBadge from "./AvatarBadge";
 import { emitOpenPlayerProfile } from "./playerProfileModalBus";
 
@@ -410,17 +410,20 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
               {!isLoggedIn ? (
                 <>
                   {onLoginLine && (
-                    <button onClick={onLoginLine} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink rounded-none">
+                    <button onClick={onLoginLine} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink rounded-none flex items-center justify-center gap-2">
+                      <LogIn size={14} />
                       LINE 登入
                     </button>
                   )}
                   {onLoginGoogle && (
-                    <button onClick={onLoginGoogle} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none">
+                    <button onClick={onLoginGoogle} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none flex items-center justify-center gap-2">
+                      <LogIn size={14} />
                       Google 登入
                     </button>
                   )}
                   {onLoginFacebook && (
-                    <button onClick={onLoginFacebook} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none">
+                    <button onClick={onLoginFacebook} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none flex items-center justify-center gap-2">
+                      <LogIn size={14} />
                       Facebook 登入
                     </button>
                   )}
@@ -430,8 +433,9 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                   {onJoin && (
                     <button
                       onClick={onJoin}
-                      className="w-full py-3 text-[11px] tracking-[0.3em] uppercase font-bold neu-btn neu-btn-primary !rounded-none"
+                      className="w-full py-3 text-[11px] tracking-[0.3em] uppercase font-bold neu-btn neu-btn-primary !rounded-none flex items-center justify-center gap-2"
                     >
+                      <Calendar size={15} />
                       我要報名
                     </button>
                   )}
@@ -446,7 +450,8 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                     </button>
                   )}
                   {!isHost && isToday && canCheckIn && onCheckIn && (
-                    <button onClick={onCheckIn} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink rounded-none">
+                    <button onClick={onCheckIn} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink rounded-none flex items-center justify-center gap-2">
+                      <MapPin size={14} />
                       我到了，報到
                     </button>
                   )}
@@ -461,8 +466,9 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                           <div className="w-full py-2 text-center text-[11px] tracking-widest uppercase font-bold neu-soft-panel text-sage">
                             報名成功
                           </div>
-                          <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none">
-                          + 朋友 (限一位)
+                          <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none flex items-center justify-center gap-2">
+                            <UserPlus size={14} />
+                            + 朋友 (限一位)
                           </button>
                         </>
                       ) : null}

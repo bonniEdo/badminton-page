@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronLeft, CheckCircle, Camera, Target,
   Activity, Dumbbell, Settings, MapPin, User,
-  Zap, Droplets, BrainCircuit, History, Calendar, Swords, ChevronRight, Trophy, XCircle, MessageSquare
+  Zap, Droplets, BrainCircuit, History, Calendar, Swords, ChevronRight, Trophy, XCircle, MessageSquare,
+  Eye, EyeOff, LogOut
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -27,6 +28,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(5);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [isRankingPublic, setIsRankingPublic] = useState(true);
+  const [isSavingRankingVisibility, setIsSavingRankingVisibility] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
@@ -78,7 +81,12 @@ export default function ProfilePage() {
         fetch(`${API_URL}/api/games/mygame`, { headers }).then(res => res.json())
       ]);
 
-      if (resUser.success) setUserInfo(resUser.user);
+      if (resUser.success) {
+        setUserInfo(resUser.user);
+        if (typeof resUser.user?.is_ranking_public === "boolean") {
+          setIsRankingPublic(resUser.user.is_ranking_public);
+        }
+      }
       if (resMatches.success) setMatches(resMatches.data);
       if (resSignups.success) setSignups(resSignups.data);
       if (resMyGames.success) setMyGames(resMyGames.data);
@@ -142,6 +150,63 @@ export default function ProfilePage() {
   const handleLogout = () => {
     localStorage.clear();
     router.replace("/login");
+  };
+
+  const handleRankingVisibilityToggle = async () => {
+    if (isSavingRankingVisibility) return;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const nextValue = !isRankingPublic;
+    setIsRankingPublic(nextValue);
+    setIsSavingRankingVisibility(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/user/ranking-visibility`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ isPublic: nextValue }),
+      });
+
+      const json = (await res.json()) as {
+        success?: boolean;
+        user?: { is_ranking_public?: boolean };
+        message?: string;
+      };
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "排行榜詳細數據設定更新失敗");
+      }
+
+      const resolvedVisibility =
+        typeof json.user?.is_ranking_public === "boolean"
+          ? json.user.is_ranking_public
+          : nextValue;
+      setIsRankingPublic(resolvedVisibility);
+      setUserInfo((prev: any) => (prev ? { ...prev, is_ranking_public: resolvedVisibility } : prev));
+
+      const userRaw = localStorage.getItem("user");
+      if (userRaw) {
+        try {
+          const localUser = JSON.parse(userRaw) as Record<string, unknown>;
+          localUser.is_ranking_public = resolvedVisibility;
+          localStorage.setItem("user", JSON.stringify(localUser));
+        } catch {}
+      }
+    } catch (error) {
+      console.error("Update ranking visibility failed:", error);
+      setIsRankingPublic(!nextValue);
+      alert(error instanceof Error ? error.message : "排行榜詳細數據設定更新失敗");
+    } finally {
+      setIsSavingRankingVisibility(false);
+    }
   };
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
@@ -702,6 +767,32 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        <section className="mb-12">
+          <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2 mb-6 px-1">
+            <Settings className="w-3 h-3 text-sage/60" /> 排行榜設定
+          </h3>
+          <div className="bg-white/60 rounded-[2rem] border border-white shadow-sm p-5 md:p-6 flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-[10px] md:text-[11px] tracking-[0.2em] text-stone-500 uppercase font-black">詳細數據</p>
+              <p className="text-[11px] md:text-xs text-stone-500">
+                控制排行榜中是否顯示你的勝場、積分與詳細統計
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRankingVisibilityToggle}
+              disabled={isSavingRankingVisibility}
+              className={`shrink-0 inline-flex items-center justify-center gap-2 min-w-[112px] py-2.5 px-4 text-[10px] md:text-[11px] tracking-[0.18em] uppercase font-black border-2 border-ink rounded-xl transition-all disabled:opacity-70 ${
+                isRankingPublic ? "bg-sage/20 text-ink hover:bg-sage/30" : "bg-paper text-ink hover:bg-sage/12"
+              }`}
+              title="切換排行榜詳細數據公開狀態"
+            >
+              {isRankingPublic ? <Eye size={14} /> : <EyeOff size={14} />}
+              {isSavingRankingVisibility ? "更新中" : isRankingPublic ? "公開" : "隱藏"}
+            </button>
+          </div>
+        </section>
+
         {/* AI 教練建議（可切換：詳細/粗略/隱藏） */}
         {showCoach ? (
           <section className="mb-12">
@@ -1087,7 +1178,10 @@ export default function ProfilePage() {
             </span>
           </button>
           <button onClick={handleLogout} className="w-full py-3 text-[11px] tracking-[0.3em] uppercase font-bold neu-btn neu-btn-primary !rounded-none">
-            Logout 
+            <span className="inline-flex items-center justify-center gap-2">
+              <LogOut size={15} />
+              Logout
+            </span>
           </button>
         </section>
 

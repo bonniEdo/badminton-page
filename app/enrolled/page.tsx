@@ -144,6 +144,7 @@ export default function EnrolledPage() {
 
   const executeCheckIn = async () => {
     if (!checkInModal.session) return;
+    const checkedGameId = checkInModal.session.id;
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/match/checkin`, {
@@ -157,7 +158,14 @@ export default function EnrolledPage() {
       });
       const json = await res.json();
       if (json.success) {
+        const checkedAt = new Date().toISOString();
         setCheckInModal({ isOpen: false, session: null });
+        setAllSessions((prev) =>
+          prev.map((s) => (s.id === checkedGameId ? { ...s, check_in_at: checkedAt } : s))
+        );
+        setSelectedSession((prev) =>
+          prev && prev.id === checkedGameId ? { ...prev, check_in_at: checkedAt } : prev
+        );
         setMsg({ isOpen: true, title: "簽到成功", content: "已記錄在冊。請靜候安排上場。", type: "success" });
         fetchData(true);
       } else {

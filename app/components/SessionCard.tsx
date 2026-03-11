@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Banknote, Calendar, CheckCircle, Clock, Copy, MapPin, Pencil, Settings2, Trash2 } from "lucide-react";
+import { Activity, Banknote, Calendar, CheckCircle, Clock, Copy, MapPin, Pencil, Settings2, Trash2, UserPlus } from "lucide-react";
 import AvatarBadge from "./AvatarBadge";
 
 interface SessionCardData {
@@ -143,16 +143,18 @@ export default function SessionCard<TSession extends SessionCardData>({
             {canJoin && onJoin && (
               <button
                 onClick={(e) => { e.stopPropagation(); onJoin(session); }}
-                className="flex-1 py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.2em] rounded-xl font-bold"
+                className="flex-1 py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.2em] rounded-xl font-bold flex items-center justify-center gap-2"
               >
+                <Calendar size={15} />
                 我要報名
               </button>
             )}
             {canAddFriend && onAddFriend && (
               <button
                 onClick={(e) => { e.stopPropagation(); onAddFriend(session); }}
-                className="flex-1 py-3.5 neu-btn text-sm tracking-[0.1em] rounded-xl font-bold"
+                className="flex-1 py-3.5 neu-btn text-sm tracking-[0.1em] rounded-xl font-bold flex items-center justify-center gap-2"
               >
+                <UserPlus size={15} />
                 朋友 +1
               </button>
             )}
@@ -161,7 +163,8 @@ export default function SessionCard<TSession extends SessionCardData>({
 
         {!session.isExpired && isToday && onCheckIn && (
           needsCheckIn ? (
-            <button onClick={(e) => { e.stopPropagation(); onCheckIn(session); }} className="w-full py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.4em] rounded-xl font-bold">
+            <button onClick={(e) => { e.stopPropagation(); onCheckIn(session); }} className="w-full py-3.5 neu-btn neu-btn-primary text-sm tracking-[0.4em] rounded-xl font-bold flex items-center justify-center gap-2">
+              <MapPin size={15} />
               簽到：我到了
             </button>
           ) : hasCheckedIn && !hosted ? (

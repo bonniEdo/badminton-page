@@ -10,6 +10,7 @@ import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import SessionDetailModal from "../components/SessionDetailModal";
+import ShuttlecockIcon from "../components/ShuttlecockIcon";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -131,6 +132,7 @@ export default function SchedulePage() {
 
   const executeCheckIn = async () => {
     if (!checkInModal.session) return;
+    const checkedGameId = checkInModal.session.id;
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/match/checkin`, {
@@ -144,7 +146,14 @@ export default function SchedulePage() {
       });
       const json = await res.json();
       if (json.success) {
+        const checkedAt = new Date().toISOString();
         setCheckInModal({ isOpen: false, session: null });
+        setAllSessions((prev) =>
+          prev.map((s) => (s.id === checkedGameId ? { ...s, check_in_at: checkedAt } : s))
+        );
+        setSelectedSession((prev) =>
+          prev && prev.id === checkedGameId ? { ...prev, check_in_at: checkedAt } : prev
+        );
         setMsg({ isOpen: true, title: "已通知主治", content: "今日的汗水，已被記錄在冊。請靜候主治安排上場。", type: "success" });
         fetchData(true);
       } else { alert(json.message || "報到失敗"); }
@@ -405,7 +414,7 @@ export default function SchedulePage() {
             </div>
 
             <div className="overflow-x-auto pb-1">
-              <div className="inline-flex min-w-full gap-1.5 border-b border-stone/20 pb-2">
+              <div className="grid grid-cols-7 min-w-[620px] md:min-w-0 gap-1.5 border-b border-stone/20 pb-2">
                 {weekDays.map((cell) => {
                   const sessionCount = (sessionsByDate[cell.date] || []).length;
                   const isToday = cell.date === todayStr;
@@ -414,7 +423,7 @@ export default function SchedulePage() {
                     <button
                       key={cell.date}
                       onClick={() => setSelectedWeekDate(cell.date)}
-                      className={`min-w-[86px] px-3 py-2 border transition-all text-left rounded-sm ${
+                      className={`w-full px-3 py-2 border transition-all text-left rounded-sm ${
                         isActive
                           ? "bg-sage/35 border-sage text-ink"
                           : "border-transparent text-ink/65 hover:bg-sage/12"
@@ -428,9 +437,18 @@ export default function SchedulePage() {
                           {cell.month}/{cell.day}
                           {isToday ? " ☀" : ""}
                         </span>
-                        <span className={`text-[10px] px-1.5 py-0.5 border ${isActive ? "bg-white/90 border-sage/40 text-ink" : "bg-white/75 border-stone/20 text-ink/70"}`}>
-                          {sessionCount}
-                        </span>
+                        {sessionCount > 0 ? (
+                          <span
+                            className={`inline-flex h-5 w-5 items-center justify-center rounded-full border ${
+                              isActive ? "bg-white/90 border-sage/40" : "bg-white/75 border-stone/20"
+                            }`}
+                            title="當日有我的球局"
+                          >
+                            <ShuttlecockIcon size={12} className={isActive ? "text-sage" : "text-ink/70"} strokeWidth={1.8} />
+                          </span>
+                        ) : (
+                          <span className="inline-flex h-5 w-5" aria-hidden />
+                        )}
                       </div>
                     </button>
                   );
