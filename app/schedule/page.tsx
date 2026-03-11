@@ -21,8 +21,12 @@ interface Session {
   status: string; check_in_at: string | null; courtNumber?: string; courtCount?: number;
   isHosted?: boolean;
 }
+
+const toDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
 export default function SchedulePage() {
-  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayStr = toDateKey(new Date());
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [viewMode, setViewMode] = useState<'week' | 'calendar'>('week');
@@ -38,6 +42,7 @@ export default function SchedulePage() {
     start.setHours(0, 0, 0, 0);
     return start;
   });
+  const [selectedWeekDate, setSelectedWeekDate] = useState(todayStr);
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -292,7 +297,7 @@ export default function SchedulePage() {
       const d = new Date(weekStart);
       d.setDate(weekStart.getDate() + i);
       days.push({
-        date: d.toLocaleDateString('en-CA'),
+        date: toDateKey(d),
         day: d.getDate(),
         weekday: weekdayNames[d.getDay()],
         month: d.getMonth() + 1
@@ -300,6 +305,14 @@ export default function SchedulePage() {
     }
     return days;
   }, [weekStart]);
+
+  useEffect(() => {
+    if (weekDays.length === 0) return;
+    const isSelectedInCurrentWeek = weekDays.some((day) => day.date === selectedWeekDate);
+    if (!isSelectedInCurrentWeek) {
+      setSelectedWeekDate(weekDays[0].date);
+    }
+  }, [weekDays, selectedWeekDate]);
 
   const weekLabel = (() => {
     const end = new Date(weekStart);
@@ -309,6 +322,16 @@ export default function SchedulePage() {
   })();
   const goToPrevWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 7); return d; });
   const goToNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; });
+  const selectedWeekDay = weekDays.find((day) => day.date === selectedWeekDate) || weekDays[0];
+  const selectedDaySessions = sessionsByDate[selectedWeekDate] || [];
+
+  const getSessionBorderColor = (session: Session) => {
+    if (session.isHostCanceled) return 'border-l-red-300';
+    if (session.isExpired) return 'border-l-gray-300';
+    if (session.isHosted) return 'border-l-amber-400';
+    if (session.myStatus === 'WAITLIST') return 'border-l-orange-400';
+    return 'border-l-sage';
+  };
 
   const getSessionStyle = (session: Session) => {
     const isCancelled = session.isHostCanceled;
@@ -367,85 +390,76 @@ export default function SchedulePage() {
               </button>
             </div>
 
-            <div className="md:hidden space-y-2">
-              {weekDays.map(cell => {
-                const daySessions = sessionsByDate[cell.date] || [];
-                const isToday = cell.date === todayStr;
-                return (
-                  <div
-                    key={cell.date}
-                    className={`rounded-lg border p-3 transition-colors ${
-                      isToday ? "border-sage/40 bg-sage/5" : "border-stone/20 bg-white"
-                    }`}
-                  >
-                    <div className={`flex items-center justify-between pb-2 mb-2 border-b border-stone/10 ${isToday ? "text-sage" : "text-ink/70"}`}>
-                      <p className="text-xs tracking-widest">{`週${cell.weekday}`}</p>
-                      <p className={`text-base font-bold ${isToday ? "text-sage" : "text-ink"}`}>{`${cell.month}/${cell.day}`}</p>
-                    </div>
-
-                    {daySessions.length === 0 ? (
-                      <p className="text-xs text-ink/45 italic py-1">無排程</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {daySessions.map(session => {
-                          const borderColor = session.isHostCanceled ? 'border-l-red-300'
-                            : session.isExpired ? 'border-l-gray-300'
-                            : session.isHosted ? 'border-l-amber-400'
-                            : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
-                            : 'border-l-sage';
-                          return (
-                            <button
-                              key={session.id}
-                              onClick={() => handleOpenDetail(session)}
-                              className={`w-full text-left px-2.5 py-2 rounded-lg text-xs leading-tight transition-all border-l-2 neu-soft-panel hover:brightness-[1.02] ${borderColor} ${getSessionStyle(session)}`}
-                            >
-                              <div className="font-bold truncate">{session.time} · {session.title}</div>
-                              <div className="truncate text-[11px] opacity-60 mt-0.5">{session.location}</div>
-                            </button>
-                          );
-                        })}
+            <div className="overflow-x-auto pb-1">
+              <div className="inline-flex min-w-full gap-1.5 border-b border-stone/20 pb-2">
+                {weekDays.map((cell) => {
+                  const sessionCount = (sessionsByDate[cell.date] || []).length;
+                  const isToday = cell.date === todayStr;
+                  const isActive = cell.date === selectedWeekDate;
+                  return (
+                    <button
+                      key={cell.date}
+                      onClick={() => setSelectedWeekDate(cell.date)}
+                      className={`min-w-[86px] px-3 py-2 border transition-all text-left rounded-sm ${
+                        isActive
+                          ? "bg-sage/35 border-sage text-ink"
+                          : isToday
+                            ? "bg-sage/22 border-sage/50 text-ink"
+                            : "border-transparent text-ink/65 hover:bg-sage/12"
+                      }`}
+                    >
+                      <div className={`text-[10px] tracking-widest ${isActive || isToday ? "text-ink font-bold" : "text-ink/60"}`}>
+                        週{cell.weekday}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      <div className="mt-0.5 flex items-center justify-between gap-2">
+                        <span className={`text-sm font-bold ${isToday ? "text-sage" : "text-ink"}`}>
+                          {cell.month}/{cell.day}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 border ${isActive ? "bg-white/90 border-sage/40 text-ink" : "bg-white/75 border-stone/20 text-ink/70"}`}>
+                          {sessionCount}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="hidden md:grid md:grid-cols-7 gap-1 md:gap-2">
-              {weekDays.map(cell => {
-                const daySessions = sessionsByDate[cell.date] || [];
-                const isToday = cell.date === todayStr;
-                return (
-                  <div key={cell.date} className={`rounded-lg md:rounded-xl border p-1 md:p-2 min-h-[140px] md:min-h-[240px] transition-colors ${
-                    isToday ? "border-sage/40 bg-sage/5" : "border-stone/20 bg-white"
-                  }`}>
-                    <div className={`text-center mb-1 md:mb-2 pb-1 md:pb-2 border-b border-stone/10 ${isToday ? "text-sage" : "text-ink/50"}`}>
-                      <div className="text-[10px] md:text-[11px] tracking-widest">{cell.weekday}</div>
-                      <div className={`text-base md:text-xl font-light ${isToday ? "font-bold" : ""}`}>{cell.day}</div>
-                    </div>
-                    <div className="space-y-1">
-                      {daySessions.map(session => {
-                        const borderColor = session.isHostCanceled ? 'border-l-red-300'
-                          : session.isExpired ? 'border-l-gray-300'
-                          : session.isHosted ? 'border-l-amber-400'
-                          : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
-                          : 'border-l-sage';
-                        return (
-                          <button
-                            key={session.id}
-                            onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-2 py-1 md:py-2 rounded-md md:rounded-lg text-[9px] md:text-[11px] leading-tight transition-all border-l-2 neu-soft-panel hover:brightness-[1.02] ${borderColor} ${getSessionStyle(session)}`}
-                          >
-                            <div className="font-bold truncate">{session.time}</div>
-                            <div className="truncate mt-0.5 hidden md:block">{session.title}</div>
-                            <div className="truncate text-[8px] md:text-[9px] opacity-60 mt-0.5 hidden md:block">{session.location}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="mt-3 bg-sage/8 p-2 md:p-3">
+              <div className="flex items-center justify-between border-b border-stone/15 pb-2 mb-2.5">
+                <div className="text-sm md:text-base tracking-[0.18em] text-ink/75">
+                  {selectedWeekDay ? `週${selectedWeekDay.weekday} ${selectedWeekDay.month}/${selectedWeekDay.day}` : "當日排程"}
+                </div>
+                {selectedWeekDay?.date === todayStr && (
+                  <span className="text-[10px] font-bold tracking-[0.15em] px-2 py-0.5 bg-sage text-ink">
+                    今天
+                  </span>
+                )}
+              </div>
+
+              {selectedDaySessions.length === 0 ? (
+                <p className="text-sm text-ink/45 italic py-4 text-center">無排程</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {selectedDaySessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => handleOpenDetail(session)}
+                      className={`w-full text-left px-3 py-2.5 md:px-4 md:py-3 text-[12px] leading-tight transition-colors border-l-[3px] rounded-sm bg-paper/80 hover:bg-sage/14 ${getSessionBorderColor(session)} ${getSessionStyle(session)}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-bold truncate">{session.time} · {session.title}</div>
+                          <div className="truncate text-[11px] opacity-65 mt-1">{session.location}</div>
+                        </div>
+                        <div className="text-[10px] shrink-0 px-1.5 py-0.5 bg-stone/10 text-ink/70">
+                          {session.isHosted ? "主揪" : session.myStatus === "WAITLIST" ? "候補" : "報名"}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -477,25 +491,25 @@ export default function SchedulePage() {
                     key={idx}
                     className={`border-r border-b border-stone/20 min-h-[70px] md:min-h-[110px] p-1 md:p-1.5 transition-colors ${
                       cell.isCurrentMonth ? "bg-white" : "bg-stone/5"
-                    } ${isToday ? "ring-1 ring-inset ring-sage/30" : ""}`}
+                    }`}
                   >
-                    <div className={`text-[11px] md:text-[12px] mb-0.5 md:mb-1 ${
-                      isToday ? "text-sage font-bold" : cell.isCurrentMonth ? "text-ink/80" : "text-ink/40"
-                    }`}>
-                      {cell.day}
+                    <div className="flex items-center justify-between mb-0.5 md:mb-1">
+                      <div className={`text-[11px] md:text-[12px] ${
+                        isToday ? "text-ink font-bold" : cell.isCurrentMonth ? "text-ink/80" : "text-ink/40"
+                      }`}>
+                        {cell.day}
+                      </div>
+                      {isToday ? (
+                        <span className="text-[10px] md:text-[11px] font-bold text-ink/80">☀</span>
+                      ) : null}
                     </div>
                     <div className="space-y-0.5 md:space-y-1">
                       {daySessions.slice(0, 2).map(session => {
-                        const borderColor = session.isHostCanceled ? 'border-l-red-300'
-                          : session.isExpired ? 'border-l-gray-300'
-                          : session.isHosted ? 'border-l-amber-400'
-                          : session.myStatus === 'WAITLIST' ? 'border-l-orange-400'
-                          : 'border-l-sage';
                         return (
                           <button
                             key={session.id}
                             onClick={() => handleOpenDetail(session)}
-                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-all border-l-2 neu-soft-panel hover:brightness-[1.02] ${borderColor} ${getSessionStyle(session)}`}
+                            className={`w-full text-left px-1 md:px-1.5 py-0.5 md:py-1 rounded text-[9px] md:text-[11px] leading-tight truncate transition-all border-l-2 neu-soft-panel hover:brightness-[1.02] ${getSessionBorderColor(session)} ${getSessionStyle(session)}`}
                           >
                             <span className="md:hidden">{session.time}</span>
                             <span className="hidden md:inline">{session.time} {session.title}</span>
