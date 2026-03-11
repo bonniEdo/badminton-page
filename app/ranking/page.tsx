@@ -246,6 +246,8 @@ export default function RankingPage() {
     if (trend < 0) return <ArrowDown size={14} className="text-ink/70" />;
     return <Minus size={14} className="text-ink/50" />;
   };
+  const trendText = (trend: number | null) =>
+    typeof trend === "number" && trend > 0 ? `+${trend}` : trend ?? "-";
 
   const myRank = payload?.myRank || null;
   const myWeeklyRankDelta = myRank?.weeklyRankDelta ?? null;
@@ -298,8 +300,11 @@ export default function RankingPage() {
   }
 
   const leaderboard = payload?.leaderboard || [];
-  const podium = payload?.podium || [];
   const publicLimit = payload?.publicLimit || 10;
+  const topThreeRows = leaderboard.slice(0, 3);
+  const remainingRows = leaderboard.slice(3);
+  const isMeInTopList = currentUserId !== null && leaderboard.some((row) => row.userId === currentUserId);
+  const shouldAppendMyRow = !!myRank && !isMeInTopList;
 
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif pb-20 overflow-x-hidden">
@@ -307,21 +312,6 @@ export default function RankingPage() {
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-5">
         <Card className="p-4 md:p-6 border-2 border-ink">
           <div className="flex flex-col gap-4 md:gap-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs tracking-[0.24em] text-sage font-bold flex items-center gap-1.5">
-                  <Sparkles size={14} />
-                  排行榜
-                </p>
-                <h1 className="text-2xl md:text-3xl font-black mt-2 leading-tight">{TYPE_META[activeType].title}</h1>
-                <p className="text-sm text-ink/70 italic mt-1">{TYPE_META[activeType].subtitle}</p>
-              </div>
-              <div className="text-right text-xs text-ink/70">
-                <p>更新時間</p>
-                <p className="font-bold text-sage">{generatedAtText}</p>
-              </div>
-            </div>
-
             <Tabs className="w-full">
               <TabButton active={activeType === "score"} onClick={() => setActiveType("score")} className="px-4">
                 積分
@@ -333,6 +323,29 @@ export default function RankingPage() {
                 進步
               </TabButton>
             </Tabs>
+            <div className="flex items-center justify-between gap-3 text-xs text-ink/70">
+              <p className="tracking-[0.2em]">排名項目</p>
+              <div className="text-right">
+                <p>更新時間</p>
+                <p className="font-bold text-sage">{generatedAtText}</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 md:p-6 border-2 border-ink">
+          <div className="flex flex-col gap-4 md:gap-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs tracking-[0.24em] text-sage font-bold flex items-center gap-1.5">
+                  <Sparkles size={14} />
+                  排行榜
+                </p>
+                <h1 className="text-2xl md:text-3xl font-black mt-2 leading-tight">{TYPE_META[activeType].title}</h1>
+                <p className="text-sm text-ink/70 italic mt-1">{TYPE_META[activeType].subtitle}</p>
+              </div>
+              {refreshing && <p className="text-xs text-ink/60 italic">更新中...</p>}
+            </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 text-center">
               <Card className="p-3">
@@ -393,25 +406,23 @@ export default function RankingPage() {
           </Card>
         )}
 
-        <>
-          <Card className="p-4 md:p-5 border-2 border-ink">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm tracking-[0.18em] font-bold text-sage flex items-center gap-1.5">
-                  <Trophy size={15} />
-                  TOP 3
-                </h2>
-                {refreshing && <p className="text-xs text-ink/60 italic">更新中...</p>}
-              </div>
+        <Card className="p-4 md:p-5 border-2 border-ink">
+          <h2 className="text-sm tracking-[0.18em] font-bold text-sage mb-3 flex items-center gap-1.5">
+            <Users size={15} />
+            TOP {publicLimit}
+          </h2>
 
-              {podium.length === 0 ? (
-                <p className="text-sm text-ink/60 italic">目前還沒有足夠資料建立排行。</p>
-              ) : (
+          {leaderboard.length === 0 ? (
+            <p className="text-sm text-ink/60 italic">暫無資料</p>
+          ) : (
+            <div className="space-y-3">
+              {topThreeRows.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {podium.map((row) => {
+                  {topThreeRows.map((row) => {
                     const isMe = currentUserId !== null && row.userId === currentUserId;
                     return (
                       <Card
-                        key={row.userId}
+                        key={`top-${row.rank}-${row.userId}`}
                         className={`p-3 border-2 border-ink ${row.rank === 1 ? "bg-sage/30" : "bg-paper"}`}
                       >
                         <div className="flex items-center justify-between">
@@ -429,7 +440,7 @@ export default function RankingPage() {
                           <p className="text-lg font-black text-sage">{metricText(row)}</p>
                           <div className="flex items-center gap-1 text-xs text-ink/60">
                             {trendIcon(row.trend)}
-                            <span>{typeof row.trend === "number" && row.trend > 0 ? `+${row.trend}` : row.trend ?? "-"}</span>
+                            <span>{trendText(row.trend)}</span>
                           </div>
                         </div>
                         <p className="text-xs text-ink/60 mt-1">{metricSubText(row)}</p>
@@ -438,19 +449,10 @@ export default function RankingPage() {
                   })}
                 </div>
               )}
-          </Card>
 
-          <Card className="p-4 md:p-5 border-2 border-ink">
-              <h2 className="text-sm tracking-[0.18em] font-bold text-sage mb-3 flex items-center gap-1.5">
-                <Users size={15} />
-                榜單前 {publicLimit} 名
-              </h2>
-
-              {leaderboard.length === 0 ? (
-                <p className="text-sm text-ink/60 italic">暫無資料</p>
-              ) : (
+              {remainingRows.length > 0 && (
                 <div className="space-y-2">
-                  {leaderboard.map((row) => {
+                  {remainingRows.map((row) => {
                     const isMe = currentUserId !== null && row.userId === currentUserId;
                     return (
                       <div
@@ -469,7 +471,7 @@ export default function RankingPage() {
                           <p className="font-black text-sage">{metricText(row)}</p>
                           <div className="flex items-center justify-end gap-1 text-xs text-ink/60">
                             {trendIcon(row.trend)}
-                            <span>{typeof row.trend === "number" && row.trend > 0 ? `+${row.trend}` : row.trend ?? "-"}</span>
+                            <span>{trendText(row.trend)}</span>
                           </div>
                         </div>
                       </div>
@@ -477,8 +479,30 @@ export default function RankingPage() {
                   })}
                 </div>
               )}
-          </Card>
-        </>
+
+              {shouldAppendMyRow && myRank && (
+                <div className="pt-1">
+                  <div className="text-center text-xl leading-none text-ink/55 mb-2">...</div>
+                  <div className="flex items-center gap-2 md:gap-3 p-2.5 border-2 border-ink rounded-md bg-sage/20">
+                    <div className="w-9 text-center font-black">#{myRank.rank}</div>
+                    <AvatarBadge avatarUrl={myRank.avatarUrl} name={myRank.username} size="sm" playerUserId={myRank.userId} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold truncate">我</p>
+                      <p className="text-xs text-ink/60">{metricSubText(myRank)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-sage">{metricText(myRank)}</p>
+                      <div className="flex items-center justify-end gap-1 text-xs text-ink/60">
+                        {trendIcon(myRank.trend)}
+                        <span>{trendText(myRank.trend)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
       </main>
 
       <Modal open={showScoreDetail && !!myScoreBreakdown} className="max-w-md p-0">
