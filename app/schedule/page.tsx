@@ -5,7 +5,7 @@ import {
   Info, Layout, Trash2,
   CalendarDays, CalendarRange, ChevronLeft, ChevronRight
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
@@ -28,6 +28,7 @@ const toDateKey = (date: Date) =>
 export default function SchedulePage() {
   const todayStr = toDateKey(new Date());
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [viewMode, setViewMode] = useState<'week' | 'calendar'>('week');
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -51,6 +52,19 @@ export default function SchedulePage() {
   const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [levelModal, setLevelModal] = useState({ isOpen: false });
+
+  useEffect(() => {
+    if (pathname !== "/schedule") return;
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    start.setHours(0, 0, 0, 0);
+
+    setViewMode("week");
+    setWeekStart(start);
+    setSelectedWeekDate(toDateKey(now));
+    setCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+  }, [pathname]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -403,17 +417,16 @@ export default function SchedulePage() {
                       className={`min-w-[86px] px-3 py-2 border transition-all text-left rounded-sm ${
                         isActive
                           ? "bg-sage/35 border-sage text-ink"
-                          : isToday
-                            ? "bg-sage/22 border-sage/50 text-ink"
-                            : "border-transparent text-ink/65 hover:bg-sage/12"
+                          : "border-transparent text-ink/65 hover:bg-sage/12"
                       }`}
                     >
                       <div className={`text-[10px] tracking-widest ${isActive || isToday ? "text-ink font-bold" : "text-ink/60"}`}>
                         週{cell.weekday}
                       </div>
                       <div className="mt-0.5 flex items-center justify-between gap-2">
-                        <span className={`text-sm font-bold ${isToday ? "text-sage" : "text-ink"}`}>
+                        <span className="text-sm font-bold text-ink">
                           {cell.month}/{cell.day}
+                          {isToday ? " ☀" : ""}
                         </span>
                         <span className={`text-[10px] px-1.5 py-0.5 border ${isActive ? "bg-white/90 border-sage/40 text-ink" : "bg-white/75 border-stone/20 text-ink/70"}`}>
                           {sessionCount}
@@ -431,8 +444,8 @@ export default function SchedulePage() {
                   {selectedWeekDay ? `週${selectedWeekDay.weekday} ${selectedWeekDay.month}/${selectedWeekDay.day}` : "當日排程"}
                 </div>
                 {selectedWeekDay?.date === todayStr && (
-                  <span className="text-[10px] font-bold tracking-[0.15em] px-2 py-0.5 bg-sage text-ink">
-                    今天
+                  <span className="text-[12px] font-bold text-ink/80">
+                    ☀
                   </span>
                 )}
               </div>

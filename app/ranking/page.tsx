@@ -15,7 +15,7 @@ import AppHeader from "../components/AppHeader";
 import PageLoading from "../components/PageLoading";
 import LoginPrompt from "../components/LoginPrompt";
 import AvatarBadge from "../components/AvatarBadge";
-import { Button, Card, Modal, TabButton, Tabs } from "../components/ui";
+import { Button, Card, Modal } from "../components/ui";
 
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
@@ -73,6 +73,11 @@ const TYPE_HEADER_LABEL: Record<RankType, string> = {
   score: "綜合積分排行榜",
   active: "活躍排行榜",
   progress: "進步排行榜",
+};
+const TYPE_TAB_LABEL: Record<RankType, string> = {
+  score: "積分",
+  active: "活躍",
+  progress: "進步",
 };
 const RANK_TYPES: RankType[] = ["score", "active", "progress"];
 
@@ -344,17 +349,27 @@ export default function RankingPage() {
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
               <div className="w-full md:max-w-[60%]">
                 <p className="mb-2 text-xs tracking-[0.2em] text-ink/65">排名項目</p>
-                <Tabs className="w-full grid grid-cols-3 gap-1 p-1">
-                  <TabButton active={activeType === "score"} onClick={() => setActiveType("score")} className="w-full py-2.5 text-sm font-bold tracking-[0.08em]">
-                    積分
-                  </TabButton>
-                  <TabButton active={activeType === "active"} onClick={() => setActiveType("active")} className="w-full py-2.5 text-sm font-bold tracking-[0.08em]">
-                    活躍
-                  </TabButton>
-                  <TabButton active={activeType === "progress"} onClick={() => setActiveType("progress")} className="w-full py-2.5 text-sm font-bold tracking-[0.08em]">
-                    進步
-                  </TabButton>
-                </Tabs>
+                <div className="w-full overflow-x-auto">
+                  <div className="min-w-max border-b-2 border-ink flex items-end gap-1.5 pr-2">
+                    {RANK_TYPES.map((type) => {
+                      const isActive = activeType === type;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setActiveType(type)}
+                          className={`-mb-[2px] border-2 border-ink border-b-0 px-4 py-2 text-sm font-black tracking-[0.08em] transition-colors rounded-t-md ${
+                            isActive
+                              ? "bg-paper text-ink"
+                              : "bg-paper/70 text-ink/65 hover:bg-sage/12"
+                          }`}
+                        >
+                          {TYPE_TAB_LABEL[type]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               <div className="text-right text-xs text-ink/70">
                 <p>榜單更新日</p>
