@@ -248,10 +248,21 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
       const json = await res.json();
       if (!json.success) {
+        const backendMessage = json.message || "預備組儲存失敗，請稍後再試。";
+        const isNonIdleValidationError =
+          res.status === 400 &&
+          typeof backendMessage === "string" &&
+          backendMessage.includes("invalid or non-idle players");
+
+        if (isNonIdleValidationError) {
+          await fetchDataRef.current();
+          return;
+        }
+
         setMsg({
           isOpen: true,
           title: "同步失敗",
-          content: json.message || "預備組儲存失敗，請稍後再試。",
+          content: backendMessage,
           type: "info",
           teamANames: "",
           teamBNames: "",
@@ -376,6 +387,11 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   };
 
   const handleBenchPlayerClick = (playerId: number) => {
+    const picked = players.find((p) => p.playerId === playerId);
+    if (!picked || picked.status !== "idle") {
+      return;
+    }
+
     markLocalSelectionInteraction();
     if (isMobileLayout) {
       if (activeMobileSlotIdx === null) {
@@ -686,7 +702,10 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             <p className="text-[12px] text-stone-500 tracking-[0.2em] mt-0.5 uppercase">{gameInfo?.Location} · {courtCount} COURTS</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={executeCloseGame} className="text-[12px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border-2 border-ink text-ink hover:bg-sage/15 transition-all">
+            <button
+              onClick={executeCloseGame}
+              className="hidden md:inline-flex text-[12px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full border-2 border-ink text-ink hover:bg-sage/15 transition-all"
+            >
               關閉球團
             </button>
             <button
@@ -719,11 +738,20 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         <aside
           className={
             isMobileLayout
-              ? `fixed inset-x-0 bottom-0 z-[80] px-3 pb-3 transform transition-transform duration-300 ease-out md:hidden ${isBenchOpen ? "translate-y-0" : "translate-y-[110%]"}`
+              ? "fixed inset-0 z-[80] flex items-end p-0 md:hidden pointer-events-none"
               : `fixed inset-y-0 left-0 z-[60] w-[80vw] max-w-[280px] md:w-64 md:bg-transparent p-4 md:p-6 transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${isBenchOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`
           }
         >
-          <div className={isMobileLayout ? "neu-surface neu-surface-glass h-[52vh] rounded-3xl p-4" : "neu-surface neu-surface-glass h-full rounded-2xl p-4 md:p-5"}>
+          <div
+            className={
+              isMobileLayout
+                ? `neu-surface neu-surface-glass w-full h-[62dvh] rounded-t-md border-2 border-ink p-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pointer-events-auto transform transition-transform duration-200 ease-out ${
+                    isBenchOpen ? "translate-y-0" : "translate-y-full"
+                  }`
+                : "neu-surface neu-surface-glass h-full rounded-2xl p-4 md:p-5"
+            }
+          >
+            {isMobileLayout && <div className="w-12 h-1 bg-ink/25 rounded-full mx-auto mb-3" />}
             <div className="flex justify-between items-center mb-6">
               <div className="space-y-1">
                 <h2 className="text-[12px] tracking-[0.4em] text-stone-500 uppercase font-bold">待命名冊</h2>
@@ -745,17 +773,18 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                 <X size={20} />
               </button>
             </div>
-            <div className={isMobileLayout ? "space-y-2 overflow-y-auto h-[calc(52vh-110px)] custom-scrollbar pr-1" : "space-y-2 overflow-y-auto h-[calc(100dvh-220px)] custom-scrollbar pr-2"}>
+            <div className={isMobileLayout ? "space-y-2 overflow-y-auto h-[calc(62dvh-128px)] custom-scrollbar pr-1" : "space-y-2 overflow-y-auto h-[calc(100dvh-220px)] custom-scrollbar pr-2"}>
             {benchPlayers.map(p => {
               const isSelected = selectedPlayerIds.includes(p.playerId) || (activeMobileSlotIdx !== null && nextSlots[activeMobileSlotIdx] === p.playerId);
-              const isPlaying = p.status === 'playing';
+              const isIdle = p.status === 'idle';
               const isInNext = nextSlots.includes(p.playerId);
               const isMobilePickBlocked = isMobileLayout && activeMobileSlotIdx === null;
+              const isUnavailable = !isIdle;
               return (
-                <div key={p.playerId} onClick={() => !isPlaying && !isMobilePickBlocked && handleBenchPlayerClick(p.playerId)}
+                <div key={p.playerId} onClick={() => !isUnavailable && !isMobilePickBlocked && handleBenchPlayerClick(p.playerId)}
                   className={`p-3 rounded-xl border transition-all cursor-pointer ${
                     isSelected ? 'bg-sage border-sage text-white shadow-lg' :
-                    isPlaying ? 'opacity-30 grayscale pointer-events-none' :
+                    isUnavailable ? 'opacity-30 grayscale pointer-events-none' :
                     isMobilePickBlocked ? 'opacity-50 cursor-not-allowed bg-stone-100 border-stone-200 text-stone-500' :
                     isInNext ? 'bg-sage/10 border-sage/30 text-sage' : 'bg-paper/70 border-stone/30 hover:border-sage/30'
                   }`}>
@@ -955,6 +984,17 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
               <span className="text-[12px] tracking-[0.4em] uppercase font-bold">加開場地</span>
             </button>
           </section>
+
+          {isMobileLayout && (
+            <section className="max-w-2xl mx-auto">
+              <button
+                onClick={executeCloseGame}
+                className="w-full py-3 border-2 border-ink bg-paper text-ink text-[12px] tracking-[0.18em] uppercase font-bold rounded-sm hover:bg-sage/12 transition-all"
+              >
+                關閉球團
+              </button>
+            </section>
+          )}
         </main>
       </div>
 
