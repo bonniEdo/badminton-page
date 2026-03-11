@@ -510,6 +510,10 @@ export default function Browse() {
           setSelectedSession(null);
           router.push(`/dashboard/live/${selectedSession.id}`);
         } : undefined}
+        onJoin={selectedSession && currentUserId !== null && currentUserId !== selectedSession.hostId && !joinedIds.includes(selectedSession.id) ? () => {
+          setSelectedSession(null);
+          openJoinModal(selectedSession);
+        } : undefined}
         onAddFriend={selectedSession ? () => handleAddFriend() : undefined}
         onCopy={selectedSession ? () => { handleCopy(selectedSession); setSelectedSession(null); } : undefined}
         onDelete={selectedSession ? () => { setSelectedSession(null); setDeleteConfirm({ isOpen: true, id: selectedSession.id }); } : undefined}

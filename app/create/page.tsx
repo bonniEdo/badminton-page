@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { PlusCircle, CheckCircle, Info } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { PlusCircle, CheckCircle, Info, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppHeader from "../components/AppHeader";
 import LoginPrompt from "../components/LoginPrompt";
@@ -15,6 +15,20 @@ const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
   return `${hour}:${min}`;
 });
 
+const EMPTY_SESSION = {
+  title: "",
+  gameDate: "",
+  gameTime: "18:00",
+  location: "竹東鎮立羽球場",
+  courtNumber: "",
+  courtCount: "1",
+  endTime: "20:00",
+  maxPlayers: "",
+  price: "",
+  phone: "",
+  notes: "",
+};
+
 export default function CreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,11 +38,10 @@ export default function CreatePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditLoading, setIsEditLoading] = useState(false);
 
-  const [newSession, setNewSession] = useState({
-    title: "", gameDate: "", gameTime: "18:00", location: "竹東鎮立羽球場",
-    courtNumber: "", courtCount: "1", endTime: "20:00", maxPlayers: "", price: "", phone: "", notes: ""
-  });
+  const [newSession, setNewSession] = useState(EMPTY_SESSION);
+  const [initialSession, setInitialSession] = useState(EMPTY_SESSION);
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -40,7 +53,9 @@ export default function CreatePage() {
     if (savedData && !isEditMode) {
       try {
         const data = JSON.parse(savedData);
-        setNewSession(prev => ({ ...prev, ...data, gameDate: "" }));
+        const copied = { ...EMPTY_SESSION, ...data, gameDate: "" };
+        setNewSession(copied);
+        setInitialSession(copied);
         sessionStorage.removeItem("copySessionData");
         setMsg({ isOpen: true, title: "延續療程", content: "已為您載入上次處方，選個新日期即可再次開診。", type: "success" });
       } catch (e) { console.error("解析複製資料失敗", e); }
@@ -72,7 +87,7 @@ export default function CreatePage() {
           ? gameDateTime.split("T")[1].slice(0, 5)
           : gameDateTime.slice(11, 16);
 
-        setNewSession({
+        const loadedSession = {
           title: game.Title || "",
           gameDate,
           gameTime: gameTime || "18:00",
@@ -84,7 +99,9 @@ export default function CreatePage() {
           price: String(game.Price ?? ""),
           phone: game.HostContact || "",
           notes: game.Notes || "",
-        });
+        };
+        setNewSession(loadedSession);
+        setInitialSession(loadedSession);
       } catch (e) {
         console.error("載入編輯資料失敗", e);
         setMsg({ isOpen: true, title: "載入失敗", content: "請稍後再試", type: "error" });
@@ -94,6 +111,27 @@ export default function CreatePage() {
     };
     fetchEditGame();
   }, [editGameId, isLoggedIn]);
+
+  const hasUnsavedChanges = useMemo(
+    () => JSON.stringify(newSession) !== JSON.stringify(initialSession),
+    [newSession, initialSession]
+  );
+
+  const leaveCreatePage = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/enrolled");
+  };
+
+  const requestCancel = () => {
+    if (hasUnsavedChanges) {
+      setCancelConfirmOpen(true);
+      return;
+    }
+    leaveCreatePage();
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +190,20 @@ export default function CreatePage() {
           <p className="text-xs tracking-[0.2em] text-ink/70 uppercase">載入療程資料中...</p>
         )}
         <form onSubmit={handleCreate}>
-          <div className="text-center mb-4"><p className="text-[10px] text-ink/70 tracking-[0.3em] uppercase italic">{isEditMode ? "編輯療程" : "開立新療程"}</p></div>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-[10px] text-ink/70 tracking-[0.3em] uppercase italic">
+              {isEditMode ? "編輯療程" : "開立新療程"}
+            </p>
+            <button
+              type="button"
+              onClick={requestCancel}
+              className="w-9 h-9 inline-flex items-center justify-center border-2 border-ink text-ink hover:bg-sage/15 transition-colors"
+              aria-label="取消建立球局"
+              title="取消"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
           <div>
             <label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">療程名稱</label>
@@ -199,7 +250,14 @@ export default function CreatePage() {
 
           <div><label className="block text-[10px] text-stone-400 mb-1 tracking-widest uppercase">處方備註</label><Textarea rows={3} value={newSession.notes} onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })} className="resize-none" placeholder="補充說明（如：用球品牌、程度限制等）" /></div>
 
-          <Button type="submit" variant="primary" className="w-full py-3 mt-4 flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif"><PlusCircle size={14} /> {isEditMode ? "確認更新療程" : "確認開立療程"}</Button>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button type="button" onClick={requestCancel} className="w-full py-3 tracking-[0.3em] text-xs uppercase font-serif">
+              取消
+            </Button>
+            <Button type="submit" variant="primary" className="w-full py-3 flex items-center justify-center gap-2 tracking-[0.3em] text-xs uppercase font-serif">
+              <PlusCircle size={14} /> {isEditMode ? "確認更新療程" : "確認開立療程"}
+            </Button>
+          </div>
         </form>
         </Card>
       </main>
@@ -211,6 +269,28 @@ export default function CreatePage() {
             <h2 className="text-2xl tracking-[0.3em] text-sage font-light mb-4">{msg.title}</h2>
             <p className="text-sm text-ink/70 italic mb-10 tracking-widest">{msg.content}</p>
             <Button onClick={() => setMsg({ ...msg, isOpen: false })} className="w-full py-4 text-xs tracking-[0.4em] uppercase">我知道了</Button>
+      </Modal>
+
+      <Modal open={cancelConfirmOpen} className="p-8 text-center max-w-md">
+        <h2 className="text-xl tracking-[0.2em] text-sage font-bold mb-3">放棄目前編輯？</h2>
+        <p className="text-sm text-ink/75 mb-6 tracking-wide">
+          尚未儲存的內容將不會保留。
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Button
+            onClick={() => setCancelConfirmOpen(false)}
+            className="w-full py-3 text-xs tracking-[0.3em] uppercase"
+          >
+            繼續編輯
+          </Button>
+          <Button
+            variant="primary"
+            onClick={leaveCreatePage}
+            className="w-full py-3 text-xs tracking-[0.3em] uppercase"
+          >
+            確認離開
+          </Button>
+        </div>
       </Modal>
     </div>
   );

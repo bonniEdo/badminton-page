@@ -42,6 +42,7 @@ interface SessionDetailModalProps<T extends SessionDetailBase> {
   onHostLive?: () => void;
   onOpenLive?: () => void;
   onCheckIn?: () => void;
+  onJoin?: () => void;
   onAddFriend?: () => void;
   onCopy?: () => void;
   onDelete?: () => void;
@@ -65,6 +66,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   onHostLive,
   onOpenLive,
   onCheckIn,
+  onJoin,
   onAddFriend,
   onCopy,
   onDelete,
@@ -75,8 +77,10 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   modalClassName = "",
 }: SessionDetailModalProps<T>) {
   const ANIMATION_MS = 240;
-  const MOBILE_SHEET_MIN_VH = 90;
+  const MOBILE_SHEET_MIN_VH = 72;
   const MOBILE_SHEET_MAX_VH = 95;
+  const MOBILE_SHEET_CLOSE_DELTA_PX = 72;
+  const MOBILE_SHEET_SNAP_MIDPOINT = (MOBILE_SHEET_MIN_VH + MOBILE_SHEET_MAX_VH) / 2;
   const [renderSession, setRenderSession] = useState<T | null>(session);
   const [isPresented, setIsPresented] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -90,6 +94,8 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   const [sheetHeightVh, setSheetHeightVh] = useState(MOBILE_SHEET_MIN_VH);
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(MOBILE_SHEET_MIN_VH);
+  const dragDeltaYRef = useRef(0);
+  const dragStartedFromMinRef = useRef(false);
   const sessionId = renderSession?.id;
 
   useEffect(() => {
@@ -190,17 +196,23 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
     if (!renderSession) return;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
-    const previousBodyTouchAction = document.body.style.touchAction;
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
 
     return () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
       document.body.style.overflow = previousBodyOverflow;
-      document.body.style.touchAction = previousBodyTouchAction;
     };
   }, [renderSession]);
+
+  useEffect(() => {
+    if (!renderSession) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [renderSession, onClose]);
 
   if (!renderSession) return null;
 
@@ -252,18 +264,28 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   const handleSheetTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     dragStartYRef.current = e.touches[0].clientY;
     dragStartHeightRef.current = sheetHeightVh;
+    dragDeltaYRef.current = 0;
+    dragStartedFromMinRef.current = sheetHeightVh <= MOBILE_SHEET_MIN_VH + 0.5;
   };
 
   const handleSheetTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     const currentY = e.touches[0].clientY;
-    const deltaY = dragStartYRef.current - currentY;
+    const deltaY = currentY - dragStartYRef.current;
+    dragDeltaYRef.current = deltaY;
     const vhDelta = (deltaY / window.innerHeight) * 100;
-    const next = Math.max(MOBILE_SHEET_MIN_VH, Math.min(MOBILE_SHEET_MAX_VH, dragStartHeightRef.current + vhDelta));
+    const next = Math.max(MOBILE_SHEET_MIN_VH, Math.min(MOBILE_SHEET_MAX_VH, dragStartHeightRef.current - vhDelta));
     setSheetHeightVh(next);
   };
 
   const handleSheetTouchEnd = () => {
-    setSheetHeightVh((prev) => (prev >= 88 ? MOBILE_SHEET_MAX_VH : MOBILE_SHEET_MIN_VH));
+    if (
+      dragDeltaYRef.current > MOBILE_SHEET_CLOSE_DELTA_PX &&
+      (dragStartedFromMinRef.current || sheetHeightVh <= MOBILE_SHEET_MIN_VH + 1)
+    ) {
+      onClose();
+      return;
+    }
+    setSheetHeightVh((prev) => (prev >= MOBILE_SHEET_SNAP_MIDPOINT ? MOBILE_SHEET_MAX_VH : MOBILE_SHEET_MIN_VH));
   };
 
   const detailBody = (
@@ -388,27 +410,35 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
               {!isLoggedIn ? (
                 <>
                   {onLoginLine && (
-                    <button onClick={onLoginLine} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
+                    <button onClick={onLoginLine} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink rounded-none">
                       LINE 登入
                     </button>
                   )}
                   {onLoginGoogle && (
-                    <button onClick={onLoginGoogle} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                    <button onClick={onLoginGoogle} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none">
                       Google 登入
                     </button>
                   )}
                   {onLoginFacebook && (
-                    <button onClick={onLoginFacebook} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                    <button onClick={onLoginFacebook} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none">
                       Facebook 登入
                     </button>
                   )}
                 </>
               ) : (
                 <>
+                  {onJoin && (
+                    <button
+                      onClick={onJoin}
+                      className="w-full py-3 text-[11px] tracking-[0.3em] uppercase font-bold neu-btn neu-btn-primary !rounded-none"
+                    >
+                      我要報名
+                    </button>
+                  )}
                   {liveAction && (
                     <button
                       onClick={liveAction}
-                      className={`flex items-center justify-center gap-3 w-full py-3 text-[12px] tracking-[0.2em] transition-all font-bold neu-btn ${
+                      className={`flex items-center justify-center gap-3 w-full py-3 text-[12px] tracking-[0.2em] transition-all font-bold neu-btn !rounded-none ${
                         isHost ? "text-amber-800" : "text-stone-800"
                       }`}
                     >
@@ -416,23 +446,25 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                     </button>
                   )}
                   {!isHost && isToday && canCheckIn && onCheckIn && (
-                    <button onClick={onCheckIn} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink">
+                    <button onClick={onCheckIn} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-sage text-ink rounded-none">
                       我到了，報到
                     </button>
                   )}
                   {canAddFriend && (
                     <>
-                      <div className="w-full py-2 text-center text-[11px] tracking-widest uppercase font-bold neu-soft-panel text-sage">
-                        報名成功
-                      </div>
                       {hasAddedFriend ? (
-                        <div className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-stone-100 text-stone-500 text-center cursor-not-allowed">
-                          已報名兩位
+                        <div className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-stone-100 text-stone-500 text-center cursor-not-allowed rounded-lg">
+                          已報兩位
                         </div>
                       ) : onAddFriend ? (
-                        <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15">
+                        <>
+                          <div className="w-full py-2 text-center text-[11px] tracking-widest uppercase font-bold neu-soft-panel text-sage">
+                            報名成功
+                          </div>
+                          <button onClick={onAddFriend} className="w-full py-3 text-[11px] tracking-widest uppercase font-bold border-2 border-ink bg-paper text-ink hover:bg-sage/15 rounded-none">
                           + 朋友 (限一位)
-                        </button>
+                          </button>
+                        </>
                       ) : null}
                     </>
                   )}
@@ -441,7 +473,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                       {onCopy && (
                         <button
                           onClick={onCopy}
-                          className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
+                          className="neu-btn !py-2 !px-2 !rounded-none text-ink hover:text-sage"
                           title="複製療程"
                           aria-label="複製療程"
                         >
@@ -451,7 +483,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                       {onDelete && (
                         <button
                           onClick={onDelete}
-                          className="neu-btn !py-2 !px-2 text-ink hover:text-sage"
+                          className="neu-btn !py-2 !px-2 !rounded-none text-ink hover:text-sage"
                           title="終止療程"
                           aria-label="終止療程"
                         >
@@ -470,7 +502,13 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   );
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 transition-opacity duration-200 ${isPresented ? "opacity-100" : "opacity-0"} ${overlayClassName}`}>
+    <div
+      className={`fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 transition-opacity duration-200 ${isPresented ? "opacity-100" : "opacity-0"} ${overlayClassName}`}
+      onClick={onClose}
+      role="button"
+      tabIndex={-1}
+      aria-label="關閉球局詳情"
+    >
       {isMobile ? (
         <div
           className={`neu-modal !p-0 w-full rounded-t-md md:rounded-md border-2 border-ink flex flex-col transition-transform duration-200 ease-out ${isPresented ? "translate-y-0" : "translate-y-full"} ${renderSession.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}
@@ -492,12 +530,15 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
               </button>
             </div>
           </div>
-          <div className="p-4 flex-1 overflow-y-auto">
+          <div className="p-4 pb-[calc(env(safe-area-inset-bottom)+16px)] flex-1 overflow-y-auto overscroll-contain">
             {detailBody}
           </div>
         </div>
       ) : (
-        <div className={`neu-modal w-full max-w-md p-8 relative transition-all duration-200 ease-out ${isPresented ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-4"} ${renderSession.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}>
+        <div
+          className={`neu-modal w-full max-w-md p-8 relative transition-all duration-200 ease-out ${isPresented ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-4"} ${renderSession.isExpired ? "grayscale-[0.4]" : ""} ${modalClassName}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="absolute top-4 right-4 flex items-center gap-2">
             {topRightActions}
             <button onClick={onClose} className="text-ink/50 hover:text-sage transition-colors" title="關閉">
