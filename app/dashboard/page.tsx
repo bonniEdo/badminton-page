@@ -342,7 +342,7 @@ export default function Dashboard() {
       notes: s.notes || ""
     };
     sessionStorage.setItem("copySessionData", JSON.stringify(copyData));
-    router.push("/browse"); 
+    router.push("/create"); 
   };
 
   // ✅ 修正後的排序邏輯：未過期 > 主揪取消 > 過期

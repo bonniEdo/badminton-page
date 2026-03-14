@@ -19,7 +19,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "
 interface Session {
   id: number; hostId: number; hostName: string; hostAvatarUrl?: string | null; title: string; date: string; time: string; endTime: string;
   location: string; currentPlayers: number; maxPlayers: number; price: number; notes: string;
-  isExpired: boolean; friendCount: number; badminton_level?: string; courtCount: number; courtNumber?: string;
+  isExpired: boolean; isHostCanceled?: boolean; friendCount: number; badminton_level?: string; courtCount: number; courtNumber?: string;
 }
 
 export default function Browse() {
@@ -96,7 +96,7 @@ export default function Browse() {
           endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "",
           currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
           maxPlayers: Number(g.MaxPlayers), price: Number(g.Price), notes: g.Notes || "",
-          isExpired: !!g.isExpired, friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
+          isExpired: !!g.isExpired, isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt), friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
           badminton_level: g.badminton_level || "", courtCount: Number(g.CourtCount || 1),
         }));
         setSessions((prev) => {
@@ -121,8 +121,9 @@ export default function Browse() {
       if (isAuth && token) {
         Promise.all([
           fetch(`${API_URL}/api/user/me`, { headers, cache: "no-store" }).then(res => res.json()),
-          fetch(`${API_URL}/api/games/joined`, { headers, cache: "no-store" }).then(res => res.json())
-        ]).then(([resUser, resJoined]) => {
+          fetch(`${API_URL}/api/games/joined`, { headers, cache: "no-store" }).then(res => res.json()),
+          fetch(`${API_URL}/api/games/mygame`, { headers, cache: "no-store" }).then(res => res.json())
+        ]).then(([resUser, resJoined, resHosted]) => {
           if (resUser.success && resUser.user) {
             localStorage.setItem("user", JSON.stringify(resUser.user));
             setCurrentUserId(resUser.user.id ?? null);
@@ -130,6 +131,36 @@ export default function Browse() {
 
           if (resJoined.success) {
             setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
+          }
+
+          if (resHosted.success) {
+            const hostedSessions: Session[] = (resHosted.data || []).map((g: any) => ({
+              id: g.GameId,
+              hostId: g.HostID,
+              hostName: g.hostName || "",
+              hostAvatarUrl: g.hostAvatarUrl || null,
+              title: g.Title,
+              date: (g.GameDateTime ?? "").slice(0, 10),
+              time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
+              endTime: (g.EndTime ?? "").slice(0, 5),
+              location: g.Location ?? "",
+              currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
+              maxPlayers: Number(g.MaxPlayers),
+              price: Number(g.Price),
+              notes: g.Notes || "",
+              isExpired: !!g.isExpired,
+              isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
+              friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
+              badminton_level: g.badminton_level || "",
+              courtCount: Number(g.CourtCount || 1),
+            }));
+
+            setSessions((prev) => {
+              const merged = new Map<number, Session>();
+              for (const s of prev) merged.set(s.id, s);
+              for (const s of hostedSessions) merged.set(s.id, { ...(merged.get(s.id) || s), ...s });
+              return Array.from(merged.values());
+            });
           }
         }).catch((err) => {
           console.error("Fetch Auth Meta Error:", err);
@@ -160,15 +191,21 @@ export default function Browse() {
 
   const sortedSessions = useMemo(() => {
     return [...sessions]
-      .filter(s => !s.isExpired)
+      .filter(s => {
+        const isHost = currentUserId !== null && s.hostId === currentUserId;
+        return isHost || !s.isExpired;
+      })
       .filter(s => filterDate ? s.date === filterDate : true)
       .sort((a, b) => {
+        const aCanceled = !!a.isHostCanceled;
+        const bCanceled = !!b.isHostCanceled;
+        if (aCanceled !== bCanceled) return aCanceled ? 1 : -1;
         if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
         const timeA = new Date(`${a.date}T${a.time}`).getTime();
         const timeB = new Date(`${b.date}T${b.time}`).getTime();
         return a.isExpired ? timeB - timeA : timeA - timeB;
       });
-  }, [sessions, filterDate]);
+  }, [sessions, filterDate, currentUserId]);
 
   const splitChipLabel = (label: string) => {
     if (label === "全部") return { top: "ALL", bottom: "全部" };
@@ -543,7 +580,7 @@ export default function Browse() {
                 isJoined={isJoined}
                 canJoin={isLoggedIn && !isHost && !isJoined}
                 canAddFriend={canUseFriendFeature && s.friendCount < 1}
-                statusLabel={s.isExpired ? "已散場" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
+                statusLabel={s.isHostCanceled ? "已關閉" : s.isExpired ? "已散場" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
                 locationLink={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`}
                 onOpenDetail={handleOpenDetail}
                 onJoin={openJoinModal}

@@ -357,12 +357,25 @@ export default function RankingPage() {
     );
   }
 
-  const leaderboard = payload?.leaderboard || [];
-  const publicLimit = payload?.publicLimit || 10;
+  const rawLeaderboard = payload?.leaderboard || [];
+  const leaderboard = useMemo(() => {
+    if (activeType === "progress") {
+      return rawLeaderboard
+        .filter((row) => (row.progressScore ?? 0) > 0)
+        .slice(0, 5);
+    }
+    if (activeType === "active") {
+      return rawLeaderboard.slice(0, 5);
+    }
+    return rawLeaderboard;
+  }, [activeType, rawLeaderboard]);
+  const publicLimit = activeType === "active" || activeType === "progress"
+    ? 5
+    : (payload?.publicLimit || 10);
   const topThreeRows = leaderboard.slice(0, 3);
   const remainingRows = leaderboard.slice(3);
   const isMeInTopList = currentUserId !== null && leaderboard.some((row) => Number(row.userId) === currentUserId);
-  const shouldAppendMyRow = !!myRank && !isMeInTopList;
+  const shouldAppendMyRow = activeType === "score" && !!myRank && !isMeInTopList;
   const hasRanksAfterMe = !!myRank && (payload?.total || 0) > myRank.rank;
   const myRowHighlightStyle = { backgroundColor: "#fde68a" } as const;
 

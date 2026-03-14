@@ -220,6 +220,8 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   const isToday = renderSession.date === todayStr;
   const statusText = renderSession.isExpired ? "療程已結束" : isHostCanceled ? "已取消療程" : "";
   const canShowActions = !renderSession.isExpired && !isHostCanceled;
+  const canShowHostCopy = isHost && isLoggedIn && !!onCopy;
+  const canShowActionBlock = !!statusText || canShowActions || canShowHostCopy;
   const hasAddedFriend = (renderSession.friendCount ?? 0) >= 1;
   const liveAction = isHost ? (onHostLive ?? onOpenLive) : onOpenLive;
   const openPlayerProfile = (e: React.MouseEvent<HTMLButtonElement>, player: { displayName: string; AvatarUrl?: string | null; UserId?: number | null; }) => {
@@ -398,7 +400,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
         </div>
       </div>
 
-      {(statusText || canShowActions) && (
+      {canShowActionBlock && (
         <div className="mt-6 space-y-3 border-t border-stone/10 pt-4">
           {statusText ? (
             <div className="py-2 text-center text-ink/70 text-[11px] font-bold neu-soft-panel tracking-widest uppercase">
@@ -501,6 +503,18 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
                 </>
               )}
             </>
+          )}
+          {!canShowActions && isLoggedIn && isHost && onCopy && (
+            <div className="flex gap-2">
+              <button
+                onClick={onCopy}
+                className="neu-btn !py-2 !px-2 !rounded-none text-ink hover:text-sage"
+                title="複製療程"
+                aria-label="複製療程"
+              >
+                <Copy size={16} />
+              </button>
+            </div>
           )}
         </div>
       )}

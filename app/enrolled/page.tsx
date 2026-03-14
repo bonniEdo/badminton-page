@@ -219,13 +219,19 @@ export default function EnrolledPage() {
       .filter(s => s.isExpired && !s.isHostCanceled) // 歷史紀錄通常也不想看到被取消的
       .sort(sortByTime);
 
+    const hostedCanceled = allSessions
+      .filter(s => !!s.isHosted && !!s.isHostCanceled)
+      .sort(sortByTime);
+
     const filterFn = (s: Session) => {
       if (filterType === 'hosted') return s.isHosted;
       if (filterType === 'enrolled') return !s.isHosted;
       return true;
     };
 
-    return showExpired ? [...active.filter(filterFn), ...expired.filter(filterFn)] : active.filter(filterFn);
+    return showExpired
+      ? [...active.filter(filterFn), ...expired.filter(filterFn), ...hostedCanceled.filter(filterFn)]
+      : [...active.filter(filterFn), ...hostedCanceled.filter(filterFn)];
   }, [allSessions, showExpired, filterType]);
 
   if (loading) return <PageLoading message="正在調閱已報名球局..." showHeader />;
@@ -280,7 +286,7 @@ export default function EnrolledPage() {
                 todayStr={todayStr}
                 isHost={!!session.isHosted}
                 isJoined={!session.isHosted}
-                statusLabel={session.isExpired ? "已結束" : session.isHosted ? "我開的" : "場邊休息"}
+                statusLabel={session.isHostCanceled ? "已關閉" : session.isExpired ? "已結束" : session.isHosted ? "我開的" : "場邊休息"}
                 onOpenDetail={setSelectedSession}
                 onCheckIn={(s) => setCheckInModal({ isOpen: true, session: s })}
                 onOpenLive={(s) => router.push(s.isHosted ? `/dashboard/live/${s.id}` : `/enrolled/live/${s.id}`)}
