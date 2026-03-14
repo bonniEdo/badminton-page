@@ -288,8 +288,9 @@ export default function ProfilePage() {
     }
   };
 
-  const handlePairingGenderVisibilityToggle = async () => {
+  const handlePairingGenderVisibilityUpdate = async (nextValue: boolean) => {
     if (isSavingPairingVisibility || genderPreference === "undisclosed") return;
+    if (nextValue === isPairingGenderVisible) return;
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -297,7 +298,7 @@ export default function ProfilePage() {
       return;
     }
 
-    const nextValue = !isPairingGenderVisible;
+    const previousValue = isPairingGenderVisible;
     setIsPairingGenderVisible(nextValue);
     setIsSavingPairingVisibility(true);
 
@@ -338,11 +339,15 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Update pairing gender visibility failed:", error);
-      setIsPairingGenderVisible(!nextValue);
+      setIsPairingGenderVisible(previousValue);
       alert(error instanceof Error ? error.message : "配對性別顯示設定更新失敗");
     } finally {
       setIsSavingPairingVisibility(false);
     }
+  };
+
+  const handlePairingGenderVisibilityToggle = () => {
+    void handlePairingGenderVisibilityUpdate(!isPairingGenderVisible);
   };
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
@@ -905,11 +910,11 @@ export default function ProfilePage() {
 
         <section className="mb-12">
           <h3 className="text-[9px] md:text-[10px] tracking-[0.4em] text-stone-400 uppercase font-black flex items-center gap-2 mb-6 px-1">
-            <Settings className="w-3 h-3 text-sage/60" /> 排行榜設定
+            <Settings className="w-3 h-3 text-sage/60" /> 個人化設定
           </h3>
           <div className="bg-white/60 rounded-[2rem] border border-white shadow-sm p-5 md:p-6 flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] md:text-[11px] tracking-[0.2em] text-stone-500 uppercase font-black">詳細數據</p>
+              <p className="text-[10px] md:text-[11px] tracking-[0.2em] text-stone-500 uppercase font-black">排行榜詳細數據</p>
               <p className="text-[11px] md:text-xs text-stone-500">
                 控制排行榜中是否顯示你的勝場、積分與詳細統計
               </p>
@@ -930,7 +935,7 @@ export default function ProfilePage() {
         </section>
 
         {/* 配對性別設定 */}
-        <section className="mb-12">
+        <section className="mb-12 -mt-6">
           <div
             className={`bg-white/60 rounded-[2rem] border border-white shadow-sm ${
               genderPreference === "undisclosed" ? "p-5 md:p-6 space-y-3" : "p-4 md:p-5 space-y-2"
@@ -975,10 +980,11 @@ export default function ProfilePage() {
                   type="button"
                   onClick={handlePairingGenderVisibilityToggle}
                   disabled={isSavingPairingVisibility}
-                  className={`shrink-0 inline-flex items-center justify-center gap-2 min-w-[112px] py-2.5 px-4 text-[10px] md:text-[11px] tracking-[0.18em] uppercase font-black border-2 border-ink rounded-xl transition-all disabled:opacity-60 ${
+                  className={`shrink-0 inline-flex items-center justify-center gap-2 min-w-[112px] py-2.5 px-4 text-[10px] md:text-[11px] tracking-[0.18em] uppercase font-black border-2 border-ink rounded-xl transition-all disabled:opacity-70 ${
                     isPairingGenderVisible ? "bg-sage/20 text-ink hover:bg-sage/30" : "bg-paper text-ink hover:bg-sage/12"
                   }`}
                 >
+                  {isPairingGenderVisible ? <Eye size={14} /> : <EyeOff size={14} />}
                   {isSavingPairingVisibility ? "更新中" : isPairingGenderVisible ? "顯示" : "隱藏"}
                 </button>
               </div>
