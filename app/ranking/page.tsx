@@ -358,17 +358,11 @@ export default function RankingPage() {
   }
 
   const rawLeaderboard = payload?.leaderboard || [];
-  const leaderboard = useMemo(() => {
-    if (activeType === "progress") {
-      return rawLeaderboard
-        .filter((row) => (row.progressScore ?? 0) > 0)
-        .slice(0, 5);
-    }
-    if (activeType === "active") {
-      return rawLeaderboard.slice(0, 5);
-    }
-    return rawLeaderboard;
-  }, [activeType, rawLeaderboard]);
+  const leaderboard = activeType === "progress"
+    ? rawLeaderboard.filter((row) => (row.progressScore ?? 0) > 0).slice(0, 5)
+    : activeType === "active"
+      ? rawLeaderboard.slice(0, 5)
+      : rawLeaderboard;
   const publicLimit = activeType === "active" || activeType === "progress"
     ? 5
     : (payload?.publicLimit || 10);

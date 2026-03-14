@@ -78,7 +78,6 @@ export default function Browse() {
   }, []);
 
   const fetchData = async (silent = false, loggedIn?: boolean) => {
-    let loadingSettled = false;
     try {
       if (!silent) setLoading(true);
       const token = localStorage.getItem("token");
@@ -86,10 +85,21 @@ export default function Browse() {
       const headers: Record<string, string> = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const gamesRes = await fetch(`${API_URL}/api/games/activegames`, { headers, cache: "no-store" }).then(res => res.json());
+      const gamesResPromise = fetch(`${API_URL}/api/games/activegames`, { headers, cache: "no-store" }).then(res => res.json());
+      const authMetaPromise = (isAuth && token)
+        ? Promise.all([
+            fetch(`${API_URL}/api/user/me`, { headers, cache: "no-store" }).then(res => res.json()),
+            fetch(`${API_URL}/api/games/joined`, { headers, cache: "no-store" }).then(res => res.json()),
+            fetch(`${API_URL}/api/games/mygame`, { headers, cache: "no-store" }).then(res => res.json()),
+          ])
+        : Promise.resolve([null, null, null] as const);
 
-      if (gamesRes.success && gamesRes.data) {
-        const fetchedSessions: Session[] = (gamesRes.data || []).map((g: any) => ({
+      const [gamesRes, authMeta] = await Promise.all([gamesResPromise, authMetaPromise]);
+      const [resUser, resJoined, resHosted] = authMeta;
+
+      let fetchedSessions: Session[] = [];
+      if (gamesRes?.success && gamesRes?.data) {
+        fetchedSessions = (gamesRes.data || []).map((g: any) => ({
           id: g.GameId, hostId: g.HostID, hostName: g.hostName, hostAvatarUrl: g.hostAvatarUrl || null, title: g.Title,
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
@@ -99,77 +109,59 @@ export default function Browse() {
           isExpired: !!g.isExpired, isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt), friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
           badminton_level: g.badminton_level || "", courtCount: Number(g.CourtCount || 1),
         }));
-        setSessions((prev) => {
-          const prevMap = new Map(prev.map((s) => [s.id, s]));
-          return fetchedSessions.map((session: Session) => {
-            const previous = prevMap.get(session.id);
-            if (!previous) return session;
-            return {
-              ...session,
-              friendCount: Math.max(Number(previous.friendCount || 0), Number(session.friendCount || 0)),
-            };
-          });
-        });
       }
 
-      // Render board as soon as game list is ready, do auth-related refresh in background.
-      if (!silent) {
-        setLoading(false);
-        loadingSettled = true;
+      if (resHosted?.success) {
+        const hostedSessions: Session[] = (resHosted.data || []).map((g: any) => ({
+          id: g.GameId,
+          hostId: g.HostID,
+          hostName: g.hostName || "",
+          hostAvatarUrl: g.hostAvatarUrl || null,
+          title: g.Title,
+          date: (g.GameDateTime ?? "").slice(0, 10),
+          time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
+          endTime: (g.EndTime ?? "").slice(0, 5),
+          location: g.Location ?? "",
+          currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
+          maxPlayers: Number(g.MaxPlayers),
+          price: Number(g.Price),
+          notes: g.Notes || "",
+          isExpired: !!g.isExpired,
+          isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
+          friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
+          badminton_level: g.badminton_level || "",
+          courtCount: Number(g.CourtCount || 1),
+        }));
+        const merged = new Map<number, Session>();
+        for (const s of fetchedSessions) merged.set(s.id, s);
+        for (const s of hostedSessions) merged.set(s.id, { ...(merged.get(s.id) || s), ...s });
+        fetchedSessions = Array.from(merged.values());
       }
 
-      if (isAuth && token) {
-        Promise.all([
-          fetch(`${API_URL}/api/user/me`, { headers, cache: "no-store" }).then(res => res.json()),
-          fetch(`${API_URL}/api/games/joined`, { headers, cache: "no-store" }).then(res => res.json()),
-          fetch(`${API_URL}/api/games/mygame`, { headers, cache: "no-store" }).then(res => res.json())
-        ]).then(([resUser, resJoined, resHosted]) => {
-          if (resUser.success && resUser.user) {
-            localStorage.setItem("user", JSON.stringify(resUser.user));
-            setCurrentUserId(resUser.user.id ?? null);
-          }
-
-          if (resJoined.success) {
-            setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
-          }
-
-          if (resHosted.success) {
-            const hostedSessions: Session[] = (resHosted.data || []).map((g: any) => ({
-              id: g.GameId,
-              hostId: g.HostID,
-              hostName: g.hostName || "",
-              hostAvatarUrl: g.hostAvatarUrl || null,
-              title: g.Title,
-              date: (g.GameDateTime ?? "").slice(0, 10),
-              time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
-              endTime: (g.EndTime ?? "").slice(0, 5),
-              location: g.Location ?? "",
-              currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
-              maxPlayers: Number(g.MaxPlayers),
-              price: Number(g.Price),
-              notes: g.Notes || "",
-              isExpired: !!g.isExpired,
-              isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
-              friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
-              badminton_level: g.badminton_level || "",
-              courtCount: Number(g.CourtCount || 1),
-            }));
-
-            setSessions((prev) => {
-              const merged = new Map<number, Session>();
-              for (const s of prev) merged.set(s.id, s);
-              for (const s of hostedSessions) merged.set(s.id, { ...(merged.get(s.id) || s), ...s });
-              return Array.from(merged.values());
-            });
-          }
-        }).catch((err) => {
-          console.error("Fetch Auth Meta Error:", err);
+      setSessions((prev) => {
+        const prevMap = new Map(prev.map((s) => [s.id, s]));
+        return fetchedSessions.map((session: Session) => {
+          const previous = prevMap.get(session.id);
+          if (!previous) return session;
+          return {
+            ...session,
+            friendCount: Math.max(Number(previous.friendCount || 0), Number(session.friendCount || 0)),
+          };
         });
+      });
+
+      if (resUser?.success && resUser?.user) {
+        localStorage.setItem("user", JSON.stringify(resUser.user));
+        setCurrentUserId(resUser.user.id ?? null);
+      }
+
+      if (resJoined?.success) {
+        setJoinedIds((resJoined.data || []).filter((g: any) => g.MyStatus !== "CANCELED").map((g: any) => g.GameId));
       }
     } catch (e) {
       console.error("Fetch Data Error:", e);
     } finally {
-      if (!loadingSettled) setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
