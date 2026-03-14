@@ -17,6 +17,19 @@ import FeedbackModal from "../components/FeedbackModal";
 const isBrowserProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 const CROP_VIEW_SIZE = 216;
+type UserGender = "male" | "female" | "undisclosed";
+
+const GENDER_OPTIONS: Array<{ value: UserGender; label: string }> = [
+  { value: "male", label: "男" },
+  { value: "female", label: "女" },
+  { value: "undisclosed", label: "不提供" },
+];
+
+const normalizeUserGender = (rawGender: unknown): UserGender => {
+  const normalized = String(rawGender || "").trim().toLowerCase();
+  if (normalized === "male" || normalized === "female") return normalized;
+  return "undisclosed";
+};
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -30,6 +43,11 @@ export default function ProfilePage() {
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [isRankingPublic, setIsRankingPublic] = useState(true);
   const [isSavingRankingVisibility, setIsSavingRankingVisibility] = useState(false);
+  const [genderPreference, setGenderPreference] = useState<UserGender>("undisclosed");
+  const [isSavingGender, setIsSavingGender] = useState(false);
+  const [isPairingGenderVisible, setIsPairingGenderVisible] = useState(true);
+  const [isSavingPairingVisibility, setIsSavingPairingVisibility] = useState(false);
+  const isGenderLocked = genderPreference !== "undisclosed";
   const [cropOpen, setCropOpen] = useState(false);
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
@@ -83,6 +101,8 @@ export default function ProfilePage() {
 
       if (resUser.success) {
         setUserInfo(resUser.user);
+        setGenderPreference(normalizeUserGender(resUser.user?.gender ?? resUser.user?.Gender));
+        setIsPairingGenderVisible(resUser.user?.is_pairing_gender_visible !== false);
         if (typeof resUser.user?.is_ranking_public === "boolean") {
           setIsRankingPublic(resUser.user.is_ranking_public);
         }
@@ -206,6 +226,122 @@ export default function ProfilePage() {
       alert(error instanceof Error ? error.message : "排行榜詳細數據設定更新失敗");
     } finally {
       setIsSavingRankingVisibility(false);
+    }
+  };
+
+  const handleGenderUpdate = async (nextGender: UserGender) => {
+    if (isSavingGender || nextGender === genderPreference) return;
+    if (isGenderLocked && nextGender !== genderPreference) {
+      alert("性別設定後已鎖定，如需修改請聯絡開發人員。");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const previousGender = genderPreference;
+    setGenderPreference(nextGender);
+    setIsSavingGender(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/user/gender`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ gender: nextGender }),
+      });
+
+      const json = (await res.json()) as {
+        success?: boolean;
+        user?: { gender?: string };
+        message?: string;
+      };
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "性別設定更新失敗");
+      }
+
+      const resolvedGender = normalizeUserGender(json.user?.gender ?? nextGender);
+      setGenderPreference(resolvedGender);
+      setUserInfo((prev: any) => (prev ? { ...prev, gender: resolvedGender } : prev));
+
+      const userRaw = localStorage.getItem("user");
+      if (userRaw) {
+        try {
+          const localUser = JSON.parse(userRaw) as Record<string, unknown>;
+          localUser.gender = resolvedGender;
+          localStorage.setItem("user", JSON.stringify(localUser));
+        } catch {}
+      }
+    } catch (error) {
+      console.error("Update gender preference failed:", error);
+      setGenderPreference(previousGender);
+      alert(error instanceof Error ? error.message : "性別設定更新失敗");
+    } finally {
+      setIsSavingGender(false);
+    }
+  };
+
+  const handlePairingGenderVisibilityToggle = async () => {
+    if (isSavingPairingVisibility || genderPreference === "undisclosed") return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const nextValue = !isPairingGenderVisible;
+    setIsPairingGenderVisible(nextValue);
+    setIsSavingPairingVisibility(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/user/gender-pairing-visibility`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ isVisible: nextValue }),
+      });
+
+      const json = (await res.json()) as {
+        success?: boolean;
+        user?: { is_pairing_gender_visible?: boolean };
+        message?: string;
+      };
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "配對性別顯示設定更新失敗");
+      }
+
+      const resolvedValue = json.user?.is_pairing_gender_visible !== false;
+      setIsPairingGenderVisible(resolvedValue);
+      setUserInfo((prev: any) =>
+        prev ? { ...prev, is_pairing_gender_visible: resolvedValue } : prev
+      );
+
+      const userRaw = localStorage.getItem("user");
+      if (userRaw) {
+        try {
+          const localUser = JSON.parse(userRaw) as Record<string, unknown>;
+          localUser.is_pairing_gender_visible = resolvedValue;
+          localStorage.setItem("user", JSON.stringify(localUser));
+        } catch {}
+      }
+    } catch (error) {
+      console.error("Update pairing gender visibility failed:", error);
+      setIsPairingGenderVisible(!nextValue);
+      alert(error instanceof Error ? error.message : "配對性別顯示設定更新失敗");
+    } finally {
+      setIsSavingPairingVisibility(false);
     }
   };
 
@@ -790,6 +926,68 @@ export default function ProfilePage() {
               {isRankingPublic ? <Eye size={14} /> : <EyeOff size={14} />}
               {isSavingRankingVisibility ? "更新中" : isRankingPublic ? "公開" : "隱藏"}
             </button>
+          </div>
+        </section>
+
+        {/* 配對性別設定 */}
+        <section className="mb-12">
+          <div
+            className={`bg-white/60 rounded-[2rem] border border-white shadow-sm ${
+              genderPreference === "undisclosed" ? "p-5 md:p-6 space-y-3" : "p-4 md:p-5 space-y-2"
+            }`}
+          >
+            <div className="space-y-1">
+              <p className="text-[10px] md:text-[11px] tracking-[0.2em] text-stone-500 uppercase font-black">配對性別</p>
+              <p className="text-[11px] md:text-xs text-stone-500 leading-relaxed">
+                性別只用於男雙、女雙、混雙自動配對，不會公開顯示。性別設定為男或女後將鎖定，若要修改請聯絡開發人員。
+              </p>
+            </div>
+            {genderPreference === "undisclosed" ? (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  {GENDER_OPTIONS.map((option) => {
+                    const active = genderPreference === option.value;
+                    const disabled = isSavingGender || (isGenderLocked && option.value !== genderPreference);
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleGenderUpdate(option.value)}
+                        disabled={disabled}
+                        className={`py-2.5 rounded-xl border-2 border-ink text-[11px] md:text-xs font-black tracking-[0.14em] transition-all disabled:opacity-60 ${
+                          active ? "bg-sage/25 text-ink" : "bg-paper text-ink/80 hover:bg-sage/12"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-stone-400">設定完成後，這裡只會保留配對顯示開關。</p>
+              </>
+            ) : (
+              <div className="pt-1 flex items-center justify-between gap-3">
+                <p className="text-[11px] text-stone-500">
+                  性別：{GENDER_OPTIONS.find((g) => g.value === genderPreference)?.label}｜
+                  配對顯示：{isPairingGenderVisible ? "開啟" : "關閉"}
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePairingGenderVisibilityToggle}
+                  disabled={isSavingPairingVisibility}
+                  className={`shrink-0 inline-flex items-center justify-center gap-2 min-w-[112px] py-2.5 px-4 text-[10px] md:text-[11px] tracking-[0.18em] uppercase font-black border-2 border-ink rounded-xl transition-all disabled:opacity-60 ${
+                    isPairingGenderVisible ? "bg-sage/20 text-ink hover:bg-sage/30" : "bg-paper text-ink hover:bg-sage/12"
+                  }`}
+                >
+                  {isSavingPairingVisibility ? "更新中" : isPairingGenderVisible ? "顯示" : "隱藏"}
+                </button>
+              </div>
+            )}
+            {isGenderLocked && (
+              <p className="text-[11px] text-stone-400">
+                目前性別已鎖定為「{GENDER_OPTIONS.find((g) => g.value === genderPreference)?.label}」。
+              </p>
+            )}
           </div>
         </section>
 
