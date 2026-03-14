@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CalendarClock, CheckCircle, Info, Trash2,
-  Plus, ArrowRightLeft
+  Plus, ArrowRightLeft, Eye, EyeOff
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AppHeader from "../components/AppHeader";
@@ -28,6 +28,7 @@ export default function Browse() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [filterDate, setFilterDate] = useState<string | null>(null);
+  const [showPast, setShowPast] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [joinedIds, setJoinedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -182,22 +183,21 @@ export default function Browse() {
   }, []);
 
   const sortedSessions = useMemo(() => {
-    return [...sessions]
-      .filter(s => {
-        const isHost = currentUserId !== null && s.hostId === currentUserId;
-        return isHost || !s.isExpired;
-      })
-      .filter(s => filterDate ? s.date === filterDate : true)
-      .sort((a, b) => {
-        const aCanceled = !!a.isHostCanceled;
-        const bCanceled = !!b.isHostCanceled;
-        if (aCanceled !== bCanceled) return aCanceled ? 1 : -1;
-        if (a.isExpired !== b.isExpired) return a.isExpired ? 1 : -1;
-        const timeA = new Date(`${a.date}T${a.time}`).getTime();
-        const timeB = new Date(`${b.date}T${b.time}`).getTime();
-        return a.isExpired ? timeB - timeA : timeA - timeB;
-      });
-  }, [sessions, filterDate, currentUserId]);
+    const filtered = filterDate ? sessions.filter((s) => s.date === filterDate) : sessions;
+    const toTime = (s: Session) => new Date(`${s.date}T${s.time}`).getTime();
+
+    const active = filtered
+      .filter((s) => !s.isExpired && !s.isHostCanceled)
+      .sort((a, b) => toTime(a) - toTime(b));
+
+    if (!showPast) return active;
+
+    const past = filtered
+      .filter((s) => s.isExpired || s.isHostCanceled)
+      .sort((a, b) => toTime(b) - toTime(a));
+
+    return [...active, ...past];
+  }, [sessions, filterDate, currentUserId, showPast]);
 
   const splitChipLabel = (label: string) => {
     if (label === "全部") return { top: "ALL", bottom: "全部" };
@@ -375,7 +375,7 @@ export default function Browse() {
   const executeDelete = async () => {
     if (!deleteConfirm.id) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+    const res = await fetch(`${API_URL}/api/games/close/${deleteConfirm.id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -391,6 +391,21 @@ export default function Browse() {
     if (!selectedFriendLevel) return;
     if (friendLevelModal.type === "join") executeJoin(selectedFriendLevel, undefined, friendGender);
     else executeAddFriend(selectedFriendLevel, friendGender);
+  };
+
+  const executeHardDelete = async () => {
+    if (!deleteConfirm.id) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setSessions((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
+      if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
+      setDeleteConfirm({ isOpen: false, id: null });
+      setMsg({ isOpen: true, title: "球團已刪除", content: "此球團已永久刪除，不會再顯示於任何頁面。", type: "success" });
+    }
   };
 
   const FriendLevelSelector = () => {
@@ -500,6 +515,15 @@ export default function Browse() {
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-4 md:mt-6 flex justify-between items-center">
         <h2 className="text-base tracking-[0.2em] text-sage font-bold">勒戒看板</h2>
+        <button
+          onClick={() => setShowPast((prev) => !prev)}
+          className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${
+            showPast ? "border-sage text-sage bg-paper shadow-[4px_4px_0_0_#1A1A1A]" : "border-stone/40 text-ink/70 bg-stone/5"
+          }`}
+        >
+          {showPast ? <Eye size={16} /> : <EyeOff size={16} />}
+          {showPast ? "進行中" : "時光"}
+        </button>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 mt-3 md:mt-4">
@@ -572,7 +596,7 @@ export default function Browse() {
                 isJoined={isJoined}
                 canJoin={isLoggedIn && !isHost && !isJoined}
                 canAddFriend={canUseFriendFeature && s.friendCount < 1}
-                statusLabel={s.isHostCanceled ? "已關閉" : s.isExpired ? "已散場" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
+                statusLabel={s.isHostCanceled ? "已關閉" : s.isExpired ? "已結束" : isHost ? "我開的" : isJoined ? "已掛號" : undefined}
                 locationLink={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}`}
                 onOpenDetail={handleOpenDetail}
                 onJoin={openJoinModal}
@@ -689,7 +713,7 @@ export default function Browse() {
               <p className="text-base text-ink/75 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
               <div className="w-full space-y-3">
                 <button onClick={executeDelete} className="w-full py-4 bg-sage text-ink text-sm tracking-[0.4em] hover:bg-sage/80 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink font-bold">確認終止療程</button>
-                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] hover:bg-sage/15 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
+                                <button onClick={executeHardDelete} className="w-full py-4 bg-rose-100 text-ink text-sm tracking-[0.3em] hover:bg-rose-200 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink font-bold">永久刪除球團</button><button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] hover:bg-sage/15 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
               </div>
             </div>
           </div>

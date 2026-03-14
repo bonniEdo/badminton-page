@@ -197,7 +197,7 @@ export default function SchedulePage() {
   const executeDelete = async () => {
     if (!deleteConfirm.id) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+    const res = await fetch(`${API_URL}/api/games/close/${deleteConfirm.id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -206,6 +206,21 @@ export default function SchedulePage() {
       if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
       fetchData(true);
       setMsg({ isOpen: true, title: "療程終止", content: "這場相遇，留在回憶裡就好了。", type: "success" });
+    }
+  };
+
+  const executeHardDelete = async () => {
+    if (!deleteConfirm.id) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setDeleteConfirm({ isOpen: false, id: null });
+      if (selectedSession?.id === deleteConfirm.id) setSelectedSession(null);
+      fetchData(true);
+      setMsg({ isOpen: true, title: "球團已刪除", content: "此球團已永久刪除，不會再顯示於任何頁面。", type: "success" });
     }
   };
 
@@ -688,7 +703,7 @@ export default function SchedulePage() {
               <p className="text-base text-ink/75 italic font-serif leading-relaxed mb-10 tracking-widest">一旦取消，所有的掛號與期待都將隨風而去。<br/>確定要終止此療程嗎？</p>
               <div className="w-full space-y-3">
                 <button onClick={executeDelete} className="w-full py-4 bg-sage text-ink text-sm tracking-[0.4em] hover:bg-sage/80 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink font-bold">確認終止療程</button>
-                <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] hover:bg-sage/15 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
+                                <button onClick={executeHardDelete} className="w-full py-4 bg-rose-100 text-ink text-sm tracking-[0.3em] hover:bg-rose-200 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink font-bold">永久刪除球團</button><button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-4 border-2 border-ink text-ink text-sm tracking-[0.4em] hover:bg-sage/15 transition-all uppercase rounded-sm shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
               </div>
             </div>
           </div>

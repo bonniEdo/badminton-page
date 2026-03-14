@@ -218,7 +218,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
 
   const todayStr = new Date().toLocaleDateString("en-CA");
   const isToday = renderSession.date === todayStr;
-  const statusText = renderSession.isExpired ? "療程已結束" : isHostCanceled ? "已取消療程" : "";
+  const statusText = isHostCanceled ? "已關閉" : renderSession.isExpired ? "已結束" : "";
   const canShowActions = !renderSession.isExpired && !isHostCanceled;
   const canShowHostCopy = isHost && isLoggedIn && !!onCopy;
   const canShowActionBlock = !!statusText || canShowActions || canShowHostCopy;

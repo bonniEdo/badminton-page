@@ -192,7 +192,7 @@ export default function EnrolledPage() {
   const executeDelete = async () => {
     if (!deleteConfirm.id) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+    const res = await fetch(`${API_URL}/api/games/close/${deleteConfirm.id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -209,19 +209,33 @@ export default function EnrolledPage() {
     }
   };
 
-  const sortedSessions = useMemo(() => {
-    const sortByTime = (a: Session, b: Session) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
-    const active = allSessions
-      .filter(s => !s.isExpired && !s.isHostCanceled) // 排除過期且排除已取消
-      .sort(sortByTime);
-      
-    const expired = allSessions
-      .filter(s => s.isExpired && !s.isHostCanceled) // 歷史紀錄通常也不想看到被取消的
-      .sort(sortByTime);
+  const executeHardDelete = async () => {
+    if (!deleteConfirm.id) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-    const hostedCanceled = allSessions
-      .filter(s => !!s.isHosted && !!s.isHostCanceled)
-      .sort(sortByTime);
+    if (res.ok) {
+      setAllSessions(prev => prev.filter(s => s.id !== deleteConfirm.id));
+      setDeleteConfirm({ isOpen: false, id: null });
+      setMsg({ isOpen: true, title: "球團已刪除", content: "此球團已永久刪除，不會再顯示於任何頁面。", type: "success" });
+      fetchData(true);
+    }
+  };
+
+  const sortedSessions = useMemo(() => {
+    const sortAscByTime = (a: Session, b: Session) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
+    const sortDescByTime = (a: Session, b: Session) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime();
+
+    const active = allSessions
+      .filter((s) => !s.isExpired && !s.isHostCanceled)
+      .sort(sortAscByTime);
+
+    const past = allSessions
+      .filter((s) => s.isExpired || s.isHostCanceled)
+      .sort(sortDescByTime);
 
     const filterFn = (s: Session) => {
       if (filterType === 'hosted') return s.isHosted;
@@ -229,9 +243,8 @@ export default function EnrolledPage() {
       return true;
     };
 
-    return showExpired
-      ? [...active.filter(filterFn), ...expired.filter(filterFn), ...hostedCanceled.filter(filterFn)]
-      : [...active.filter(filterFn), ...hostedCanceled.filter(filterFn)];
+    if (!showExpired) return active.filter(filterFn);
+    return [...active.filter(filterFn), ...past.filter(filterFn)];
   }, [allSessions, showExpired, filterType]);
 
   if (loading) return <PageLoading message="正在調閱已報名球局..." showHeader />;
@@ -262,7 +275,7 @@ export default function EnrolledPage() {
             className={`flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-xs tracking-widest font-bold ${showExpired ? "border-sage text-sage bg-paper shadow-[4px_4px_0_0_#1A1A1A]" : "border-stone/40 text-ink/70 bg-stone/5"}`}
           >
             {showExpired ? <Eye size={16} /> : <EyeOff size={16} />}
-            時光紀錄
+            {showExpired ? "進行中" : "時光"}
           </button>
         </div>
 
@@ -279,6 +292,20 @@ export default function EnrolledPage() {
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
           {sortedSessions.map((session) => {
+            const isTodaySession = session.date === todayStr;
+            const participantStatusLabel = session.isHostCanceled
+              ? "已關閉"
+              : session.isExpired
+                ? "已結束"
+                : session.isHosted
+                  ? "我開的"
+                  : session.status === "playing"
+                    ? "比賽中"
+                    : session.status === "idle"
+                      ? "場邊休息"
+                      : session.status === "waiting_checkin"
+                        ? (isTodaySession ? "待報到" : "已報名")
+                        : "已報名";
             return (
               <SessionCard
                 key={`${session.id}-${session.isHosted ? 'h' : 'j'}`}
@@ -286,7 +313,7 @@ export default function EnrolledPage() {
                 todayStr={todayStr}
                 isHost={!!session.isHosted}
                 isJoined={!session.isHosted}
-                statusLabel={session.isHostCanceled ? "已關閉" : session.isExpired ? "已結束" : session.isHosted ? "我開的" : "場邊休息"}
+                statusLabel={participantStatusLabel}
                 onOpenDetail={setSelectedSession}
                 onCheckIn={(s) => setCheckInModal({ isOpen: true, session: s })}
                 onOpenLive={(s) => router.push(s.isHosted ? `/dashboard/live/${s.id}` : `/enrolled/live/${s.id}`)}
@@ -347,7 +374,7 @@ export default function EnrolledPage() {
             <p className="text-base text-stone-600 font-serif mb-12 tracking-widest leading-relaxed">一旦終止，所有的掛號與期待都將隨風而去。確認要執行嗎？</p>
             <div className="space-y-4">
               <button onClick={executeDelete} className="w-full py-5 bg-sage text-ink text-sm tracking-[0.4em] font-bold rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink uppercase">確認終止</button>
-              <button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-5 border-2 border-ink text-ink text-sm font-bold rounded-2xl uppercase transition-all hover:bg-sage/15 shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
+                            <button onClick={executeHardDelete} className="w-full py-5 bg-rose-100 text-ink text-sm tracking-[0.3em] font-bold rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] border-2 border-ink uppercase">永久刪除球團</button><button onClick={() => setDeleteConfirm({ isOpen: false, id: null })} className="w-full py-5 border-2 border-ink text-ink text-sm font-bold rounded-2xl uppercase transition-all hover:bg-sage/15 shadow-[4px_4px_0_0_#1A1A1A]">保留這份期待</button>
             </div>
           </div>
         </div>

@@ -299,7 +299,7 @@ export default function Dashboard() {
   const executeDelete = async () => {
     if (!deleteConfirm.id) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/games/delete/${deleteConfirm.id}`, {
+    const res = await fetch(`${API_URL}/api/games/close/${deleteConfirm.id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -443,7 +443,7 @@ export default function Dashboard() {
                           {session.myStatus === 'WAITLIST' && session.status === 'waiting_checkin' && <div className="bg-sage text-white text-[11px] px-3 py-1 font-bold tracking-wider rounded-bl-lg">候補中</div>}
                         </>
                       )}
-                      {session.isExpired && !isCancelled && <div className="bg-ink text-white text-[11px] px-3 py-1 tracking-widest uppercase">已打完</div>}
+                      {session.isExpired && !isCancelled && <div className="bg-ink text-white text-[11px] px-3 py-1 tracking-widest uppercase">已結束</div>}
                     </div>
 
                     <div className="flex justify-between items-start mb-3">
@@ -476,7 +476,7 @@ export default function Dashboard() {
                     )}
 
                     <div className="flex justify-end mt-6">
-                      {isCancelled ? <span className="text-[12px] text-ink font-bold italic tracking-[0.2em] uppercase">主治已取消</span> : session.isExpired ? <span className="text-[12px] text-ink/80 italic tracking-widest uppercase">已嘗試勒戒</span> : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-sage" : "text-ink/70"}`}><span className={`font-bold`}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
+                      {isCancelled ? <span className="text-[12px] text-ink font-bold italic tracking-[0.2em] uppercase">已關閉</span> : session.isExpired ? <span className="text-[12px] text-ink/80 italic tracking-widest uppercase">已結束</span> : <span className={`text-[12px] tracking-tighter ${session.myStatus === 'WAITLIST' ? "text-sage" : "text-ink/70"}`}><span className={`font-bold`}>{session.currentPlayers}</span> / {session.maxPlayers} 人</span>}
                     </div>
                   </div>
                 );
@@ -530,7 +530,7 @@ export default function Dashboard() {
                 {s.isHostCanceled ? (
                   <span className="text-[12px] text-ink font-bold italic tracking-[0.2em] uppercase">此局已取消</span>
                 ) : s.isExpired ? (
-                  <span className="text-[12px] text-ink/80 italic tracking-widest uppercase">療程紀錄</span>
+                  <span className="text-[12px] text-ink/80 italic tracking-widest uppercase">已結束</span>
                 ) : (
                   <span className="text-[12px] text-ink/70 tracking-tighter">
                     <span className="text-sage font-bold">{s.currentPlayers}</span> / {s.maxPlayers} 人
@@ -561,7 +561,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30">
           <div className={`neu-modal w-full max-w-md p-8 relative animate-in zoom-in duration-200 ${selectedSession.isExpired ? "grayscale-[0.4]" : ""}`}>
             <button onClick={() => setSelectedSession(null)} className="absolute top-4 right-4 text-ink/50 hover:text-sage transition-colors"><X size={24}/></button>
-            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${selectedSession.isExpired ? "text-ink/80" : "text-sage"}`}>{selectedSession.isExpired ? "療程紀錄" : selectedSession.title}</h2>
+            <h2 className={`text-2xl mb-6 tracking-widest border-b border-stone/30 pb-3 ${(selectedSession.isExpired || selectedSession.isHostCanceled) ? "text-ink/80" : "text-sage"}`}>{selectedSession.isHostCanceled ? "已關閉" : selectedSession.isExpired ? "已結束" : selectedSession.title}</h2>
             <div className="space-y-4 text-sm text-ink/75 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14} /> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <p className="flex items-center gap-3 italic"><MapPin size={14} /> {selectedSession.location}</p>

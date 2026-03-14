@@ -753,7 +753,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     if (!token) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/games/delete/${gameId}`, {
+      const res = await fetch(`${API_URL}/api/games/close/${gameId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
       });

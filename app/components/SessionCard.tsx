@@ -183,11 +183,11 @@ export default function SessionCard<TSession extends SessionCardData>({
           </button>
         )}
 
-        {hosted && (onCopy || (!session.isExpired && (onEdit || onDelete))) && (
+        {hosted && (onCopy || onEdit || onDelete) && (
           <div className="flex gap-2">
             {!session.isExpired && onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(session); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="編輯療程"><Pencil size={16} /></button>}
             {onCopy && <button onClick={(e) => { e.stopPropagation(); onCopy(session); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="複製療程"><Copy size={16} /></button>}
-            {!session.isExpired && onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(session); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="終止療程"><Trash2 size={16} /></button>}
+            {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(session); }} className="neu-btn !py-2 !px-2 text-ink hover:text-sage" title="終止療程"><Trash2 size={16} /></button>}
           </div>
         )}
       </div>
