@@ -37,6 +37,8 @@ export default function Browse() {
   const [joinForm, setJoinForm] = useState({ phone: "", numPlayers: 1 });
   const [msg, setMsg] = useState({ isOpen: false, title: "", content: "", type: "success" });
   const [friendLevelModal, setFriendLevelModal] = useState<{ isOpen: boolean; type: "join" | "add"; session: Session | null }>({ isOpen: false, type: "join", session: null });
+  const [friendGender, setFriendGender] = useState<"male" | "female" | "undisclosed">("undisclosed");
+  const [selectedFriendLevel, setSelectedFriendLevel] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [joinModal, setJoinModal] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
 
@@ -241,10 +243,12 @@ export default function Browse() {
       return;
     }
 
+    setFriendGender("undisclosed");
+    setSelectedFriendLevel(null);
     setFriendLevelModal({ isOpen: true, type: "add", session: targetSession });
   };
 
-  const executeJoin = async (friendLevel?: number, phoneOverride?: string) => {
+  const executeJoin = async (friendLevel?: number, phoneOverride?: string, friendGenderOverride?: "male" | "female" | "undisclosed") => {
     const sessionForJoin = selectedSession ?? joinModal.session;
     if (!sessionForJoin) return;
     const token = localStorage.getItem("token");
@@ -252,7 +256,12 @@ export default function Browse() {
     const res = await fetch(`${API_URL}/api/games/${sessionForJoin.id}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...joinForm, phone: payloadPhone, friendLevel }),
+      body: JSON.stringify({
+        ...joinForm,
+        phone: payloadPhone,
+        friendLevel,
+        friendGender: joinForm.numPlayers === 2 ? (friendGenderOverride ?? friendGender) : undefined
+      }),
     });
     const json = await res.json();
     if (json.success) {
@@ -266,6 +275,7 @@ export default function Browse() {
         return { ...s, friendCount: joinForm.numPlayers === 2 ? 1 : s.friendCount };
       }));
       setFriendLevelModal((prev) => ({ ...prev, isOpen: false, session: null }));
+      setSelectedFriendLevel(null);
       closeJoinModal();
     } else {
       setMsg({ isOpen: true, title: "提醒", content: json.message, type: "error" });
@@ -286,6 +296,8 @@ export default function Browse() {
 
     if (joinForm.numPlayers === 2) {
       closeJoinModal();
+      setFriendGender("undisclosed");
+      setSelectedFriendLevel(null);
       setFriendLevelModal({ isOpen: true, type: "join", session: target });
       return;
     }
@@ -293,20 +305,21 @@ export default function Browse() {
     await executeJoin(undefined, phone);
   };
 
-  const executeAddFriend = async (friendLevel: number) => {
+  const executeAddFriend = async (friendLevel: number, friendGenderValue: "male" | "female" | "undisclosed") => {
     const targetSession = friendLevelModal.session ?? selectedSession;
     if (!targetSession) return;
     const token = localStorage.getItem("token");
     const res = await fetch(`${API_URL}/api/games/${targetSession.id}/add-friend`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-      body: JSON.stringify({ friendLevel })
+      body: JSON.stringify({ friendLevel, friendGender: friendGenderValue })
     });
     const json = await res.json();
     if (json.success) {
       syncCurrentUserFromStorage();
       void refreshCurrentUserMeta();
       setFriendLevelModal((prev) => ({ ...prev, isOpen: false, session: null }));
+      setSelectedFriendLevel(null);
       setSelectedSession(prev => prev && prev.id === targetSession.id ? { ...prev, friendCount: 1, currentPlayers: prev.currentPlayers + 1 } : prev);
       setSessions((prev) => prev.map((s) => s.id === targetSession.id ? { ...s, friendCount: 1, currentPlayers: s.currentPlayers + 1 } : s));
       fetchData(true);
@@ -345,9 +358,10 @@ export default function Browse() {
     }
   };
 
-  const handleLevelSelect = (level: number) => {
-    if (friendLevelModal.type === "join") executeJoin(level);
-    else executeAddFriend(level);
+  const confirmFriendLevelSelection = () => {
+    if (!selectedFriendLevel) return;
+    if (friendLevelModal.type === "join") executeJoin(selectedFriendLevel, undefined, friendGender);
+    else executeAddFriend(selectedFriendLevel, friendGender);
   };
 
   const FriendLevelSelector = () => {
@@ -362,12 +376,57 @@ export default function Browse() {
           <div className="w-12 h-12 bg-sage/10 rounded-full flex items-center justify-center mx-auto mb-4 text-sage"><ArrowRightLeft size={20} /></div>
           <h3 className="text-xl tracking-[0.2em] text-stone-700 font-light mb-2">同伴的症狀</h3>
           <p className="text-[11px] text-stone-400 italic mb-6">這將影響所內 AI 醫師如何為您們配對</p>
+          <div className="mb-4">
+            <p className="text-[11px] text-stone-500 mb-2">同伴性別（僅供配對）</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: "male", label: "男" },
+                { value: "female", label: "女" },
+                { value: "undisclosed", label: "不提供" }
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFriendGender(opt.value as "male" | "female" | "undisclosed")}
+                  className={`py-2 border-2 border-ink text-[11px] font-bold transition-all ${
+                    friendGender === opt.value ? "bg-sage text-white" : "bg-paper text-ink/80"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-stone-500 mt-2">
+              選「不提供」可正常報名，但在男雙/女雙/混雙模式可能不會進入自動配對。
+            </p>
+          </div>
           <div className="space-y-3">
-            {levels.map(l => (
-              <button key={l.n} onClick={() => handleLevelSelect(l.n)}
-                className="w-full py-4 border-2 border-ink bg-paper hover:bg-sage hover:text-white transition-all text-[12px] tracking-[0.2em] rounded-full uppercase italic font-bold shadow-[4px_4px_0_0_#1A1A1A]">{l.label}</button>
+            {levels.map((l) => (
+              <button
+                key={l.n}
+                onClick={() => setSelectedFriendLevel(l.n)}
+                className={`w-full py-4 border-2 border-ink transition-all text-[12px] tracking-[0.2em] rounded-full uppercase italic font-bold shadow-[4px_4px_0_0_#1A1A1A] ${
+                  selectedFriendLevel === l.n
+                    ? "bg-sage text-white"
+                    : "bg-paper hover:bg-sage hover:text-white"
+                }`}
+              >
+                {l.label}
+              </button>
             ))}
-            <button onClick={() => setFriendLevelModal((prev) => ({ ...prev, isOpen: false, session: null }))}
+            <button
+              type="button"
+              onClick={confirmFriendLevelSelection}
+              disabled={!selectedFriendLevel}
+              className={`w-full py-4 border-2 border-ink text-[12px] tracking-[0.25em] uppercase font-bold transition-all shadow-[4px_4px_0_0_#1A1A1A] ${
+                selectedFriendLevel
+                  ? "bg-sage text-ink hover:bg-sage/80"
+                  : "bg-stone-100 text-stone-400 cursor-not-allowed"
+              }`}
+            >
+              確認
+            </button>
+            <button onClick={() => { setFriendLevelModal((prev) => ({ ...prev, isOpen: false, session: null })); setSelectedFriendLevel(null); }}
               className="w-full py-2 text-stone-500 text-[10px] tracking-widest uppercase mt-4">取消</button>
           </div>
         </div>

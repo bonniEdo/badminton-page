@@ -68,6 +68,8 @@ export default function Dashboard() {
   const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null; }>({ isOpen: false, session: null });
   
   const [levelModal, setLevelModal] = useState({ isOpen: false });
+  const [friendGender, setFriendGender] = useState<"male" | "female" | "undisclosed">("undisclosed");
+  const [selectedFriendLevel, setSelectedFriendLevel] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -256,6 +258,8 @@ export default function Dashboard() {
       });
       return; 
     }
+    setFriendGender("undisclosed");
+    setSelectedFriendLevel(null);
     setLevelModal({ isOpen: true });
   };
 
@@ -269,11 +273,12 @@ export default function Dashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ friendLevel })
+        body: JSON.stringify({ friendLevel, friendGender })
       });
       const json = await res.json();
       if (json.success) {
         setLevelModal({ isOpen: false });
+        setSelectedFriendLevel(null);
         setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
         fetchData(); 
         fetchParticipants(selectedSession.id); 
@@ -284,6 +289,11 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const confirmAddFriend = () => {
+    if (!selectedFriendLevel) return;
+    executeAddFriend(selectedFriendLevel);
   };
 
   const executeDelete = async () => {
@@ -567,7 +577,7 @@ export default function Dashboard() {
             <div className="border-t border-stone/10 pt-6">
               <div className="flex justify-between items-center mb-4"><h3 className="text-[11px] tracking-widest text-ink/70 uppercase">Participants</h3><span className="text-[11px] text-sage italic">{selectedSession.currentPlayers} / {selectedSession.maxPlayers}</span></div>
               <div className="max-h-32 overflow-y-auto custom-scrollbar">
-                <div className="flex flex-wrap gap-2">
+                <div className="participants-list flex flex-wrap gap-2">
                   {participants.map((p, i) => (
                     <div 
                       key={i} 
@@ -579,8 +589,20 @@ export default function Dashboard() {
                       <AvatarBadge avatarUrl={p.AvatarUrl} name={p.Username} size="xs" playerUserId={p.UserId ?? null} />
                       <span>{p.Username}</span> 
                     </div>
-                  ))}
-                </div>
+	                 ))}
+	                <button
+	                  type="button"
+	                  onClick={confirmAddFriend}
+	                  disabled={!selectedFriendLevel}
+	                  className={`w-full py-5 px-6 rounded-full border-2 border-ink text-sm tracking-[0.2em] transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A] ${
+	                    selectedFriendLevel
+	                      ? "bg-sage text-ink hover:bg-sage/80"
+	                      : "bg-stone-100 text-stone-400 cursor-not-allowed"
+	                  }`}
+	                >
+	                  蝣箄?
+	                </button>
+	              </div>
               </div>
             </div>
 
@@ -608,25 +630,77 @@ export default function Dashboard() {
               <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">同伴的症狀</h2>
               <p className="text-[11px] text-ink/70 italic mb-10 tracking-[0.1em]">這將影響 AI 如何為您們配對</p>
               
+              <div className="mb-4">
+                <p className="text-[11px] text-stone-500 mb-2">同伴性別（僅供配對）</p>
+                <div className="friend-gender-grid grid grid-cols-3 gap-2">
+                  {[
+                    { value: "male", label: "男" },
+                    { value: "female", label: "女" },
+                    { value: "undisclosed", label: "不提供" }
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setFriendGender(opt.value as "male" | "female" | "undisclosed")}
+                      className={`py-2 border-2 border-ink text-[11px] font-bold transition-all ${
+                        friendGender === opt.value ? "bg-sage text-white" : "bg-paper text-ink/80"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+	                 ))}
+	                <button
+	                  type="button"
+	                  onClick={confirmAddFriend}
+	                  disabled={!selectedFriendLevel}
+	                  className={`w-full py-5 px-6 rounded-full border-2 border-ink text-sm tracking-[0.2em] transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A] ${
+	                    selectedFriendLevel
+	                      ? "bg-sage text-ink hover:bg-sage/80"
+	                      : "bg-stone-100 text-stone-400 cursor-not-allowed"
+	                  }`}
+	                >
+	                  確認
+	                </button>
+	              </div>
+                <p className="text-[10px] text-stone-500 mt-2">
+                  選「不提供」可正常報名，但在男雙/女雙/混雙模式可能不會進入自動配對。
+                </p>
+              </div>
               <div className="space-y-4">
                  {[
                    { label: "初次碰球 (L1-3)", value: 2 },
                    { label: "重度球毒 (L4-7)", value: 5 },
                    { label: "球得我心 (L8-12)", value: 10 },
                    { label: "球入五臟 (L13-18)", value: 15 }
-                 ].map((lvl) => (
-                   <button 
-                    key={lvl.value}
-                    onClick={() => executeAddFriend(lvl.value)}
-                    className="w-full py-5 px-6 rounded-full border-2 border-ink bg-paper text-ink text-sm tracking-[0.2em] hover:bg-sage hover:text-white transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A]"
-                   >
-                     {lvl.label}
-                   </button>
-                 ))}
-              </div>
+	                 ].map((lvl) => (
+	                   <button 
+	                    key={lvl.value}
+	                    onClick={() => setSelectedFriendLevel(lvl.value)}
+	                    className={`w-full py-5 px-6 rounded-full border-2 border-ink text-sm tracking-[0.2em] transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A] ${
+	                      selectedFriendLevel === lvl.value
+	                        ? "bg-sage text-white"
+	                        : "bg-paper text-ink hover:bg-sage hover:text-white"
+	                    }`}
+	                   >
+	                     {lvl.label}
+	                   </button>
+	                 ))}
+	                <button
+	                  type="button"
+	                  onClick={confirmAddFriend}
+	                  disabled={!selectedFriendLevel}
+	                  className={`w-full py-5 px-6 rounded-full border-2 border-ink text-sm tracking-[0.2em] transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A] ${
+	                    selectedFriendLevel
+	                      ? "bg-sage text-ink hover:bg-sage/80"
+	                      : "bg-stone-100 text-stone-400 cursor-not-allowed"
+	                  }`}
+	                >
+	                  確認
+	                </button>
+	              </div>
 
               <button 
-                onClick={() => setLevelModal({ isOpen: false })}
+                onClick={() => { setLevelModal({ isOpen: false }); setSelectedFriendLevel(null); }}
                 className="mt-10 text-[11px] text-ink/80 tracking-[0.4em] uppercase hover:text-ink"
               >
                 取消
@@ -675,6 +749,8 @@ export default function Dashboard() {
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1A1A1A; border-radius: 10px; }
+        .participants-list > button { display: none; }
+        .friend-gender-grid > button:nth-child(n+4) { display: none; }
       `}</style>
     </div>
   );

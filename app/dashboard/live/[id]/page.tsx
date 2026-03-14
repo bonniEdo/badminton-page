@@ -14,6 +14,47 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "
 const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
 
 type Strategy = "fairness" | "peak";
+type PairingMode = "open_doubles" | "men_doubles" | "women_doubles" | "mixed_doubles";
+type PairingGender = "male" | "female" | "undisclosed";
+
+const PAIRING_MODE_OPTIONS: Array<{ value: PairingMode; label: string }> = [
+  { value: "open_doubles", label: "自由雙" },
+  { value: "men_doubles", label: "男雙" },
+  { value: "women_doubles", label: "女雙" },
+  { value: "mixed_doubles", label: "混雙" },
+];
+
+const PAIRING_MODE_LABEL: Record<PairingMode, string> = {
+  open_doubles: "自由雙",
+  men_doubles: "男雙",
+  women_doubles: "女雙",
+  mixed_doubles: "混雙",
+};
+
+const normalizePairingGender = (rawGender: unknown): PairingGender => {
+  const normalized = String(rawGender || "").trim().toLowerCase();
+  if (normalized === "male" || normalized === "female") return normalized;
+  return "undisclosed";
+};
+
+const isPlayerEligibleForMode = (mode: PairingMode, gender: PairingGender) => {
+  if (mode === "open_doubles") return true;
+  if (mode === "men_doubles") return gender === "male";
+  if (mode === "women_doubles") return gender === "female";
+  return gender === "male" || gender === "female";
+};
+
+const isPairingModeCompatiblePlayers = (mode: PairingMode, playerRows: any[]) => {
+  if (!Array.isArray(playerRows) || playerRows.length !== 4) return false;
+  const genders = playerRows.map((player) => normalizePairingGender(player?.pairingGender));
+  if (mode === "open_doubles") return true;
+  if (mode === "men_doubles") return genders.every((gender) => gender === "male");
+  if (mode === "women_doubles") return genders.every((gender) => gender === "female");
+  const teamA = [genders[0], genders[1]];
+  const teamB = [genders[2], genders[3]];
+  const isMixedTeam = (team: PairingGender[]) => team.includes("male") && team.includes("female");
+  return isMixedTeam(teamA) && isMixedTeam(teamB);
+};
 
 export default function LiveBoard({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -36,6 +77,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   const [isSyncingNextGroup, setIsSyncingNextGroup] = useState(false);
   const [nextGroupLoaded, setNextGroupLoaded] = useState(false);
   const [globalStrategy, setGlobalStrategy] = useState<Strategy>("fairness");
+  const [pairingMode, setPairingMode] = useState<PairingMode>("open_doubles");
   const [teammatePairCounts, setTeammatePairCounts] = useState<Record<string, number>>({});
   const [pairingSeedBase, setPairingSeedBase] = useState<string>("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
@@ -386,9 +428,50 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     return (hash >>> 0) / 4294967296;
   };
 
+  const getPlayerPairingGender = (player: any): PairingGender =>
+    normalizePairingGender(player?.pairingGender);
+
+  const handlePairingModeChange = (mode: PairingMode) => {
+    markLocalSelectionInteraction();
+    setPairingMode(mode);
+
+    const selectedRows = nextSlots
+      .map((slotPlayerId) => players.find((player) => player.playerId === slotPlayerId))
+      .filter(Boolean);
+    if (selectedRows.length !== 4) return;
+    if (isPairingModeCompatiblePlayers(mode, selectedRows)) return;
+
+    setNextSlots([null, null, null, null]);
+    setSelectedPlayerIds([]);
+    setSwappingSlotIdx(null);
+    setActiveMobileSlotIdx(null);
+    if (isMobileLayout) setIsBenchOpen(false);
+    setMsg({
+      isOpen: true,
+      title: "配對模式已更新",
+      content: `原先球員組合不符合「${PAIRING_MODE_LABEL[mode]}」，已清空待上場名單。`,
+      type: "info",
+      teamANames: "",
+      teamBNames: "",
+      onConfirm: null,
+      onCancel: null
+    });
+  };
+
   const handleBenchPlayerClick = (playerId: number) => {
     const picked = players.find((p) => p.playerId === playerId);
     if (!picked || picked.status !== "idle") {
+      return;
+    }
+    const inNextIdx = nextSlots.indexOf(playerId);
+    if (inNextIdx !== -1) {
+      markLocalSelectionInteraction();
+      const newSlots = [...nextSlots];
+      newSlots[inNextIdx] = null;
+      setNextSlots(newSlots);
+      return;
+    }
+    if (!isPlayerEligibleForMode(pairingMode, getPlayerPairingGender(picked))) {
       return;
     }
 
@@ -422,13 +505,6 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       return;
     }
 
-    const inNextIdx = nextSlots.indexOf(playerId);
-    if (inNextIdx !== -1) {
-      const newSlots = [...nextSlots];
-      newSlots[inNextIdx] = null;
-      setNextSlots(newSlots);
-      return;
-    }
     setSelectedPlayerIds(prev => {
       if (prev.includes(playerId)) return prev.filter(id => id !== playerId);
       if (prev.length >= 4) return [...prev.slice(1), playerId];
@@ -477,9 +553,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
   const handleAIAutoFill = () => {
     markLocalSelectionInteraction();
-    const idle = players.filter(p => p.status === 'idle' && !nextSlots.includes(p.playerId));
+    const idle = players.filter((p) => (
+      p.status === "idle" &&
+      !nextSlots.includes(p.playerId) &&
+      isPlayerEligibleForMode(pairingMode, getPlayerPairingGender(p))
+    ));
     if (idle.length < 4) {
-      setMsg({ isOpen: true, title: "遺憾", content: "待命病友不足四位，無法啟動智慧配對。", type: "info", teamANames:"", teamBNames:"", onConfirm:null, onCancel:null });
+      setMsg({ isOpen: true, title: "遺憾", content: "待命球友不足四位，無法啟動智慧配對。", type: "info", teamANames:"", teamBNames:"", onConfirm:null, onCancel:null });
       return;
     }
 
@@ -492,7 +572,25 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       pool.sort((a, b) => b.level - a.level || a.games_played - b.games_played || getTime(a) - getTime(b));
     }
 
-    const selected4 = pool.slice(0, 4);
+    let selected4 = pool.slice(0, 4);
+    if (pairingMode === "mixed_doubles") {
+      const malePool = pool.filter((player) => getPlayerPairingGender(player) === "male");
+      const femalePool = pool.filter((player) => getPlayerPairingGender(player) === "female");
+      if (malePool.length < 2 || femalePool.length < 2) {
+        setMsg({
+          isOpen: true,
+          title: "配對失敗",
+          content: "混雙需要至少 2 位男性與 2 位女性，且都要提供性別。",
+          type: "info",
+          teamANames: "",
+          teamBNames: "",
+          onConfirm: null,
+          onCancel: null
+        });
+        return;
+      }
+      selected4 = [...malePool.slice(0, 2), ...femalePool.slice(0, 2)];
+    }
     const pairings = [
       [0, 1, 2, 3],
       [0, 2, 1, 3],
@@ -515,6 +613,10 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           (teammatePairCounts[getPairKey(b1.playerId, b2.playerId)] || 0)) *
         REPEAT_TEAMMATE_WEIGHT;
 
+      if (!isPairingModeCompatiblePlayers(pairingMode, [a1, a2, b1, b2])) {
+        return { p, total: Number.POSITIVE_INFINITY, randomTieBreak: 0 };
+      }
+
       const total = balancePenalty + repeatPenalty;
       const randomTieBreak = getSeededUnit(`${pairingSeedBase}:${selected4.map(p0 => p0.playerId).join("-")}:${idx}`);
 
@@ -528,6 +630,20 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
       }
       return x.total - y.total;
     });
+
+    if (!Number.isFinite(scoredPairings[0]?.total)) {
+      setMsg({
+        isOpen: true,
+        title: "配對失敗",
+        content: `目前球員組合無法產生「${PAIRING_MODE_LABEL[pairingMode]}」對戰。`,
+        type: "info",
+        teamANames: "",
+        teamBNames: "",
+        onConfirm: null,
+        onCancel: null
+      });
+      return;
+    }
 
     const best = scoredPairings[0].p;
     setNextSlots([
@@ -549,21 +665,51 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
 
   const executeStartMatch = async (courtNum: string) => {
     if (nextSlots.some(s => s === null)) return;
+    const selectedRows = nextSlots
+      .map((slotPlayerId) => players.find((player) => player.playerId === slotPlayerId))
+      .filter(Boolean);
+    if (!isPairingModeCompatiblePlayers(pairingMode, selectedRows)) {
+      setMsg({
+        isOpen: true,
+        title: "配對模式不符",
+        content: `目前名單不符合「${PAIRING_MODE_LABEL[pairingMode]}」，請重新調整後再開賽。`,
+        type: "info",
+        teamANames: "",
+        teamBNames: "",
+        onConfirm: null,
+        onCancel: null
+      });
+      return;
+    }
+
     const token = localStorage.getItem("token");
     const res = await fetch(`${API_URL}/api/match/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ 
         gameId, courtNumber: courtNum,
+        pairingMode,
         players: { a1: nextSlots[0], a2: nextSlots[1], b1: nextSlots[2], b2: nextSlots[3] } 
       })
     });
-    if (res.ok) {
+    const json = await res.json().catch(() => null);
+    if (res.ok && json?.success !== false) {
       setNextSlots([null, null, null, null]);
       setActiveMobileSlotIdx(null);
       if (isMobileLayout) setIsBenchOpen(false);
       void fetchData();
+      return;
     }
+    setMsg({
+      isOpen: true,
+      title: "開賽失敗",
+      content: json?.message || "無法建立對戰，請稍後再試。",
+      type: "info",
+      teamANames: "",
+      teamBNames: "",
+      onConfirm: null,
+      onCancel: null
+    });
   };
 
   const executeFinishMatch = async (matchId: number, winner: 'A' | 'B' | 'none') => {
@@ -653,7 +799,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   }) => {
     if (!playerId) {
       return (
-        <div className={`italic flex items-center gap-1 ${compact ? "text-[12px] text-ink/60" : "text-[12px] text-stone-500"}`}>
+        <div className={`italic flex items-center gap-1 ${compact ? "text-[11px] text-paper/70 truncate" : "text-[12px] text-stone-500"}`}>
           {emptyLabel}
         </div>
       );
@@ -662,9 +808,12 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
     if (!p) return null;
     if (compact) {
       return (
-        <div className="flex items-center gap-2 min-w-0">
-          <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
-          <span className="text-[12px] font-bold text-ink truncate">{p.displayName}</span>
+        <div className="flex flex-col items-start w-full min-w-0 gap-0.5 text-paper">
+          <div className="flex items-center gap-2 w-full min-w-0 whitespace-nowrap">
+            <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
+            <span className="text-[12px] italic text-paper/90">L{Math.floor(p.level)}</span>
+          </div>
+          <span title={p.displayName} className="text-[12px] font-bold truncate text-paper/95">{p.displayName}</span>
         </div>
       );
     }
@@ -688,6 +837,11 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
   const slotLabels = ["左上", "左下", "右上", "右下"];
   const activeMobileSlotLabel =
     activeMobileSlotIdx !== null ? slotLabels[activeMobileSlotIdx] : null;
+  const selectedRows = nextSlots
+    .map((slotPlayerId) => players.find((player) => player.playerId === slotPlayerId))
+    .filter(Boolean);
+  const isCurrentSlotsModeValid =
+    selectedRows.length === 4 && isPairingModeCompatiblePlayers(pairingMode, selectedRows);
 
   return (
     <div className="min-h-dvh neu-page text-stone-800 font-serif flex flex-col overflow-hidden pb-20 md:pb-0">
@@ -779,15 +933,16 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
               const isIdle = p.status === 'idle';
               const isInNext = nextSlots.includes(p.playerId);
               const isMobilePickBlocked = isMobileLayout && activeMobileSlotIdx === null;
-              const isUnavailable = !isIdle;
+              const isModeUnavailable = !isPlayerEligibleForMode(pairingMode, getPlayerPairingGender(p));
+              const isUnavailable = !isIdle || (isModeUnavailable && !isInNext);
               return (
                 <div key={p.playerId} onClick={() => !isUnavailable && !isMobilePickBlocked && handleBenchPlayerClick(p.playerId)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                    isSelected ? 'bg-sage border-sage text-white shadow-lg' :
-                    isUnavailable ? 'opacity-30 grayscale pointer-events-none' :
-                    isMobilePickBlocked ? 'opacity-50 cursor-not-allowed bg-stone-100 border-stone-200 text-stone-500' :
-                    isInNext ? 'bg-sage/10 border-sage/30 text-sage' : 'bg-paper/70 border-stone/30 hover:border-sage/30'
-                  }`}>
+	                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
+	                    isSelected ? 'bg-sage border-sage text-white shadow-lg' :
+	                    isUnavailable ? 'opacity-30 grayscale' :
+	                    isMobilePickBlocked ? 'opacity-50 cursor-not-allowed bg-stone-100 border-stone-200 text-stone-500' :
+	                    isInNext ? 'bg-sage/10 border-sage/30 text-sage' : 'bg-paper/70 border-stone/30 hover:border-sage/30'
+	                  }`}>
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2 min-w-0">
@@ -826,6 +981,27 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                   <button onClick={() => setGlobalStrategy("peak")} className={`px-4 py-1.5 rounded-sm text-[12px] tracking-widest transition-all border ${globalStrategy === "peak" ? "bg-paper text-sage border-ink font-bold" : "text-stone-500 border-transparent"}`}>巔峰對決</button>
                 </div>
               </div>
+
+              <div className="flex justify-center mb-3">
+                <div className="inline-flex flex-wrap justify-center bg-stone-50 p-1 rounded-sm border-2 border-ink gap-1">
+                  {PAIRING_MODE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handlePairingModeChange(option.value)}
+                      className={`px-3 py-1.5 rounded-sm text-[12px] tracking-widest transition-all border ${
+                        pairingMode === option.value
+                          ? "bg-paper text-sage border-ink font-bold"
+                          : "text-stone-500 border-transparent"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {pairingMode !== "open_doubles" && (
+                <p className="text-[12px] text-stone-500 text-center mb-5">未提供性別的球友，在此模式不會被納入配對。</p>
+              )}
 
               <div className="flex flex-col items-center gap-8">
                 <div className="relative bg-sage border-2 border-ink rounded-md w-full md:w-2/3 aspect-[13.4/6.1] overflow-hidden">
@@ -899,6 +1075,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
             {Array.from({ length: courtCount }, (_, i) => (i + 1).toString()).map(num => {
               const match = matches.find(m => m.court_number === num);
               const isFull = nextSlots.every(s => s !== null);
+              const canStartMatch = isFull && isCurrentSlotsModeValid;
               const label = courtLabels[parseInt(num) - 1] || num;
 
               return (
@@ -938,16 +1115,16 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                             VS
                           </div>
 
-                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ top: "13%", left: "6.8%", width: "27.2%" }}>
+                          <div className="absolute flex items-center justify-center px-2 text-center" style={{ left: "5.67%", top: "7.54%", width: "29.55%", height: "42.46%" }}>
                             <MagnetPlayer playerId={match.player_a1} compact emptyLabel="左上待補" />
                           </div>
-                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ bottom: "13%", left: "6.8%", width: "27.2%" }}>
+                          <div className="absolute flex items-center justify-center px-2 text-center" style={{ left: "5.67%", top: "50%", width: "29.55%", height: "42.46%" }}>
                             <MagnetPlayer playerId={match.player_a2} compact emptyLabel="左下待補" />
                           </div>
-                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ top: "13%", left: "66%", width: "27.2%" }}>
+                          <div className="absolute flex items-center justify-center px-2 text-center" style={{ left: "64.78%", top: "7.54%", width: "29.55%", height: "42.46%" }}>
                             <MagnetPlayer playerId={match.player_b1} compact emptyLabel="右上待補" />
                           </div>
-                          <div className="absolute rounded-sm border-2 border-ink bg-paper/95 px-2 py-1.5" style={{ bottom: "13%", left: "66%", width: "27.2%" }}>
+                          <div className="absolute flex items-center justify-center px-2 text-center" style={{ left: "64.78%", top: "50%", width: "29.55%", height: "42.46%" }}>
                             <MagnetPlayer playerId={match.player_b2} compact emptyLabel="右下待補" />
                           </div>
                         </div>
@@ -967,10 +1144,13 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center py-6 space-y-6 border-2 border-dashed border-stone-50 rounded-[1.5rem]">
                         <p className="text-[12px] text-stone-500 italic tracking-widest">靜候入所</p>
-                        <button onClick={() => executeStartMatch(num)} disabled={!isFull}
-                          className={`px-8 py-3 rounded-full text-[12px] tracking-[0.3em] uppercase font-bold transition-all ${isFull ? 'bg-sage text-white shadow-lg shadow-sage/20 scale-105' : 'bg-stone-50 text-stone-500 cursor-not-allowed'}`}>
+                        <button onClick={() => executeStartMatch(num)} disabled={!canStartMatch}
+                          className={`px-8 py-3 rounded-full text-[12px] tracking-[0.3em] uppercase font-bold transition-all ${canStartMatch ? 'bg-sage text-white shadow-lg shadow-sage/20 scale-105' : 'bg-stone-50 text-stone-500 cursor-not-allowed'}`}>
                           呼叫預備組
                         </button>
+                        {isFull && !isCurrentSlotsModeValid && (
+                          <p className="text-[12px] text-stone-500">{`目前名單不符合「${PAIRING_MODE_LABEL[pairingMode]}」`}</p>
+                        )}
                       </div>
                     )}
                   </div>

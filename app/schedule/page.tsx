@@ -53,6 +53,8 @@ export default function SchedulePage() {
   const [cancelMenu, setCancelMenu] = useState<{ isOpen: boolean; session: Session | null }>({ isOpen: false, session: null });
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [levelModal, setLevelModal] = useState({ isOpen: false });
+  const [friendGender, setFriendGender] = useState<"male" | "female" | "undisclosed">("undisclosed");
+  const [selectedFriendLevel, setSelectedFriendLevel] = useState<number | null>(null);
 
   useEffect(() => {
     if (pathname !== "/schedule") return;
@@ -234,6 +236,8 @@ export default function SchedulePage() {
       setMsg({ isOpen: true, title: "提 醒", content: "每人限攜一位同伴", type: "info" });
       return;
     }
+    setFriendGender("undisclosed");
+    setSelectedFriendLevel(null);
     setLevelModal({ isOpen: true });
   };
 
@@ -244,17 +248,23 @@ export default function SchedulePage() {
       const res = await fetch(`${API_URL}/api/games/${selectedSession.id}/add-friend`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ friendLevel })
+        body: JSON.stringify({ friendLevel, friendGender })
       });
       const json = await res.json();
       if (json.success) {
         setLevelModal({ isOpen: false });
+        setSelectedFriendLevel(null);
         setSelectedSession(prev => prev ? { ...prev, friendCount: 1 } : null);
         setAllSessions(prev => prev.map(s => s.id === selectedSession.id ? { ...s, friendCount: 1 } : s));
         fetchData(true);
         setMsg({ isOpen: true, title: "攜友入所", content: "已為同伴辦理入所手續。", type: "success" });
       } else { alert(json.message); }
     } catch (err) { console.error(err); }
+  };
+
+  const confirmAddFriend = () => {
+    if (!selectedFriendLevel) return;
+    executeAddFriend(selectedFriendLevel);
   };
 
   const sortedSessions = useMemo(() => {
@@ -582,13 +592,53 @@ export default function SchedulePage() {
             <div className="mx-auto w-16 h-16 bg-sage/5 rounded-full flex items-center justify-center mb-8"><Layout className="text-sage opacity-50" size={24}/></div>
             <h2 className="text-3xl tracking-[0.3em] text-stone-700 font-light mb-2">同伴的症狀</h2>
             <p className="text-[11px] text-ink/70 italic mb-10 tracking-[0.1em]">這將影響所內 AI 醫師如何為您們配對</p>
+            <div className="mb-4">
+              <p className="text-[11px] text-stone-500 mb-2">同伴性別（僅供配對）</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: "male", label: "男" },
+                  { value: "female", label: "女" },
+                  { value: "undisclosed", label: "不提供" }
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setFriendGender(opt.value as "male" | "female" | "undisclosed")}
+                    className={`py-2 border-2 border-ink text-[11px] font-bold transition-all ${
+                      friendGender === opt.value ? "bg-sage text-white" : "bg-paper text-ink/80"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-stone-500 mt-2">
+                選「不提供」可正常報名，但在男雙/女雙/混雙模式可能不會進入自動配對。
+              </p>
+            </div>
             <div className="space-y-4">
               {[{ label: "初次碰球 (L1-3)", value: 2 }, { label: "重度球毒 (L4-7)", value: 5 }, { label: "球得我心 (L8-12)", value: 10 }, { label: "球入五臟 (L13-18)", value: 15 }].map((lvl) => (
-                <button key={lvl.value} onClick={() => executeAddFriend(lvl.value)}
-                  className="w-full py-5 px-6 rounded-full border-2 border-ink bg-paper text-ink text-sm tracking-[0.2em] hover:bg-sage hover:text-white transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A]">{lvl.label}</button>
+                <button key={lvl.value} onClick={() => setSelectedFriendLevel(lvl.value)}
+                  className={`w-full py-5 px-6 rounded-full border-2 border-ink text-sm tracking-[0.2em] transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A] ${
+                    selectedFriendLevel === lvl.value
+                      ? "bg-sage text-white"
+                      : "bg-paper text-ink hover:bg-sage hover:text-white"
+                  }`}>{lvl.label}</button>
               ))}
+              <button
+                type="button"
+                onClick={confirmAddFriend}
+                disabled={!selectedFriendLevel}
+                className={`w-full py-5 px-6 rounded-full border-2 border-ink text-sm tracking-[0.2em] transition-all duration-300 font-light shadow-[4px_4px_0_0_#1A1A1A] ${
+                  selectedFriendLevel
+                    ? "bg-sage text-ink hover:bg-sage/80"
+                    : "bg-stone-100 text-stone-400 cursor-not-allowed"
+                }`}
+              >
+                確認
+              </button>
             </div>
-            <button onClick={() => setLevelModal({ isOpen: false })} className="mt-10 text-[11px] text-ink/80 tracking-[0.4em] uppercase hover:text-ink">取消</button>
+            <button onClick={() => { setLevelModal({ isOpen: false }); setSelectedFriendLevel(null); }} className="mt-10 text-[11px] text-ink/80 tracking-[0.4em] uppercase hover:text-ink">取消</button>
           </div>
         </div>
       )}

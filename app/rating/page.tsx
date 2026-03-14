@@ -53,12 +53,18 @@ const yearsOptions = [
   { label: "5  年以上", bonus: 3 },
 ];
 
+const genderOptions = [
+  { value: "male", label: "男", hint: "可參與男雙與混雙（男位）自動配對" },
+  { value: "female", label: "女", hint: "可參與女雙與混雙（女位）自動配對" },
+  { value: "undisclosed", label: "不提供", hint: "可打自由雙；性別模式下可能不被自動配對（可手動安排）" },
+];
+
 export default function RatingWizardPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<typeof categories[number] | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [formData, setFormData] = useState({ years: "", level: "" });
+  const [formData, setFormData] = useState({ level: "", gender: "" });
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [countdown, setCountdown] = useState(5);
@@ -99,6 +105,10 @@ export default function RatingWizardPage() {
     if (userStr) {
       const user = JSON.parse(userStr);
       if (user.is_profile_completed) router.replace("/browse");
+      const currentGender = typeof user.gender === "string" ? user.gender : "";
+      if (["male", "female", "undisclosed"].includes(currentGender)) {
+        setFormData((prev) => ({ ...prev, gender: currentGender }));
+      }
     }
   }, [router]);
 
@@ -108,17 +118,17 @@ export default function RatingWizardPage() {
     router.push("/browse");
   };
 
-  const computeLevel = (cat: typeof categories[number], bonus: number) =>
-    Math.min(cat.base + bonus, cat.max);
+  const handleSelectGender = (gender: string) => {
+    setFormData((prev) => ({ ...prev, gender }));
+  };
 
-  const handleSelectYears = (opt: typeof yearsOptions[number]) => {
-    if (!selectedCategory) return;
-    const level = computeLevel(selectedCategory, opt.bonus);
-    setFormData({ years: opt.label, level: String(level) });
+  const proceedFromStep2 = () => {
+    if (!formData.level || !formData.gender) return;
     goToStep(3);
   };
 
   const handleFinish = async () => {
+    if (!formData.gender) return;
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/user/complete-rating`, {
@@ -130,6 +140,7 @@ export default function RatingWizardPage() {
         const userStr = localStorage.getItem("user");
         let user = userStr ? JSON.parse(userStr) : {};
         user.is_profile_completed = true;
+        user.gender = formData.gender;
         localStorage.setItem("user", JSON.stringify(user));
         router.push("/browse");
       }
@@ -207,7 +218,7 @@ export default function RatingWizardPage() {
                               {cat.desc}
                             </p>
                             <button
-                              onClick={() => goToStep(2)}
+                              onClick={() => { setFormData((prev) => ({ ...prev, level: String(cat.base) })); goToStep(2); }}
                               className="w-full py-3.5 bg-sage text-ink text-[11px] tracking-[0.4em] hover:bg-sage/80 transition-all uppercase rounded-full font-bold border-2 border-ink shadow-[4px_4px_0_0_#1A1A1A]">
                               確認症狀 · 下一步
                             </button>
@@ -232,13 +243,43 @@ export default function RatingWizardPage() {
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
               <p className="text-sm text-stone-500 tracking-[0.2em] italic">這場與羽球的邂逅，持續了多久？</p>
             </div>
-            <div className="space-y-5">
-              {yearsOptions.map((opt) => (
-                <button key={opt.label} onClick={() => handleSelectYears(opt)}
-                  className="w-full py-7 border-2 border-ink bg-white hover:bg-sage hover:text-white transition-all text-base tracking-[0.4em] text-stone-500 rounded-2xl shadow-[4px_4px_0_0_#1A1A1A] active:scale-[0.98]">
-                  {opt.label}
-                </button>
-              ))}
+            <div className="rounded-2xl border-2 border-ink bg-white px-5 py-4 text-sm text-stone-600">
+              初始等級已依你上一步選的分類設定：<span className="font-bold text-sage">Lv.{formData.level || "-"}</span>
+            </div>
+            <div className="mt-10 space-y-3">
+              <p className="text-xs tracking-[0.12em] text-stone-500">
+                性別（僅供配對使用，不公開顯示）
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {genderOptions.map((opt) => {
+                  const isActive = formData.gender === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleSelectGender(opt.value)}
+                      className={`py-3 border-2 border-ink text-sm font-bold transition-all ${isActive ? "bg-sage text-white" : "bg-white text-ink/80"}`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[12px] text-stone-500 leading-relaxed">
+                {genderOptions.find((opt) => opt.value === formData.gender)?.hint || "請先選擇性別"}
+              </p>
+              <button
+                type="button"
+                onClick={proceedFromStep2}
+                disabled={!formData.level || !formData.gender}
+                className={`w-full py-3.5 border-2 border-ink text-[11px] tracking-[0.3em] uppercase font-bold transition-all ${
+                  formData.level && formData.gender
+                    ? "bg-sage text-ink shadow-[4px_4px_0_0_#1A1A1A]"
+                    : "bg-stone-100 text-stone-400 cursor-not-allowed"
+                }`}
+              >
+                下一步
+              </button>
             </div>
           </div>
         )}

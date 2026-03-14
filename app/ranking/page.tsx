@@ -21,6 +21,7 @@ const isBrowserProduction = typeof window !== "undefined" && window.location.hos
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "http://localhost:3000");
 
 type RankType = "score" | "active" | "progress";
+type GenderFilter = "overall" | "male" | "female";
 
 interface RankRow {
   rank: number;
@@ -57,6 +58,7 @@ interface RankRow {
 
 interface RankingPayload {
   type: RankType;
+  genderFilter?: GenderFilter;
   generatedAt: string;
   leaderboard: RankRow[];
   podium: RankRow[];
@@ -80,6 +82,11 @@ const TYPE_TAB_LABEL: Record<RankType, string> = {
   progress: "進步",
 };
 const RANK_TYPES: RankType[] = ["score", "active", "progress"];
+const GENDER_FILTERS: Array<{ value: GenderFilter; label: string }> = [
+  { value: "overall", label: "綜合" },
+  { value: "male", label: "男生" },
+  { value: "female", label: "女生" },
+];
 
 type FetchRankingOptions = {
   silent?: boolean;
@@ -93,11 +100,19 @@ export default function RankingPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeType, setActiveType] = useState<RankType>("score");
-  const [payloadByType, setPayloadByType] = useState<Partial<Record<RankType, RankingPayload>>>({});
+  const [activeGenderFilter, setActiveGenderFilter] = useState<GenderFilter>("overall");
+  const [payloadByKey, setPayloadByKey] = useState<Record<string, RankingPayload>>({});
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [isRankingPublic, setIsRankingPublic] = useState(true);
   const [showScoreDetail, setShowScoreDetail] = useState(false);
-  const requestSeqRef = useRef<Record<RankType, number>>({ score: 0, active: 0, progress: 0 });
+  const requestSeqRef = useRef<Record<string, number>>({});
+  const resolveGenderFilterForType = (type: RankType): GenderFilter => (
+    type === "score" ? activeGenderFilter : "overall"
+  );
+  const buildPayloadKey = (type: RankType, genderFilter: GenderFilter) => `${type}:${genderFilter}`;
+  const activeGenderForType = resolveGenderFilterForType(activeType);
+  const activePayloadKey = buildPayloadKey(activeType, activeGenderForType);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -106,10 +121,13 @@ export default function RankingPage() {
       const userRaw = localStorage.getItem("user");
       if (userRaw) {
         try {
-          const user = JSON.parse(userRaw) as { id?: number | string };
+          const user = JSON.parse(userRaw) as { id?: number | string; is_ranking_public?: boolean };
           const parsedId = Number(user?.id);
           if (Number.isInteger(parsedId) && parsedId > 0) {
             setCurrentUserId(parsedId);
+          }
+          if (typeof user?.is_ranking_public === "boolean") {
+            setIsRankingPublic(user.is_ranking_public);
           }
         } catch {}
       }
@@ -123,29 +141,40 @@ export default function RankingPage() {
       setLoading(false);
       return;
     }
-    const hasCached = !!payloadByType[activeType];
-    void fetchRankings(activeType, {
+    const hasCached = !!payloadByKey[activePayloadKey];
+    void fetchRankings(activeType, activeGenderForType, {
       silent: hasCached,
       showRefreshing: hasCached,
       surfaceError: true,
     });
-  }, [activeType, bootstrapped, isLoggedIn]);
+  }, [activeType, activeGenderForType, activePayloadKey, bootstrapped, isLoggedIn]);
 
   useEffect(() => {
     if (!bootstrapped || !isLoggedIn) return;
     const missingTypes = RANK_TYPES.filter(
-      (type) => type !== activeType && !payloadByType[type] && requestSeqRef.current[type] === 0
+      (type) => {
+        if (type === activeType) return false;
+        const genderFilter = resolveGenderFilterForType(type);
+        const key = buildPayloadKey(type, genderFilter);
+        return !payloadByKey[key] && (requestSeqRef.current[key] || 0) === 0;
+      }
     );
     if (missingTypes.length === 0) return;
     for (const type of missingTypes) {
-      void fetchRankings(type, { silent: true, showRefreshing: false, surfaceError: false });
+      const genderFilter = resolveGenderFilterForType(type);
+      void fetchRankings(type, genderFilter, { silent: true, showRefreshing: false, surfaceError: false });
     }
-  }, [activeType, bootstrapped, isLoggedIn, payloadByType]);
+  }, [activeType, activeGenderFilter, bootstrapped, isLoggedIn, payloadByKey]);
 
-  const fetchRankings = async (type: RankType, options: FetchRankingOptions = {}) => {
+  const fetchRankings = async (
+    type: RankType,
+    genderFilter: GenderFilter,
+    options: FetchRankingOptions = {}
+  ) => {
     const { silent = false, showRefreshing = silent, surfaceError = true } = options;
-    const requestSeq = (requestSeqRef.current[type] || 0) + 1;
-    requestSeqRef.current[type] = requestSeq;
+    const requestKey = buildPayloadKey(type, genderFilter);
+    const requestSeq = (requestSeqRef.current[requestKey] || 0) + 1;
+    requestSeqRef.current[requestKey] = requestSeq;
     try {
       if (silent && showRefreshing) setRefreshing(true);
       else setLoading(true);
@@ -157,7 +186,7 @@ export default function RankingPage() {
         return;
       }
 
-      const res = await fetch(`${API_URL}/api/user/rankings?type=${type}`, {
+      const res = await fetch(`${API_URL}/api/user/rankings?type=${type}&genderFilter=${genderFilter}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "ngrok-skip-browser-warning": "true",
@@ -165,38 +194,84 @@ export default function RankingPage() {
         cache: "no-store",
       });
 
-      if (requestSeq !== requestSeqRef.current[type]) return;
+      if (requestSeq !== requestSeqRef.current[requestKey]) return;
 
       if (res.status === 401) {
         setIsLoggedIn(false);
-        setPayloadByType({});
+        setPayloadByKey({});
         return;
       }
 
       const json = (await res.json()) as { success?: boolean; data?: RankingPayload; message?: string };
-      if (requestSeq !== requestSeqRef.current[type]) return;
+      if (requestSeq !== requestSeqRef.current[requestKey]) return;
       if (json.success && json.data) {
-        setPayloadByType((prev) => ({ ...prev, [type]: json.data }));
+        const payloadData = json.data;
+        setPayloadByKey((prev) => ({ ...prev, [requestKey]: payloadData }));
+        setIsRankingPublic(payloadData.myVisibility !== false);
         return;
       }
       if (surfaceError) {
         setError(json.message || "排行榜暫時讀取失敗");
       }
     } catch (e) {
-      if (requestSeq !== requestSeqRef.current[type]) return;
+      if (requestSeq !== requestSeqRef.current[requestKey]) return;
       console.error("Fetch rankings failed:", e);
       if (surfaceError) {
         setError("排行榜暫時讀取失敗");
       }
     } finally {
-      if (requestSeq !== requestSeqRef.current[type]) return;
+      if (requestSeq !== requestSeqRef.current[requestKey]) return;
       if (!silent) setLoading(false);
       if (silent && showRefreshing) setRefreshing(false);
     }
   };
 
-  const payload = payloadByType[activeType] || null;
-  const isRankingPublic = payload?.myVisibility !== false;
+  const handleVisibilityToggle = async () => {
+    const nextValue = !isRankingPublic;
+    setIsRankingPublic(nextValue);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsLoggedIn(false);
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/user/ranking-visibility`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ isPublic: nextValue }),
+      });
+
+      const json = (await res.json()) as { success?: boolean; user?: { is_ranking_public?: boolean }; message?: string };
+      if (!res.ok || !json.success) {
+        setIsRankingPublic(!nextValue);
+        setError(json.message || "公開設定更新失敗");
+        return;
+      }
+
+      const userRaw = localStorage.getItem("user");
+      if (userRaw) {
+        try {
+          const user = JSON.parse(userRaw) as Record<string, unknown>;
+          user.is_ranking_public = json.user?.is_ranking_public ?? nextValue;
+          localStorage.setItem("user", JSON.stringify(user));
+        } catch {}
+      }
+
+      void fetchRankings(activeType, activeGenderForType, { silent: true, showRefreshing: true, surfaceError: true });
+    } catch (e) {
+      console.error("Update ranking visibility failed:", e);
+      setIsRankingPublic(!nextValue);
+      setError("公開設定更新失敗");
+    }
+  };
+
+  const payload = payloadByKey[activePayloadKey] || null;
 
   const generatedAtText = useMemo(() => {
     if (!payload?.generatedAt) return "每日 00:00";
@@ -319,6 +394,25 @@ export default function RankingPage() {
                     );
                   })}
                 </div>
+                {activeType === "score" && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {GENDER_FILTERS.map((filter) => {
+                      const isActive = activeGenderFilter === filter.value;
+                      return (
+                        <button
+                          key={filter.value}
+                          type="button"
+                          onClick={() => setActiveGenderFilter(filter.value)}
+                          className={`border-2 border-ink px-3 py-1 text-xs font-black tracking-[0.08em] ${
+                            isActive ? "bg-paper text-sage" : "bg-paper/70 text-ink/65 hover:bg-sage/12"
+                          }`}
+                        >
+                          {filter.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
             <div className="text-right text-xs text-ink/70">
@@ -333,11 +427,7 @@ export default function RankingPage() {
             {TYPE_HEADER_LABEL[activeType]}
           </h1>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 text-center">
-            <div className="p-3 bg-paper/70 border border-ink">
-              <p className="text-xs tracking-[0.12em] text-ink/60">排行榜人數</p>
-              <p className="text-xl font-black mt-1">{payload?.total || 0}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-2 md:gap-3 text-center">
             <div className="p-3 bg-paper/70 border border-ink">
               <p className="text-xs tracking-[0.12em] text-ink/60">我的名次</p>
               <p className="text-xl font-black mt-1">{myRank ? `#${myRank.rank}` : "-"}</p>
