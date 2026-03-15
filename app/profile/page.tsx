@@ -750,8 +750,14 @@ export default function ProfilePage() {
     if (!gameDate) return false;
     return gameDate.getTime() < Date.now();
   });
-  const attendedCount = pastSignups.filter((s: any) => !!(s.check_in_at ?? s.CheckInAt)).length;
-  const attendanceRate = pastSignups.length > 0 ? Math.round((attendedCount / pastSignups.length) * 100) : 0;
+  const validAttendanceSignups = pastSignups.filter((s: any) => {
+    const myStatus = String(s.MyStatus || s.myStatus || s.status || "").toUpperCase();
+    const isConfirmed = myStatus === "CONFIRMED";
+    const isHostCanceled = !!(s.GameCanceledAt || s.CanceledAt || s.isHostCanceled);
+    return isConfirmed && !isHostCanceled;
+  });
+  const attendedCount = validAttendanceSignups.filter((s: any) => !!(s.check_in_at ?? s.CheckInAt)).length;
+  const attendanceRate = validAttendanceSignups.length > 0 ? Math.round((attendedCount / validAttendanceSignups.length) * 100) : 0;
 
   // ✅ 新增：Quick KPI（本週勝率：本週打幾場/贏幾場）
   const thisWeekMonday = getMonday(new Date());
