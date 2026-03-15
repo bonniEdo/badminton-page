@@ -895,11 +895,6 @@ export default function ProfilePage() {
             >
               <Camera className="w-4 h-4" />
             </button>
-            {isVerified && (
-              <div className="absolute -bottom-1 -right-1 bg-paper rounded-full border-2 border-ink shadow-[4px_4px_0_0_#1A1A1A] p-0.5 z-10">
-                <CheckCircle className="w-7 h-7 text-sage fill-paper" strokeWidth={2.5} />
-              </div>
-            )}
             <input
               ref={avatarInputRef}
               type="file"
@@ -914,7 +909,14 @@ export default function ProfilePage() {
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-stone-900 uppercase">{userInfo?.username}</h2>
-              <span className="text-base font-serif italic text-sage font-bold pt-1">Lv.{Math.floor(level)}</span>
+              <div className="relative inline-flex items-center border-2 border-ink bg-paper px-3 py-1 rounded-md">
+                <span className="text-base font-serif italic text-sage font-bold">Lv.{Math.floor(level)}</span>
+                {isVerified && (
+                  <div className="absolute -top-2 -right-2 bg-white rounded-full border border-blue-500 p-[1px]">
+                    <CheckCircle className="w-4 h-4 text-blue-500 fill-white" strokeWidth={2.8} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
