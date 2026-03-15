@@ -750,14 +750,28 @@ export default function ProfilePage() {
     if (!gameDate) return false;
     return gameDate.getTime() < Date.now();
   });
+
+  const isPastSession = (s: any) => {
+    const gameDate = parseGameDateTime(s?.GameDateTime);
+    return !!gameDate && gameDate.getTime() < Date.now();
+  };
+  const isSessionHostCanceled = (s: any) => !!(s?.GameCanceledAt || s?.CanceledAt || s?.isHostCanceled);
+
   const validAttendanceSignups = pastSignups.filter((s: any) => {
     const myStatus = String(s.MyStatus || s.myStatus || s.status || "").toUpperCase();
     const isConfirmed = myStatus === "CONFIRMED";
-    const isHostCanceled = !!(s.GameCanceledAt || s.CanceledAt || s.isHostCanceled);
+    const isHostCanceled = isSessionHostCanceled(s);
     return isConfirmed && !isHostCanceled;
   });
-  const attendedCount = validAttendanceSignups.filter((s: any) => !!(s.check_in_at ?? s.CheckInAt)).length;
-  const attendanceRate = validAttendanceSignups.length > 0 ? Math.round((attendedCount / validAttendanceSignups.length) * 100) : 0;
+
+  // Hosted games are also valid attendance sessions when they are in the past and not host-canceled.
+  const validHostedAttendanceSessions = myGames.filter((g: any) => isPastSession(g) && !isSessionHostCanceled(g));
+
+  const joinedAttendedCount = validAttendanceSignups.filter((s: any) => !!(s.check_in_at ?? s.CheckInAt)).length;
+  const hostedAttendedCount = validHostedAttendanceSessions.length;
+  const attendanceBaseCount = validAttendanceSignups.length + validHostedAttendanceSessions.length;
+  const attendedCount = joinedAttendedCount + hostedAttendedCount;
+  const attendanceRate = attendanceBaseCount > 0 ? Math.round((attendedCount / attendanceBaseCount) * 100) : 0;
 
   // ✅ 新增：Quick KPI（本週勝率：本週打幾場/贏幾場）
   const thisWeekMonday = getMonday(new Date());
