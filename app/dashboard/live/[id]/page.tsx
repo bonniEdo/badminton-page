@@ -811,7 +811,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
         <div className="flex flex-col items-start w-full min-w-0 gap-0.5 text-paper">
           <div className="flex items-center gap-2 w-full min-w-0 whitespace-nowrap">
             <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
-            <span className="text-[12px] italic text-paper/90">L{Math.floor(p.level)}</span>
+            <span className="text-[12px] italic text-paper/90">L{Math.round(p.level)}</span>
           </div>
           <span title={p.displayName} className="text-[12px] font-bold truncate text-paper/95">{p.displayName}</span>
         </div>
@@ -823,7 +823,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
           <AvatarBadge avatarUrl={p.avatarUrl} name={p.displayName} size="sm" playerUserId={p.userId ?? null} />
           <span className={`text-[14px] font-bold truncate ${isNext ? 'text-stone-700' : 'text-stone-900'}`}>{p.displayName}</span>
         </div>
-        <span className="text-[12px] font-serif italic text-sage opacity-70">L{Math.floor(p.level)}</span>
+        <span className="text-[12px] font-serif italic text-sage opacity-70">L{Math.round(p.level)}</span>
       </div>
     );
   };
@@ -955,7 +955,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                         {p.isHost && <Crown size={12} className="text-amber-500" />}
                     </div>
                     <div className="flex justify-between items-center mt-1">
-                        <span className={`text-[12px] font-bold italic tracking-wider ${isSelected ? 'text-white/80' : 'text-sage'}`}>Lv.{Math.floor(p.level)}</span>
+                        <span className={`text-[12px] font-bold italic tracking-wider ${isSelected ? 'text-white/80' : 'text-sage'}`}>Lv.{Math.round(p.level)}</span>
                         <span className={`text-[12px] font-serif italic ${isSelected ? 'text-white/70' : 'text-stone-500'}`}>{p.games_played} 場</span>
                     </div>
                   </div>
@@ -1048,7 +1048,7 @@ export default function LiveBoard({ params }: { params: Promise<{ id: string }> 
                           <div className="flex flex-col items-start w-full min-w-0 gap-0.5">
                             <div className="flex items-center gap-2 w-full min-w-0 whitespace-nowrap">
                               <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
-                              <span className="text-[12px] italic text-paper/90">L{Math.floor(player.level)}</span>
+                              <span className="text-[12px] italic text-paper/90">L{Math.round(player.level)}</span>
                             </div>
                             <span className="truncate">{player.displayName}</span>
                           </div>

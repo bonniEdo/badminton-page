@@ -382,7 +382,7 @@ export default function LiveViewPage({
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-sage font-serif italic">
-                  Lv.{Math.floor(myPlayer.level)}
+                  Lv.{Math.round(myPlayer.level)}
                 </p>
                 <p className="text-[10px] text-stone-400">
                   已打 {myPlayer.games_played} 場
@@ -584,7 +584,7 @@ export default function LiveViewPage({
                     </span>
                   </div>
                   <span className="text-[10px] text-stone-300 italic font-serif">
-                    Lv.{Math.floor(p.level)}
+                    Lv.{Math.round(p.level)}
                   </span>
                 </div>
               ))}
@@ -723,7 +723,7 @@ function MatchCourtPlayerChip({
     <div className="flex flex-col items-start w-full min-w-0 gap-0.5 text-paper">
       <div className="flex items-center gap-2 w-full min-w-0 whitespace-nowrap">
         <AvatarBadge avatarUrl={player.avatarUrl} name={player.displayName} size="sm" playerUserId={player.userId ?? null} />
-        <span className="text-[12px] italic text-paper/90">L{Math.floor(player.level)}</span>
+        <span className="text-[12px] italic text-paper/90">L{Math.round(player.level)}</span>
       </div>
       <span
         title={player.displayName}
@@ -772,7 +772,7 @@ function PlayerRow({
           {player.games_played} 場
         </span>
         <span className="text-[11px] text-sage italic font-serif font-bold">
-          Lv.{Math.floor(player.level)}
+          Lv.{Math.round(player.level)}
         </span>
       </div>
     </div>

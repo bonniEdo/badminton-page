@@ -64,7 +64,7 @@ export default function AppHeader() {
                 {(userInfo?.verified_matches || 0) >= 3 && <CheckCircle size={12} className="text-[#3B82F6] fill-white" />}
               </div>
               <span className="text-[9px] tracking-[0.08em] text-sage font-bold mt-0.5">
-                {userInfo?.badminton_level ? `Lv.${Math.floor(parseFloat(userInfo.badminton_level))}` : "待診斷"}
+                {userInfo?.badminton_level ? `Lv.${Math.round(parseFloat(userInfo.badminton_level))}` : "待診斷"}
               </span>
             </div>
             <div className="w-9 h-9 rounded-full overflow-hidden neu-inset transition-all">

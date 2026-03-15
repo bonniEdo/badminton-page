@@ -596,7 +596,7 @@ export default function ProfilePage() {
 
   // ✅ 新增：羽球等級 1-18（詳細版）
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
-  const levelInt = clamp(Math.floor(level) || 1, 1, 18);
+  const levelInt = clamp(Math.round(level) || 1, 1, 18);
 
   const getCoachAdviceDetailed = (lv: number) => {
     const adv: Record<number, {
@@ -910,7 +910,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center gap-2 mb-1">
               <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-stone-900 uppercase">{userInfo?.username}</h2>
               <div className="relative inline-flex items-center border-2 border-ink bg-paper px-3 py-1 rounded-md">
-                <span className="text-base font-serif italic text-sage font-bold">Lv.{Math.floor(level)}</span>
+                <span className="text-base font-serif italic text-sage font-bold">Lv.{Math.round(level)}</span>
                 {isVerified && (
                   <div className="absolute -top-2 -right-2 bg-white rounded-full border border-[#3B82F6] p-[1px]">
                     <CheckCircle className="w-4 h-4 text-[#3B82F6] fill-white" strokeWidth={2.8} />

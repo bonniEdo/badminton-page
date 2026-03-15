@@ -137,7 +137,7 @@ export default function PlayerProfileModalHost() {
   );
   const top = trigger.anchorRect.bottom + CARD_OFFSET_Y;
   const arrowX = Math.min(Math.max(anchorCenterX - left, 14), CARD_WIDTH - 14);
-  const levelText = `Lv.${Math.floor(profile?.level || 1)}`;
+  const levelText = `Lv.${Math.round(profile?.level || 1)}`;
   const winRateText =
     typeof profile?.winRate === "number" ? `${profile.winRate}%` : WIN_RATE_PLACEHOLDER;
   const isVerified = (profile?.verifiedMatches || 0) >= 3;
