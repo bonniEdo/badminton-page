@@ -13,7 +13,7 @@ type PublicPlayerProfile = {
   username: string;
   avatarUrl?: string | null;
   level: number;
-  winRate: number;
+  winRate: number | null;
   verifiedMatches: number;
 };
 
@@ -25,6 +25,13 @@ const API_URL =
 
 const CARD_WIDTH = 220;
 const CARD_OFFSET_Y = 10;
+const WIN_RATE_DISPLAY_THRESHOLD = 50;
+
+const parseWinRateForDisplay = (rawWinRate: unknown): number | null => {
+  const numericRate = Number(rawWinRate);
+  if (!Number.isFinite(numericRate)) return null;
+  return numericRate > WIN_RATE_DISPLAY_THRESHOLD ? numericRate : null;
+};
 
 export default function PlayerProfileModalHost() {
   const [isOpen, setIsOpen] = useState(false);
@@ -82,7 +89,7 @@ export default function PlayerProfileModalHost() {
           username: json.data.username,
           avatarUrl: json.data.avatarUrl,
           level: Number(json.data.level || 1),
-          winRate: Number(json.data.winRate || 0),
+          winRate: parseWinRateForDisplay(json.data.winRate),
           verifiedMatches: Number(json.data.verified_matches || 0),
         };
 
@@ -131,7 +138,8 @@ export default function PlayerProfileModalHost() {
   const top = trigger.anchorRect.bottom + CARD_OFFSET_Y;
   const arrowX = Math.min(Math.max(anchorCenterX - left, 14), CARD_WIDTH - 14);
   const levelText = `Lv.${Math.floor(profile?.level || 1)}`;
-  const winRateText = `${profile?.winRate ?? 0}%`;
+  const winRateText =
+    typeof profile?.winRate === "number" ? `${profile.winRate}%` : "-";
   const isVerified = (profile?.verifiedMatches || 0) >= 3;
   const isLoginPrompt = trigger.mode === "login_prompt";
 
