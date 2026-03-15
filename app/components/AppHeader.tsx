@@ -61,7 +61,7 @@ export default function AppHeader() {
             <div className="flex flex-col items-end leading-none">
               <div className="flex items-center gap-0.5">
                 <span className="text-sm text-ink font-bold">{userInfo?.username || "—"}</span>
-                {(userInfo?.verified_matches || 0) >= 3 && <CheckCircle size={12} className="text-sage fill-paper" />}
+                {(userInfo?.verified_matches || 0) >= 3 && <CheckCircle size={12} className="text-[#3B82F6] fill-white" />}
               </div>
               <span className="text-[9px] tracking-[0.08em] text-sage font-bold mt-0.5">
                 {userInfo?.badminton_level ? `Lv.${Math.floor(parseFloat(userInfo.badminton_level))}` : "待診斷"}

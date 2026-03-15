@@ -759,7 +759,7 @@ function PlayerRow({
           )}
         </span>
         {isVerified && (
-          <CheckCircle size={10} className="text-sage fill-paper" />
+          <CheckCircle size={10} className="text-[#3B82F6] fill-white" />
         )}
         {player.isHost && (
           <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded-full font-bold">

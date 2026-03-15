@@ -912,8 +912,8 @@ export default function ProfilePage() {
               <div className="relative inline-flex items-center border-2 border-ink bg-paper px-3 py-1 rounded-md">
                 <span className="text-base font-serif italic text-sage font-bold">Lv.{Math.floor(level)}</span>
                 {isVerified && (
-                  <div className="absolute -top-2 -right-2 bg-white rounded-full border border-blue-500 p-[1px]">
-                    <CheckCircle className="w-4 h-4 text-blue-500 fill-white" strokeWidth={2.8} />
+                  <div className="absolute -top-2 -right-2 bg-white rounded-full border border-[#3B82F6] p-[1px]">
+                    <CheckCircle className="w-4 h-4 text-[#3B82F6] fill-white" strokeWidth={2.8} />
                   </div>
                 )}
               </div>

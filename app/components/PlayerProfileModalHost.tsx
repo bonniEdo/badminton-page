@@ -155,7 +155,7 @@ export default function PlayerProfileModalHost() {
             <div className="flex items-center gap-1.5">
               <p className="text-[14px] font-semibold text-ink truncate">{displayName}</p>
               {!isLoginPrompt && isVerified && (
-                <CheckCircle size={14} className="text-sage fill-paper shrink-0" />
+                <CheckCircle size={14} className="text-[#3B82F6] fill-white shrink-0" />
               )}
             </div>
             {isLoginPrompt ? (
