@@ -188,9 +188,9 @@ export default function RatingWizardPage() {
           <div>
             <div className="mb-14 text-center">
               <span className="text-[11px] tracking-[0.5em] text-sage font-medium uppercase block mb-6 italic">Admission 01</span>
-              <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">病 徵</h2>
+              <h2 className="text-5xl tracking-[0.2em] font-light mb-6 text-stone-800">羽球成癮狀態</h2>
               <div className="w-20 h-[1px] bg-stone-100 mx-auto mb-8"></div>
-              <p className="text-sm text-stone-500 tracking-[0.2em] italic">請如實告知症狀，方便指派球友協助治療</p>
+              <p className="text-sm text-stone-500 tracking-[0.2em] italic">請如實告知球癮，方便指派球友協助治療</p>
             </div>
             <div className="space-y-4">
               {categories.map((cat) => {
