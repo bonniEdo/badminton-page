@@ -25,13 +25,12 @@ const API_URL =
 
 const CARD_WIDTH = 220;
 const CARD_OFFSET_Y = 10;
-const WIN_RATE_DISPLAY_THRESHOLD = 40;
-const WIN_RATE_PLACEHOLDER = "干你屁事哈哈";
+const WIN_RATE_PLACEHOLDER = "--";
 
 const parseWinRateForDisplay = (rawWinRate: unknown): number | null => {
   const numericRate = Number(rawWinRate);
   if (!Number.isFinite(numericRate)) return null;
-  return numericRate > WIN_RATE_DISPLAY_THRESHOLD ? numericRate : null;
+  return Number(numericRate.toFixed(1));
 };
 
 export default function PlayerProfileModalHost() {
@@ -199,7 +198,6 @@ export default function PlayerProfileModalHost() {
     document.body
   );
 }
-
 function StaticAvatar({
   avatarUrl,
   name,
@@ -221,3 +219,4 @@ function StaticAvatar({
     </span>
   );
 }
+
