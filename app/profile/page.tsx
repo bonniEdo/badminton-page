@@ -95,7 +95,7 @@ export default function ProfilePage() {
       const [resUser, resMatches, resSignups, resMyGames] = await Promise.all([
         fetch(`${API_URL}/api/user/me`, { headers }).then(res => res.json()),
         fetch(`${API_URL}/api/match/my-history`, { headers }).then(res => res.json()),
-        fetch(`${API_URL}/api/games/joined`, { headers }).then(res => res.json()),
+        fetch(`${API_URL}/api/games/joined?includePast=1`, { headers }).then(res => res.json()),
         fetch(`${API_URL}/api/games/mygame`, { headers }).then(res => res.json())
       ]);
 
@@ -733,11 +733,24 @@ export default function ProfilePage() {
   const coachDetailed = getCoachAdviceDetailed(levelInt);
   const coachRough = getCoachAdviceRough(levelInt);
 
+  const parseGameDateTime = (rawValue: unknown) => {
+    if (!rawValue) return null;
+    if (rawValue instanceof Date) return Number.isNaN(rawValue.getTime()) ? null : rawValue;
+    const rawText = String(rawValue).trim();
+    if (!rawText) return null;
+    const normalizedText = rawText.includes("T") ? rawText : rawText.replace(" ", "T");
+    const parsed = new Date(normalizedText);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const fallbackParsed = new Date(rawText);
+    return Number.isNaN(fallbackParsed.getTime()) ? null : fallbackParsed;
+  };
+
   const pastSignups = signups.filter((s: any) => {
-    if (!s.GameDateTime) return false;
-    return new Date(s.GameDateTime) < new Date();
+    const gameDate = parseGameDateTime(s.GameDateTime);
+    if (!gameDate) return false;
+    return gameDate.getTime() < Date.now();
   });
-  const attendedCount = pastSignups.filter((s: any) => !!s.check_in_at).length;
+  const attendedCount = pastSignups.filter((s: any) => !!(s.check_in_at ?? s.CheckInAt)).length;
   const attendanceRate = pastSignups.length > 0 ? Math.round((attendedCount / pastSignups.length) * 100) : 0;
 
   // ✅ 新增：Quick KPI（本週勝率：本週打幾場/贏幾場）
@@ -896,7 +909,7 @@ export default function ProfilePage() {
               { label: "對戰勝率", value: `${winRate}%` },
               { label: "揪打次數", value: `${myGames.length}` },
               { label: "掛號次數", value: `${signups.length}` },
-              { label: "出勤率", value: pastSignups.length > 0 ? `${attendanceRate}%` : "—" },
+              { label: "出勤率", value: `${attendanceRate}%` },
             ].map((item, i) => (
               <div key={i} className="bg-white/60 rounded-2xl border border-white shadow-sm p-4 flex flex-col items-center gap-2">
                 <p className="text-2xl md:text-3xl font-black italic text-sage tracking-tight">{item.value}</p>

@@ -7,6 +7,9 @@ import { emitOpenPlayerProfile } from "./playerProfileModalBus";
 
 interface SessionDetailBase {
   id: number;
+  hostId?: number;
+  hostName?: string;
+  hostAvatarUrl?: string | null;
   title: string;
   date: string;
   time: string;
@@ -224,6 +227,14 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
   const canShowActionBlock = !!statusText || canShowActions || canShowHostCopy;
   const hasAddedFriend = (renderSession.friendCount ?? 0) >= 1;
   const liveAction = isHost ? (onHostLive ?? onOpenLive) : onOpenLive;
+  const resolvedHostName = typeof renderSession.hostName === "string" ? renderSession.hostName.trim() : "";
+  const resolvedPhone = typeof renderSession.phone === "string" ? renderSession.phone.trim() : "";
+  const isOnsiteHostContact = resolvedPhone === "現場找主治" || resolvedPhone === "現場找主揪";
+  const contactDisplayText = resolvedPhone && !isOnsiteHostContact
+    ? resolvedPhone
+    : resolvedHostName
+      ? `現場找主揪（${resolvedHostName}）`
+      : "現場找主揪";
   const openPlayerProfile = (e: React.MouseEvent<HTMLButtonElement>, player: { displayName: string; AvatarUrl?: string | null; UserId?: number | null; }) => {
     e.preventDefault();
     e.stopPropagation();
@@ -315,7 +326,7 @@ export default function SessionDetailModal<T extends SessionDetailBase>({
           </p>
         )}
         <p className="flex items-center gap-3 italic">
-          <UserCheck size={14} className="text-sage" /> {renderSession.phone || "現場找主治"}
+          <UserCheck size={14} className="text-sage" /> {contactDisplayText}
         </p>
         <p className="flex items-center gap-3 font-bold text-sage">
           <Banknote size={14} /> 費用: ${renderSession.price}

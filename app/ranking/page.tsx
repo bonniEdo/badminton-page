@@ -81,7 +81,8 @@ const TYPE_TAB_LABEL: Record<RankType, string> = {
   active: "活躍",
   progress: "進步",
 };
-const RANK_TYPES: RankType[] = ["score", "active", "progress"];
+// TEMP: hide progress leaderboard tab for now; keep backend logic for future re-enable.
+const RANK_TYPES: RankType[] = ["score", "active"];
 const GENDER_FILTERS: Array<{ value: GenderFilter; label: string }> = [
   { value: "overall", label: "綜合" },
   { value: "male", label: "男生" },

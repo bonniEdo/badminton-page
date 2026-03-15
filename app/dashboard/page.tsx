@@ -19,6 +19,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "
 // --- 1. 型別定義 ---
 interface Session {
   id: number;
+  hostName?: string;
   title: string;
   date: string;
   time: string;
@@ -138,6 +139,7 @@ export default function Dashboard() {
 
       const mapData = (data: any[]) => (data || []).map((g: any) => ({
         id: g.GameId,
+        hostName: g.hostName ?? g.HostName ?? g.host_name ?? g.HostUsername ?? g.Username ?? "",
         title: g.Title ?? "未命名療程",
         date: (g.GameDateTime ?? "").slice(0, 10), 
         time: (g.GameDateTime ?? "").includes('T') ? g.GameDateTime.split('T')[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
@@ -565,7 +567,7 @@ export default function Dashboard() {
             <div className="space-y-4 text-sm text-ink/75 mb-8">
               <p className="flex items-center gap-3 italic"><Calendar size={14} /> {selectedSession.date} ({selectedSession.time} - {selectedSession.endTime})</p>
               <p className="flex items-center gap-3 italic"><MapPin size={14} /> {selectedSession.location}</p>
-              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage" /> {selectedSession.phone ? selectedSession.phone : "現場找主治"}</p>
+              <p className="flex items-center gap-3 italic"><UserCheck size={14} className="text-sage" /> {(selectedSession.phone && selectedSession.phone !== "現場找主治" && selectedSession.phone !== "現場找主揪") ? selectedSession.phone : selectedSession.hostName ? `現場找主揪（${selectedSession.hostName}）` : "現場找主揪"}</p>
               <p className="flex items-center gap-3 font-bold text-sage"><Banknote size={14} /> 費用: ${selectedSession.price}</p>
             </div>
             {selectedSession.notes && (

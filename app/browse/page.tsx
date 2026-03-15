@@ -18,7 +18,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowserProduction ? "" : "
 
 interface Session {
   id: number; hostId: number; hostName: string; hostAvatarUrl?: string | null; title: string; date: string; time: string; endTime: string;
-  location: string; currentPlayers: number; maxPlayers: number; price: number; notes: string;
+  location: string; currentPlayers: number; maxPlayers: number; price: number; notes: string; phone?: string;
   isExpired: boolean; isHostCanceled?: boolean; friendCount: number; badminton_level?: string; courtCount: number; courtNumber?: string;
 }
 
@@ -97,16 +97,22 @@ export default function Browse() {
 
       const [gamesRes, authMeta] = await Promise.all([gamesResPromise, authMetaPromise]);
       const [resUser, resJoined, resHosted] = authMeta;
+      const fallbackHostName = resUser?.user?.username || "";
+      const fallbackHostAvatarUrl = resUser?.user?.avatarUrl || resUser?.user?.AvatarUrl || null;
 
       let fetchedSessions: Session[] = [];
       if (gamesRes?.success && gamesRes?.data) {
         fetchedSessions = (gamesRes.data || []).map((g: any) => ({
-          id: g.GameId, hostId: g.HostID, hostName: g.hostName, hostAvatarUrl: g.hostAvatarUrl || null, title: g.Title,
+          id: g.GameId,
+          hostId: g.HostID,
+          hostName: g.hostName ?? g.HostName ?? g.host_name ?? g.HostUsername ?? g.Username ?? "",
+          hostAvatarUrl: g.hostAvatarUrl ?? g.HostAvatarUrl ?? g.host_avatar_url ?? g.AvatarUrl ?? null,
+          title: g.Title,
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
           endTime: (g.EndTime ?? "").slice(0, 5), location: g.Location ?? "",
           currentPlayers: Number(g.TotalCount ?? g.CurrentPlayersCount ?? 0),
-          maxPlayers: Number(g.MaxPlayers), price: Number(g.Price), notes: g.Notes || "",
+          maxPlayers: Number(g.MaxPlayers), price: Number(g.Price), notes: g.Notes || "", phone: g.Phone || g.HostContact || "",
           isExpired: !!g.isExpired, isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt), friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
           badminton_level: g.badminton_level || "", courtCount: Number(g.CourtCount || 1),
         }));
@@ -116,8 +122,8 @@ export default function Browse() {
         const hostedSessions: Session[] = (resHosted.data || []).map((g: any) => ({
           id: g.GameId,
           hostId: g.HostID,
-          hostName: g.hostName || "",
-          hostAvatarUrl: g.hostAvatarUrl || null,
+          hostName: g.hostName ?? g.HostName ?? g.host_name ?? g.HostUsername ?? g.Username ?? fallbackHostName,
+          hostAvatarUrl: g.hostAvatarUrl ?? g.HostAvatarUrl ?? g.host_avatar_url ?? g.AvatarUrl ?? fallbackHostAvatarUrl,
           title: g.Title,
           date: (g.GameDateTime ?? "").slice(0, 10),
           time: (g.GameDateTime ?? "").includes("T") ? g.GameDateTime.split("T")[1].slice(0, 5) : g.GameDateTime.slice(11, 16),
@@ -127,6 +133,7 @@ export default function Browse() {
           maxPlayers: Number(g.MaxPlayers),
           price: Number(g.Price),
           notes: g.Notes || "",
+          phone: g.Phone || g.HostContact || "",
           isExpired: !!g.isExpired,
           isHostCanceled: !!(g.CanceledAt || g.GameCanceledAt),
           friendCount: Number(g.MyFriendCount ?? g.myfriendcount ?? 0),
@@ -135,7 +142,21 @@ export default function Browse() {
         }));
         const merged = new Map<number, Session>();
         for (const s of fetchedSessions) merged.set(s.id, s);
-        for (const s of hostedSessions) merged.set(s.id, { ...(merged.get(s.id) || s), ...s });
+        for (const s of hostedSessions) {
+          const prev = merged.get(s.id);
+          if (!prev) {
+            merged.set(s.id, s);
+            continue;
+          }
+          merged.set(s.id, {
+            ...prev,
+            ...s,
+            hostId: s.hostId ?? prev.hostId,
+            hostName: s.hostName || prev.hostName,
+            hostAvatarUrl: s.hostAvatarUrl || prev.hostAvatarUrl || null,
+            phone: s.phone || prev.phone || "",
+          });
+        }
         fetchedSessions = Array.from(merged.values());
       }
 
